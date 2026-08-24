@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UserRole } from '@courthub/shared';
-import { resetMockSession } from '../../../lib/api/mock-server';
+import { handleMockRequest, resetMockSession } from '../../../lib/api/mock-server';
 import { useAuthStore } from '../../../lib/auth/auth-store';
 import { renderApp } from '../../../test/test-utils';
 
@@ -93,5 +93,45 @@ describe('BookingCalendarPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/Đã chọn 1 slot/)).toBeTruthy();
     });
+  });
+  it('G2-FIX: loại chip mà slot không còn AVAILABLE (19:00 bị BOOKED)', async () => {
+    const user = userEvent.setup();
+    renderApp({ route: '/venues/san-pickleball-saigon/book' });
+
+    // Mock: 4 gợi ý nhưng 19:00 ngày đầu tuần đã BOOKED -> còn đúng 3 chip
+    const chipLabels = (await screen.findAllByTestId('ai-suggestion-chip')).map(
+      (chip) => chip.textContent,
+    );
+    expect(chipLabels).toEqual(['18:00', '17:00', '06:00']);
+
+    // Chip hợp lệ đầu tiên vẫn chọn được slot tương ứng
+    const chips = await screen.findAllByTestId('ai-suggestion-chip');
+    await user.click(chips[0]);
+    await waitFor(() => {
+      expect(screen.getByText(/Đã chọn 1 slot/)).toBeTruthy();
+    });
+  });
+
+  it('G2-FIX: ẩn cả dải khi chỉ còn <=1 chip khả dụng', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    // Giữ trước 17:00–20:00 cho sân đang xem -> chỉ còn gợi ý 06:00 là trống
+    await handleMockRequest('/bookings/holds', 'POST', {
+      courtId: 'c-1',
+      date: today,
+      slots: [
+        { startMinute: 1020, endMinute: 1080 },
+        { startMinute: 1080, endMinute: 1140 },
+        { startMinute: 1140, endMinute: 1200 },
+      ],
+    });
+
+    renderApp({ route: '/venues/san-pickleball-saigon/book' });
+    await waitFor(() => {
+      expect(screen.getAllByText('Trống').length).toBeGreaterThan(0);
+    });
+    // Đợi nốt query suggestions kịp resolve (mock latency) rồi mới khẳng định vắng
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(screen.queryByText('💡 Gợi ý cho bạn')).toBeNull();
+    expect(screen.queryByTestId('ai-suggestion-chip')).toBeNull();
   });
 });

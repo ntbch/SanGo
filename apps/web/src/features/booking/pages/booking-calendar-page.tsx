@@ -13,7 +13,7 @@ import { useAuthStore } from '../../../lib/auth/auth-store';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { WeeklyGrid } from '../components/weekly-grid';
 import { useCourtWeeklySlots, useCreateBookingHold } from '../queries';
-import { useAiSuggestedSlots } from '../../ai/queries';
+import { useFilteredAiSuggestions } from '../../ai/filtered-suggestions';
 import { validateContiguousSlots } from '../slot-utils';
 import { validateOpenMatchInput } from '../../matches/match-utils';
 import type { SelectedSlot, TimeSlot } from '../types';
@@ -44,8 +44,9 @@ export function BookingCalendarPage(): ReactElement {
 
   const slotsQuery = useCourtWeeklySlots(activeCourt?.id, fromDate);
   const holdMutation = useCreateBookingHold();
-  // AI-2 (§3.13): dải gợi ý khung giờ theo lịch sử người dùng / giờ vàng.
-  const suggestionsQuery = useAiSuggestedSlots(activeCourt?.id, fromDate);
+  // AI-2 (§3.13) + G2-FIX (t11): chip được lọc theo trạng thái slot hiện tại,
+  // còn lại <=1 chip hợp lệ thì hook trả rỗng -> ẩn cả dải.
+  const aiSuggestions = useFilteredAiSuggestions(activeCourt?.id, fromDate);
 
   // Các slot đang chọn
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
@@ -254,11 +255,11 @@ export function BookingCalendarPage(): ReactElement {
       </div>
 
       {/* Weekly Slot Grid */}
-      {/* Dải gợi ý khung giờ AI-2 (§3.13) — chỉ hiện khi có đề xuất */}
-      {suggestionsQuery.data !== undefined && suggestionsQuery.data.suggestions.length > 0 ? (
+      {/* Dải gợi ý khung giờ AI-2 (§3.13) — đã lọc slot còn trống (t11) */}
+      {aiSuggestions.suggestions.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2">
           <span className="text-sm font-semibold">💡 Gợi ý cho bạn</span>
-          {suggestionsQuery.data.suggestions.map((suggestion) => (
+          {aiSuggestions.suggestions.map((suggestion) => (
             <button
               key={suggestion.label + String(suggestion.startMinute)}
               type="button"

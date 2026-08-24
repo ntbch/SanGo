@@ -51,6 +51,10 @@ let MOCK_AI_CALLS = 0;
 export function resetMockSession(): void {
   sessionEmail = null;
   MOCK_AI_CALLS = 0;
+  // Holds cũng phải reset để các case slot-state không nhiễm nhau (t11).
+  for (const holdId of Array.from(MOCK_HOLDS.keys())) {
+    MOCK_HOLDS.delete(holdId);
+  }
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -845,9 +849,21 @@ export async function handleMockRequest<T>(
       ) {
         // Giả lập trạng thái
         let state: 'AVAILABLE' | 'BOOKED' | 'HELD' | 'MAINTENANCE' | 'PAST' = 'AVAILABLE';
+        if (i === 0 && minute === 1140) state = 'BOOKED'; // 19:00 ngày đầu — kịch bản chip bị lọc (t11)
         if (i === 1 && minute === 540) state = 'BOOKED';
         if (i === 2 && minute === 660) state = 'HELD';
         if (i === 4 && minute === 780) state = 'MAINTENANCE';
+
+        // Hold đang hoạt động chặn slot tương ứng (t11: gợi ý phải đối chiếu)
+        for (const holdEntry of MOCK_HOLDS.values()) {
+          if (holdEntry.courtId !== courtId || holdEntry.date !== dateStr) continue;
+          if (
+            state === 'AVAILABLE' &&
+            holdEntry.slots.some((holdSlot) => holdSlot.startMinute === minute)
+          ) {
+            state = 'HELD';
+          }
+        }
 
         slots.push({
           startMinute: minute,
