@@ -4,6 +4,8 @@
 
 CourtHub giải quyết trọn vẹn quy trình tìm kiếm sân, kiểm tra lịch trống theo thời gian thực, giữ chỗ tạm 10 phút, chống double-booking bằng Database Transaction & Row-level Locking, thanh toán cọc online qua VNPay Sandbox (kèm chế độ Mock fallback), check-in bằng mã đơn và đánh giá chất lượng sân.
 
+**Giai đoạn 2 (nâng cao & AI):** dashboard thống kê chủ sân (doanh thu/lượt đặt theo ngày, xếp hạng sân con — Chart.js), ghép trận mở (chủ đơn công khai "cần ghép X người", đủ người tự khoá), trợ lý đặt sân tiếng Việt bằng tool-use đọc DB thật (không bịa dữ liệu, cần đăng nhập để giữ chỗ) và gợi ý khung giờ cá nhân hoá bằng thống kê lịch sử đặt.
+
 ---
 
 ## 1. Kiến trúc Monorepo
@@ -118,6 +120,7 @@ Mật khẩu dùng chung cho tất cả tài khoản demo: **`Courthub@2026`**
 | `VNPAY_HASH_SECRET` | Nếu dùng VNPay | - | Chuỗi bí mật tạo mã checksum HMAC-SHA512 |
 | `VNPAY_SANDBOX_URL` | Nếu dùng VNPay | `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` | Endpoint cổng thanh toán VNPay Sandbox |
 | `VNPAY_RETURN_URL` | Nếu dùng VNPay | `http://localhost:4000/api/v1/payments/vnpay/callback` | URL callback xử lý kết quả thanh toán |
+| `GEMINI_API_KEY` | Không | - | Khóa Google Gemini cho Trợ lý AI (GĐ2). Bỏ trống → dùng NLU rule-based nội bộ, thoái hoá an toàn khi provider lỗi |
 
 ### Frontend (`apps/web/.env`)
 

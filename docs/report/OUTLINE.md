@@ -55,10 +55,11 @@ và biện pháp tương ứng ở §7.
 Luồng redirect + IPN/callback, chữ ký HMAC-SHA512, sandbox vs production;
 mô hình cọc % do chủ sân cấu hình.
 
-### 2.6 Ứng dụng AI trong sản phẩm (cho GĐ2)
+### 2.6 Ứng dụng AI trong sản phẩm (cho GĐ2) ✅ đã hiện thực
 Tool-use/function-calling chống ảo giác: model chỉ được trả lời từ dữ liệu
 tool call trả về (searchVenues/checkSlots/createHold); provider abstraction
-(Gemini free tier mặc định); kỹ thuật prompt ràng buộc và throttle.
+(Gemini free tier mặc định, chưa cấu hình key → NLU rule-based nội bộ);
+kỹ thuật prompt ràng buộc và throttle.
 
 ### 2.7 Công cụ hỗ trợ quy trình
 Git/GitHub Actions CI; pnpm workspaces; Mermaid cho sơ đồ version-control;
@@ -129,7 +130,7 @@ số tiền + idempotency txnRef UNIQUE; cờ PAYMENT_MODE=mock dự phòng demo
 Venue/Court/Pricing CRUD, check-in QR (§6.3), review, email Resend, cron nhắc
 trận T-2h. Mỗi mục 1–2 đoạn + hình minh hoạ màn hình. **[ĐIỀN SAU]:** ảnh UI.
 
-### 4.6 Ghép trận mở — open match (§3.11)
+### 4.6 Ghép trận mở — open match (§3.11) ✅ đã hiện thực, smoke QA PASS
 Hiện thực trên nền Booking sẵn có: chủ đơn tick công khai "cần ghép X người"
 (isPublicMatch, slotsNeeded) → đơn xuất hiện trong danh sách tìm trận; người khác
 join ghi dòng MatchParticipant tới khi đủ thì matchFull = true khoá một chiều
@@ -139,7 +140,7 @@ Giới hạn thiết kế ghi rõ với hội đồng: phần tiền còn lại 
 chủ đơn ngoài hệ thống, không đưa vào luồng Payment. **[ĐIỀN SAU]:** ảnh màn
 hình tìm trận + số lượt join trong bản demo.
 
-### 4.7 Ứng dụng AI giai đoạn 2 (§3.12–13) ⭐
+### 4.7 Ứng dụng AI giai đoạn 2 (§3.12–13) ⭐ ✅ đã hiện thực, smoke QA PASS
 Luồng POST /ai/chat theo `ai-sequence.mmd`: widget chat → guard đăng nhập +
 hạn mức 20 tin nhắn/giờ/người → adapter Google Gemini (provider abstraction dễ
 thay provider). Kiến trúc tool-use chống ảo giác: model chỉ được trả lời từ dữ
@@ -160,7 +161,11 @@ integration Jest+Postgres docker (hold/convert, callback idempotent, race 2
 request) · E2E Playwright (luồng đặt tới trang thanh toán).
 
 ### 5.2 Kết quả kiểm thử
-Tổng hợp số test, độ phủ, thời gian CI. Ngưỡng chất lượng: CI xanh là điều
+Tổng hợp số test, độ phủ, thời gian CI.
+Số liệu giữa kỳ GĐ2 (QA smoke): API 77 test (66 pass / 11 fail do 1 blocker
+đang hotfix — sinh mã đơn trùng trong transaction khi DB có dữ liệu seed);
+typecheck + lint xanh; smoke HTTP 5/5 kịch bản §3.10–13 PASS trên DB thật.
+**[ĐIỀN SAU]:** cập nhật lại bảng sau hotfix + coverage %, thời gian CI. Ngưỡng chất lượng: CI xanh là điều
 kiện merge; booking flow phải có integration test mới tính là xong.
 **[ĐIỀN SAU]:** bảng số liệu chạy thật (số test, coverage %, thời gian).
 
