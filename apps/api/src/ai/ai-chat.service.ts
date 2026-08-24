@@ -1,3 +1,4 @@
+import { vnToday } from '@courthub/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AiToolsService } from './ai-tools.service';
 import type { NluProvider } from './nlu-provider.interface';
@@ -43,7 +44,7 @@ export class AiChatService {
 
   async chat(message: string, user?: { id: string }): Promise<AiChatResponse> {
     const parsed = await this.nlu.parse(message);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = vnToday();
     const dateHint = parsed.entities.dateHint ?? today;
 
     if (parsed.intent === 'SEARCH_SLOTS') {

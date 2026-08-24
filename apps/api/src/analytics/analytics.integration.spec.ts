@@ -6,6 +6,7 @@
  * Không có DB -> tự bỏ qua để gate vẫn xanh (cùng cơ chế bookings.integration.spec).
  */
 import { ForbiddenException } from '@nestjs/common';
+import { vnToday } from '@courthub/shared';
 import { Test } from '@nestjs/testing';
 import { PrismaClient, type User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
@@ -28,7 +29,8 @@ describe('Owner analytics trên DB thật (integration)', () => {
   let courtB!: string;
 
   /** Hôm nay theo UTC — trùng biên của khoảng thống kê nên luôn nằm trong window. */
-  const today = () => new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
+  // Mốc "hôm nay" theo múi giờ kinh doanh VN — khớp window của buildAnalyticsRange.
+  const today = () => new Date(vnToday() + 'T00:00:00.000Z');
 
   beforeAll(async () => {
     prisma = new PrismaClient();
@@ -165,7 +167,7 @@ describe('Owner analytics trên DB thật (integration)', () => {
     });
     expect(res.series).toHaveLength(3);
     expect(res.series[2]).toEqual({
-      date: new Date().toISOString().slice(0, 10),
+      date: today().toISOString().slice(0, 10),
       bookings: 5,
       revenue: 520_000,
     });

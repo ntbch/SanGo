@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { vnToday } from '@courthub/shared';
 import { Prisma } from '@prisma/client';
 import type { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,11 +19,6 @@ const REVENUE_STATUS_SET: ReadonlySet<string> = new Set(REVENUE_STATUSES);
 
 export const DAY_MS = 86_400_000;
 
-/** Đầu ngày UTC (ms) của một thời điểm. Booking.date là cột DATE -> so khớp theo biên UTC. */
-function utcMidnightMs(d: Date): number {
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
 /** Key YYYY-MM-DD từ DateTime mà Prisma trả về cho cột @db.Date. */
 export function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -33,7 +29,9 @@ export function dayKey(d: Date): string {
  * kèm danh sách key YYYY-MM-DD đầy đủ để zero-fill chuỗi ngày.
  */
 export function buildAnalyticsRange(days: number, now: Date = new Date()) {
-  const toExclusiveMs = utcMidnightMs(now) + DAY_MS;
+  // "Hôm nay" theo Asia/Ho_Chi_Minh (QA t8): lúc 00:00-06:59 ICT vẫn phải gồm
+  // đơn hôm nay; keys vẫn là dải ngày YYYY-MM-DD người dùng chọn trên lịch.
+  const toExclusiveMs = Date.parse(`${vnToday(now)}T00:00:00.000Z`) + DAY_MS;
   const fromMs = toExclusiveMs - days * DAY_MS;
   const keys: string[] = [];
   for (let ms = fromMs; ms < toExclusiveMs; ms += DAY_MS) {

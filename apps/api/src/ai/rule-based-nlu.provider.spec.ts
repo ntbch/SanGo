@@ -43,4 +43,8 @@ describe('RuleBasedNluProvider (AI-1)', () => {
     const parsed = await nlu.parse('sân Saigon còn giờ nào?');
     expect(parsed.entities.query?.toLowerCase()).toContain('saigon');
   });
+  it('QA t8: dateHint theo múi giờ VN — 20:00 UTC ngày 24/8 (= 03:00 ICT 25/8) là "hôm nay" = 2026-08-25', async () => {
+    expect((await nlu.parse('cho mình sân cầu long hôm nay')).entities.dateHint).toBe('2026-08-25');
+    expect((await nlu.parse('dat san 5 mai')).entities.dateHint).toBe('2026-08-26');
+  });
 });

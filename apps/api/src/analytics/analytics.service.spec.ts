@@ -5,12 +5,8 @@
  * xếp hạng topCourts; ownership check được gọi trước khi truy vấn.
  */
 import { ForbiddenException } from '@nestjs/common';
-import {
-  AnalyticsService,
-  buildAnalyticsRange,
-  computeCancelRate,
-  dayKey,
-} from './analytics.service';
+import { vnToday } from '@courthub/shared';
+import { AnalyticsService, buildAnalyticsRange, computeCancelRate } from './analytics.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { VenuesService } from '../venues/venues.service';
 
@@ -24,7 +20,8 @@ const COURT_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 /** Hôm nay theo UTC (dựa trên đồng hồ thật vì service tự lấy new Date()). */
 function todayKey(): string {
-  return dayKey(new Date());
+  // "Hôm nay" theo múi giờ kinh doanh VN — khớp buildAnalyticsRange mọi thời điểm chạy.
+  return vnToday();
 }
 
 /** Dựng 1 dòng groupBy(date,status) giống shape Prisma trả về. */
@@ -46,9 +43,19 @@ describe('buildAnalyticsRange', () => {
     expect(range.toExclusive.toISOString()).toBe('2026-08-25T00:00:00.000Z');
   });
 
-  it('days = 1 -> chỉ hôm nay', () => {
+  it('days = 1 -> chỉ hôm nay (theo ngày VN: 23:59Z là 06:59 sáng hôm sau ICT)', () => {
     const range = buildAnalyticsRange(1, new Date('2026-01-02T23:59:59.000Z'));
-    expect(range.keys).toEqual(['2026-01-02']);
+    expect(range.keys).toEqual(['2026-01-03']);
+  });
+
+  it('QA t8: 23:30+07 của ngày 25/8 -> bucket cuối vẫn là 2026-08-25', () => {
+    const range = buildAnalyticsRange(3, new Date('2026-08-25T16:30:00.000Z'));
+    expect(range.keys).toEqual(['2026-08-23', '2026-08-24', '2026-08-25']);
+  });
+
+  it('QA t8: 01:30 sáng ICT ngày 26/8 -> window PHẢI gồm 2026-08-26 (UTC còn 24->25)', () => {
+    const range = buildAnalyticsRange(3, new Date('2026-08-25T18:30:00.000Z'));
+    expect(range.keys).toEqual(['2026-08-24', '2026-08-25', '2026-08-26']);
   });
 });
 

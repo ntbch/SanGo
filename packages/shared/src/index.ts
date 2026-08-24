@@ -103,4 +103,13 @@ export const SPORT_TYPE_LABELS: Record<SportType, string> = {
   [SportType.TENNIS]: 'Tennis',
 };
 
+/**
+ * Ngày hiện tại (YYYY-MM-DD) theo múi giờ kinh doanh Asia/Ho_Chi_Minh.
+ * "Hôm nay" nghiệp vụ của CourtHub là ngày VN — không dùng biên UTC để tránh
+ * lệch 7 tiếng (QA t8: dashboard mất đơn hôm nay lúc 00:00-06:59 ICT).
+ */
+export function vnToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+}
+
 export * from './schemas';

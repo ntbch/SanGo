@@ -1,3 +1,4 @@
+import { vnToday } from '@courthub/shared';
 import { Injectable } from '@nestjs/common';
 import type { SportTypeValue } from './dto/ai.dto';
 import type { NluEntities, NluProvider, NluResult } from './nlu-provider.interface';
@@ -79,13 +80,13 @@ export function resolveRelativeDate(text: string, now: Date): string | undefined
   const t = text.toLowerCase();
   const day = 86_400_000;
   if (/hôm\s*nay|hôm nay|hom nay|toi nay|tối nay|chieu nay|chiều nay|sáng nay/.test(t)) {
-    return new Date(now.getTime()).toISOString().slice(0, 10);
+    return vnToday(new Date(now.getTime()));
   }
   if (/(ngày\s*)?mai(?!\w)|(ngay\s*)?mai(?!\w)/.test(t)) {
-    return new Date(now.getTime() + day).toISOString().slice(0, 10);
+    return vnToday(new Date(now.getTime() + day));
   }
   if (/mốt|mot(?!\w)|ngày\s*kia|ngay\s*kia/.test(t)) {
-    return new Date(now.getTime() + 2 * day).toISOString().slice(0, 10);
+    return vnToday(new Date(now.getTime() + 2 * day));
   }
   return undefined;
 }

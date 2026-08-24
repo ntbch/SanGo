@@ -1,3 +1,4 @@
+import { vnToday } from '@courthub/shared';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';
@@ -122,7 +123,7 @@ export class AiToolsService {
     if (!court)
       throw new NotFoundException({ message: 'Không tìm thấy sân con', code: 'COURT_NOT_FOUND' });
 
-    const date = opts.date ?? new Date().toISOString().slice(0, 10);
+    const date = opts.date ?? vnToday();
 
     // Histogram theo GIỜ bắt đầu (floor phút/60) từ lịch sử COMPLETED của chính user.
     const historyByHour = new Map<number, number>();
