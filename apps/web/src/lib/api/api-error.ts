@@ -29,6 +29,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
   RESET_TOKEN_STALE: 'Liên kết đặt lại mật khẩu đã hết hạn, hãy yêu cầu liên kết mới.',
   VALIDATION_FAILED: 'Dữ liệu chưa hợp lệ, vui lòng kiểm tra lại.',
   UNAUTHENTICATED: 'Bạn cần đăng nhập để thực hiện thao tác này.',
+  // Booking engine (t6):
+  SLOT_TAKEN: 'Có người vừa đặt nhanh hơn bạn. Vui lòng chọn slot khác.',
+  HOLD_LIMIT: 'Bạn đang có một đơn giữ chỗ. Hãy hoàn tất hoặc huỷ trước khi đặt tiếp.',
+  COURT_MAINTENANCE: 'Sân đang bảo trì, vui lòng chọn sân khác.',
+  SLOTS_NOT_CONTIGUOUS: 'Các slot trong một đơn phải liền kề nhau.',
+  SLOTS_MISALIGNED: 'Slot không khớp độ dài cấu hình của sân.',
+  OUTSIDE_OPENING_HOURS: 'Thời gian chọn nằm ngoài giờ mở cửa của sân.',
   FORBIDDEN_ROLE: 'Bạn không có quyền thực hiện thao tác này.',
 };
 
