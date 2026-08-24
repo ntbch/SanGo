@@ -87,8 +87,12 @@ export const endpoints = {
     detail: (slugOrId: string): string => '/venues/' + seg(slugOrId),
     reviews: (slugOrId: string, query: ReviewsQuery = {}): string =>
       '/venues/' + seg(slugOrId) + '/reviews' + qs(query),
+    /** Sân của owner đăng nhập (mọi trạng thái); ADMIN xem tất cả. */
+    mine: (query: { page?: number; limit?: number } = {}): string => '/venues/mine' + qs(query),
     // Owner:
     create: (): string => '/venues',
+    remove: (id: string): string => '/venues/' + seg(id),
+    removeCourt: (courtId: string): string => '/courts/' + seg(courtId),
     update: (id: string): string => '/venues/' + seg(id),
     addCourt: (venueId: string): string => '/venues/' + seg(venueId) + '/courts',
     updateCourt: (courtId: string): string => '/courts/' + seg(courtId),

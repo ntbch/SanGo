@@ -8,6 +8,10 @@ describe('endpoints — auth', () => {
     expect(endpoints.auth.refresh()).toBe('/auth/refresh');
     expect(endpoints.auth.resetPassword()).toBe('/auth/reset-password');
     expect(endpoints.users.me()).toBe('/users/me');
+    expect(endpoints.venues.mine({ page: 2 })).toBe('/venues/mine?page=2');
+    expect(endpoints.venues.mine()).toBe('/venues/mine');
+    expect(endpoints.venues.remove('v9')).toBe('/venues/v9');
+    expect(endpoints.venues.removeCourt('c7')).toBe('/courts/c7');
   });
 });
 
