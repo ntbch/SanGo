@@ -8,5 +8,6 @@ allowBuilds:
   '@nestjs/core': false
   '@prisma/client': true # cần postinstall tải engine binaries cho migrate/generate
   '@prisma/engines': true
+  '@scarf/scarf': false # chỉ là telemetry, không cần postinstall
   esbuild: false
   prisma: true
