@@ -71,12 +71,230 @@ function requireString(payload: Record<string, unknown>, key: string): string {
   return typeof payload[key] === 'string' ? (payload[key] as string) : '';
 }
 
+/* ------------------------------------------------------------------ */
+/* Dữ liệu sân public cho demo khi VITE_USE_MOCK — khớp shape phản hồi */
+/* của backend t5 (venues.service.ts).                                 */
+/* ------------------------------------------------------------------ */
+
+interface MockVenue {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  lat: number;
+  lng: number;
+  images: string[];
+  amenities: string[];
+  depositPercent: number;
+  openMinute: number;
+  closeMinute: number;
+  ratingAvg?: number;
+  ratingCount?: number;
+  courts: Array<{
+    id: string;
+    name: string;
+    sportType: string;
+    slotMinutes: number;
+    defaultPricePerSlot: number;
+  }>;
+  reviews: Array<{
+    id: string;
+    author: string;
+    rating: number;
+    comment?: string;
+    createdAt: string;
+  }>;
+}
+
+const img = (seed: string): string => `https://picsum.photos/seed/${seed}/800/450`;
+
+export const MOCK_VENUES: MockVenue[] = [
+  {
+    id: 'v-1',
+    name: 'Sân Pickleball Saigon',
+    slug: 'san-pickleball-saigon',
+    address: '12 Nguyễn Văn Bảo, P.4, Q. Gò Vấp, TP.HCM',
+    lat: 10.8205,
+    lng: 106.6894,
+    images: [img('pickle-a'), img('pickle-b'), img('pickle-c')],
+    amenities: ['Toilet', 'Ánh sáng', 'Trạm nước', 'Bãi xe'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.8,
+    ratingCount: 36,
+    courts: [
+      {
+        id: 'c-1',
+        name: 'Sân 1',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+      },
+      {
+        id: 'c-2',
+        name: 'Sân 2',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+      },
+      {
+        id: 'c-3',
+        name: 'Sân 3',
+        sportType: 'FOOTBALL_5',
+        slotMinutes: 90,
+        defaultPricePerSlot: 400000,
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-1',
+        author: 'Minh T.',
+        rating: 5,
+        comment: 'Sân mới, bóng đẹp, staff thân thiện.',
+        createdAt: '12/08/2026',
+      },
+      {
+        id: 'rv-2',
+        author: 'Lan H.',
+        rating: 4,
+        comment: 'Ánh sáng tốt nhưng cuối tuần đông.',
+        createdAt: '02/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-2',
+    name: 'Cụm Cầu lông Thủ Đức',
+    slug: 'cum-cau-long-thu-duc',
+    address: '456 Võ Văn Ngân, P. Bình Thọ, TP. Thủ Đức, TP.HCM',
+    lat: 10.8539,
+    lng: 106.7614,
+    images: [img('badminton-a'), img('badminton-b')],
+    amenities: ['Toilet', 'Phòng tắm', 'Nước uống miễn phí'],
+    depositPercent: 30,
+    openMinute: 300,
+    closeMinute: 1410,
+    ratingAvg: 4.6,
+    ratingCount: 21,
+    courts: [
+      {
+        id: 'c-4',
+        name: 'Sân A1',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+      },
+      {
+        id: 'c-5',
+        name: 'Sân A2',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+      },
+      {
+        id: 'c-6',
+        name: 'Sân Pickle',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 100000,
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-3',
+        author: 'Hoàng N.',
+        rating: 5,
+        comment: 'Sàn BWF chuẩn, giá hợp lý.',
+        createdAt: '19/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-3',
+    name: 'Tennis Bình Thạnh',
+    slug: 'tennis-binh-thanh',
+    address: '78 Ngo Sĩ Liên, P.11, Q. Bình Thạnh, TP.HCM',
+    lat: 10.8017,
+    lng: 106.7066,
+    images: [img('tennis-a'), img('tennis-b'), img('tennis-c'), img('tennis-d')],
+    amenities: ['Toilet', 'Ánh sáng LED', 'Bãi xe'],
+    depositPercent: 50,
+    openMinute: 330,
+    closeMinute: 1380,
+    courts: [
+      {
+        id: 'c-7',
+        name: 'Sân chính',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 350000,
+      },
+    ],
+    reviews: [],
+  },
+];
+
 export async function handleMockRequest<T>(
   path: string,
   method = 'GET',
   body?: unknown,
 ): Promise<T> {
   await delay(MOCK_LATENCY_MS);
+
+  // GET /venues, /venues/:slugOrId và /venues/:slugOrId/reviews — mock public.
+  if (
+    method === 'GET' &&
+    (path === '/venues' || path.startsWith('/venues?') || path.startsWith('/venues/'))
+  ) {
+    const [rawPath, rawQuery = ''] = path.split('?');
+    const search = new URLSearchParams(rawQuery);
+    if (rawPath === '/venues') {
+      const q = (search.get('q') ?? '').trim().toLowerCase();
+      const sportType = search.get('sportType');
+      const page = Math.max(1, Number(search.get('page') ?? '1') || 1);
+      const limit = Math.max(1, Number(search.get('limit') ?? '9') || 9);
+      const filtered = MOCK_VENUES.filter((venue) => {
+        const matchQ =
+          q === '' ||
+          venue.name.toLowerCase().includes(q) ||
+          venue.address.toLowerCase().includes(q);
+        const matchSport =
+          sportType === null ||
+          sportType === '' ||
+          venue.courts.some((court) => court.sportType === sportType);
+        return matchQ && matchSport;
+      });
+      const start = (page - 1) * limit;
+      return {
+        items: filtered.slice(start, start + limit),
+        total: filtered.length,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(filtered.length / limit)),
+      } as T;
+    }
+    const segments = rawPath.split('/').filter((segment) => segment !== '');
+    // segments: ['venues', slugOrId, ('reviews')?]
+    const slugOrId = segments[1];
+    const venue = MOCK_VENUES.find((item) => item.slug === slugOrId || item.id === slugOrId);
+    if (venue === undefined) {
+      throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
+    }
+    if (segments[2] === 'reviews') {
+      const pageNum = Math.max(1, Number(search.get('page') ?? '1') || 1);
+      const size = Math.max(1, Number(search.get('size') ?? '5') || 5);
+      const start = (pageNum - 1) * size;
+      return {
+        items: venue.reviews.slice(start, start + size),
+        total: venue.reviews.length,
+        page: pageNum,
+        size,
+        pages: Math.max(1, Math.ceil(venue.reviews.length / size)),
+      } as T;
+    }
+    return venue as T;
+  }
 
   const payload = (typeof body === 'object' && body !== null ? body : {}) as Record<
     string,
