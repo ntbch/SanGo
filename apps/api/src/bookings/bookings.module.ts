@@ -13,6 +13,6 @@ import { SlotsService } from './slots.service';
   imports: [AuthModule],
   controllers: [CourtSlotsController, BookingsController, OwnerBookingsController],
   providers: [BookingsService, SlotsService, BookingsCronService],
-  exports: [BookingsService], // payments (t7) gọi confirmFromHold trong callback
+  exports: [BookingsService, SlotsService], // payments gọi confirmFromHold; ai gọi week/createHold
 })
 export class BookingsModule {}
