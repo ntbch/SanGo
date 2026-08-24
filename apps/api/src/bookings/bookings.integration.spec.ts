@@ -3,6 +3,9 @@
  * Bắt buộc gồm: race 2 request cùng slot -> 1 thắng / 1 SLOT_TAKEN;
  * hold hết hạn nhả slot; tính tiền cọc theo depositPercent.
  * Không có DB -> tự bỏ qua để gate vẫn xanh.
+ * Nguồn chuỗi kết nối: PrismaClient đọc process.env.DATABASE_URL TRƯỚC (CI export),
+ * nếu không có mới fallback .env cục bộ — không hardcode, không cờ skip riêng.
+ * Probe SELECT 1 ở beforeAll chỉ là safety-net cho máy không có DB nào.
  */
 import { Test } from '@nestjs/testing';
 import { PrismaClient, type User } from '@prisma/client';

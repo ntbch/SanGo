@@ -1,6 +1,9 @@
 /**
  * Integration test CRUD Venue/Court/Pricing + luồng duyệt sân.
  * Chạy với Postgres thật (DATABASE_URL); nếu không có DB -> tự bỏ qua để gate vẫn xanh.
+ * Nguồn chuỗi kết nối: PrismaClient đọc process.env.DATABASE_URL TRƯỚC (CI export),
+ * nếu không có mới fallback .env cục bộ — không hardcode, không cờ skip riêng.
+ * Probe SELECT 1 ở beforeAll chỉ là safety-net cho máy không có DB nào.
  */
 import { Test } from '@nestjs/testing';
 import { BadRequestException, ConflictException } from '@nestjs/common';
