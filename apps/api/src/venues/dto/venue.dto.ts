@@ -37,3 +37,8 @@ export const OwnerVenueListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 export type OwnerVenueListQueryDto = z.infer<typeof OwnerVenueListQuerySchema>;
+export const ReviewsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  size: z.coerce.number().int().min(1).max(50).default(10),
+});
+export type ReviewsQueryDto = z.infer<typeof ReviewsQuerySchema>;

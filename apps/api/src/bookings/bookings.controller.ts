@@ -15,9 +15,11 @@ import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
   CancelBookingSchema,
   CreateHoldSchema,
+  CreateReviewSchema,
   SlotsQuerySchema,
   type CancelBookingDto,
   type CreateHoldDto,
+  type CreateReviewDto,
   type SlotsQueryDto,
 } from './dto/booking.dto';
 import { SlotsService } from './slots.service';
@@ -121,6 +123,29 @@ export class BookingsController {
     @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
   ) {
     return this.bookingsService.refundPreview(id, user);
+  }
+
+  @Post(':id/review')
+  @ApiOperation({
+    summary: 'Khách đánh giá đơn đã COMPLETED — 1 đơn duy nhất 1 review (§3.8)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['rating', 'comment'],
+      properties: {
+        rating: { type: 'integer', minimum: 1, maximum: 5 },
+        comment: { type: 'string', minLength: 4, maxLength: 500 },
+      },
+    },
+  })
+  @ApiResponse({ status: 409, description: 'REVIEW_NOT_ALLOWED | REVIEW_EXISTS' })
+  review(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+    @Body(new ZodValidationPipe(CreateReviewSchema)) dto: CreateReviewDto,
+  ) {
+    return this.bookingsService.createReview(id, user, dto);
   }
 
   @Delete(':id')

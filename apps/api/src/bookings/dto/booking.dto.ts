@@ -27,3 +27,8 @@ export const CancelBookingSchema = z.object({
   reason: z.string().trim().max(300).optional(),
 });
 export type CancelBookingDto = z.infer<typeof CancelBookingSchema>;
+export const CreateReviewSchema = z.object({
+  rating: z.number().int().min(1, 'Chấm từ 1 đến 5 sao').max(5, 'Chấm từ 1 đến 5 sao'),
+  comment: z.string().trim().min(4, 'Nhận xét tối thiểu 4 ký tự').max(500),
+});
+export type CreateReviewDto = z.infer<typeof CreateReviewSchema>;

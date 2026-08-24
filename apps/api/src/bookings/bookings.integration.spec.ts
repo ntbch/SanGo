@@ -49,7 +49,7 @@ describe('Booking engine chống double-booking (integration)', () => {
     const hash = await bcrypt.hash('IntegrationPass1!', 4);
     custA = await prisma.user.create({
       data: {
-        email: `itest-bk-a-${SUFFIX}@courthub.vn`,
+        email: `itbk-a-${SUFFIX}@courthub.vn`,
         passwordHash: hash,
         fullName: 'Cust A',
         role: 'CUSTOMER',
@@ -57,7 +57,7 @@ describe('Booking engine chống double-booking (integration)', () => {
     });
     custB = await prisma.user.create({
       data: {
-        email: `itest-bk-b-${SUFFIX}@courthub.vn`,
+        email: `itbk-b-${SUFFIX}@courthub.vn`,
         passwordHash: hash,
         fullName: 'Cust B',
         role: 'CUSTOMER',
@@ -73,10 +73,10 @@ describe('Booking engine chống double-booking (integration)', () => {
 
   afterAll(async () => {
     if (dbUp && custA && custB) {
-      // Quét TOÀN BỘ user itest-bk-* (gồm rác của những lần chạy crash trước)
+      // Quét TOÀN BỘ user itbk-* (gồm rác của những lần chạy crash trước)
       // và xóa con trước cha để không bao giờ kẹt FK RESTRICT.
       const users = await prisma.user.findMany({
-        where: { email: { contains: 'itest-bk-' } },
+        where: { email: { contains: 'itbk-' } },
         select: { id: true },
       });
       const ids = users.map((u) => u.id);
@@ -103,7 +103,7 @@ describe('Booking engine chống double-booking (integration)', () => {
     const ownerHash = await bcrypt.hash('IntegrationPass1!', 4);
     const owner = await prisma.user.create({
       data: {
-        email: `itest-bk-owner-${SUFFIX}@courthub.vn`,
+        email: `itbk-owner-${SUFFIX}@courthub.vn`,
         passwordHash: ownerHash,
         fullName: 'Owner',
         role: 'OWNER',
@@ -112,7 +112,7 @@ describe('Booking engine chống double-booking (integration)', () => {
     const venue = await prisma.venue.create({
       data: {
         name: 'Itest-BK Venue ' + SUFFIX,
-        slug: 'itest-bk-' + SUFFIX,
+        slug: 'itbk-' + SUFFIX,
         address: 'Test St',
         lat: 10,
         lng: 106,
@@ -331,6 +331,46 @@ describe('Booking engine chống double-booking (integration)', () => {
       slots: [720],
     })) as { holdId: string };
     void strangerHold;
+  });
+
+  it('review §3.8: chỉ COMPLETED + đúng khách + 1 đơn 1 review', async () => {
+    if (!dbUp) return;
+    const mk = async (status: 'COMPLETED' | 'CONFIRMED') =>
+      prisma.booking.create({
+        data: {
+          code: `CH-TST-${SUFFIX}-rev-${status}`,
+          customerId: custA.id,
+          courtId,
+          date: new Date(dstr(tomorrow())),
+          startMinute: 780,
+          endMinute: 840,
+          subtotal: 200_000,
+          depositAmount: 100_000,
+          status,
+        },
+      });
+
+    const done = await mk('COMPLETED');
+    const notDone = await mk('CONFIRMED');
+
+    // Người khác không review hộ
+    await expect(
+      bookings.createReview(done.id, uB(), { rating: 5, comment: 'Trời đẹp lắm' }),
+    ).rejects.toMatchObject({ response: { code: 'BOOKING_FORBIDDEN' } });
+    // Đơn chưa hoàn thành
+    await expect(
+      bookings.createReview(notDone.id, uA(), { rating: 4, comment: 'Chưa chơi mà' }),
+    ).rejects.toMatchObject({ response: { code: 'REVIEW_NOT_ALLOWED' } });
+    // Hợp lệ
+    const rev = await bookings.createReview(done.id, uA(), {
+      rating: 5,
+      comment: 'Sân đẹp, nhân viên vui vẻ',
+    });
+    expect(rev.rating).toBe(5);
+    // Lặp lại -> REVIEW_EXISTS
+    await expect(
+      bookings.createReview(done.id, uA(), { rating: 1, comment: 'Nhầm rồi đánh lại' }),
+    ).rejects.toMatchObject({ response: { code: 'REVIEW_EXISTS' } });
   });
 
   it('cron: booking CONFIRMED qua giờ kết thúc -> COMPLETED', async () => {

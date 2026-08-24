@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, BookingStatus, PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateHoldDto } from './dto/booking.dto';
+import { CreateHoldDto, CreateReviewDto } from './dto/booking.dto';
 import { priceForSlot, roundVnd, slotDateTime } from './pricing.util';
 
 const HOLD_TTL_MINUTES = 10;
@@ -369,5 +369,44 @@ export class BookingsService {
       WHERE "status" = 'CONFIRMED'
         AND ("date"::timestamp AT TIME ZONE 'UTC' + ("endMinute" * interval '1 minute')) < now()`;
     return Number(r);
+  }
+  /** Khách review đơn ĐÃ HOÀN THÀNH — 1 đơn duy nhất 1 review (UNIQUE bookingId chặn cả race). */
+  async createReview(bookingId: string, user: { id: string }, dto: CreateReviewDto) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { court: { select: { venueId: true } } },
+    });
+    if (!booking)
+      throw new NotFoundException({ message: 'Không tìm thấy đơn đặt', code: 'BOOKING_NOT_FOUND' });
+    if (booking.customerId !== user.id) {
+      throw new ForbiddenException({
+        message: 'Chỉ khách trong đơn mới được đánh giá',
+        code: 'BOOKING_FORBIDDEN',
+      });
+    }
+    if (booking.status !== BookingStatus.COMPLETED) {
+      throw new ConflictException({
+        message: 'Chỉ đánh giá được đơn đã hoàn thành (COMPLETED)',
+        code: 'REVIEW_NOT_ALLOWED',
+      });
+    }
+
+    try {
+      return await this.prisma.review.create({
+        data: {
+          bookingId: booking.id,
+          venueId: booking.court.venueId,
+          customerId: user.id,
+          rating: dto.rating,
+          comment: dto.comment,
+        },
+      });
+    } catch (e) {
+      // UNIQUE(bookingId) chặn trường hợp hai request cùng gửi
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException({ message: 'Đơn này đã được đánh giá', code: 'REVIEW_EXISTS' });
+      }
+      throw e;
+    }
   }
 }

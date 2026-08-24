@@ -21,6 +21,8 @@ import { VenuesModule } from './venues.module';
 import { VenuesService } from './venues.service';
 
 const SUFFIX = Date.now().toString(36);
+const dstr = (t: number) => new Date(t).toISOString().slice(0, 10);
+const tomorrow = () => dstr(Date.now() + 86_400_000);
 
 describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
   let prisma: PrismaClient;
@@ -52,7 +54,7 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
     const hash = await bcrypt.hash('IntegrationPass1!', 4);
     ownerA = await prisma.user.create({
       data: {
-        email: 'itest-a-' + SUFFIX + '@courthub.vn',
+        email: 'itven-a-' + SUFFIX + '@courthub.vn',
         passwordHash: hash,
         fullName: 'Owner A',
         role: 'OWNER',
@@ -60,7 +62,7 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
     });
     ownerB = await prisma.user.create({
       data: {
-        email: 'itest-b-' + SUFFIX + '@courthub.vn',
+        email: 'itven-b-' + SUFFIX + '@courthub.vn',
         passwordHash: hash,
         fullName: 'Owner B',
         role: 'OWNER',
@@ -81,7 +83,7 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
       // Quét TOÀN BỘ user itest-* (gồm rác của những lần chạy crash trước)
       // và xóa con trước cha để không bao giờ kẹt FK RESTRICT.
       const users = await prisma.user.findMany({
-        where: { email: { contains: 'itest-' } },
+        where: { email: { contains: 'itven-' } },
         select: { id: true },
       });
       const ids = users.map((u) => u.id);
@@ -238,6 +240,40 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
     await expect(pricing.replaceRules(courtA.id, uA(), overlapping)).rejects.toMatchObject({
       response: { code: 'PRICING_OVERLAP' },
     });
+  });
+
+  it('listReviews public: items + avgRating aggregate', async () => {
+    if (!dbUp) return;
+    const bk = await prisma.booking.create({
+      data: {
+        code: `CH-VREV-${SUFFIX}`,
+        customerId: ownerA.id,
+        courtId: courtA.id,
+        date: new Date(tomorrow() + 'T00:00:00.000Z'),
+        startMinute: 900,
+        endMinute: 960,
+        subtotal: 100_000,
+        depositAmount: 50_000,
+        status: 'COMPLETED',
+      },
+    });
+    await prisma.review.create({
+      data: {
+        bookingId: bk.id,
+        venueId: venueA.id,
+        customerId: ownerA.id,
+        rating: 4,
+        comment: 'Chất lượng tốt',
+      },
+    });
+
+    const list = await venues.listReviews(venueA.slug, { page: 1, size: 10 });
+    expect(list.total).toBe(1);
+    expect(list.items[0].rating).toBe(4);
+    expect(list.avgRating).toBe(4);
+
+    const byUuid = await venues.listReviews(venueA.id, { page: 1, size: 10 });
+    expect(byUuid.total).toBe(1);
   });
 
   it('xóa venue còn court -> VENUE_HAS_COURTS', async () => {

@@ -10,6 +10,7 @@ import { uniqueSlug } from './slug.util';
 import type {
   CreateVenueDto,
   OwnerVenueListQueryDto,
+  ReviewsQueryDto,
   UpdateVenueDto,
   VenueListQueryDto,
 } from './dto/venue.dto';
@@ -170,5 +171,47 @@ export class VenuesService {
       });
     }
     await this.prisma.venue.delete({ where: { id } });
+  }
+  /**
+   * Đánh giá công khai của một sân (đặc tả §3.8) — chỉ venue APPROVED,
+   * nhận cả slug lẫn UUID, kèm điểm trung bình aggregate.
+   */
+  async listReviews(idOrSlug: string, query: ReviewsQueryDto) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+    const venue = await this.prisma.venue.findFirst({
+      where: {
+        OR: [{ slug: idOrSlug }, ...(isUuid ? [{ id: idOrSlug }] : [])],
+        status: 'APPROVED',
+      },
+      select: { id: true },
+    });
+    if (!venue)
+      throw new NotFoundException({ message: 'Không tìm thấy sân', code: 'VENUE_NOT_FOUND' });
+
+    const [agg, items, total] = await Promise.all([
+      this.prisma.review.aggregate({ where: { venueId: venue.id }, _avg: { rating: true } }),
+      this.prisma.review.findMany({
+        where: { venueId: venue.id },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.size,
+        take: query.size,
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          createdAt: true,
+          customer: { select: { fullName: true } },
+        },
+      }),
+      this.prisma.review.count({ where: { venueId: venue.id } }),
+    ]);
+    return {
+      items,
+      total,
+      page: query.page,
+      size: query.size,
+      pages: Math.max(1, Math.ceil(total / query.size)),
+      avgRating: agg._avg.rating ? Math.round(agg._avg.rating * 10) / 10 : null,
+    };
   }
 }

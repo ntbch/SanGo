@@ -16,10 +16,12 @@ import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
   CreateVenueSchema,
   OwnerVenueListQuerySchema,
+  ReviewsQuerySchema,
   UpdateVenueSchema,
   VenueListQuerySchema,
   type CreateVenueDto,
   type OwnerVenueListQueryDto,
+  type ReviewsQueryDto,
   type UpdateVenueDto,
   type VenueListQueryDto,
 } from './dto/venue.dto';
@@ -62,6 +64,17 @@ export class VenuesController {
     @Query(new ZodValidationPipe(OwnerVenueListQuerySchema)) query: OwnerVenueListQueryDto,
   ) {
     return this.venuesService.listMine(user, query);
+  }
+
+  @Get(':idOrSlug/reviews')
+  @ApiOperation({
+    summary: '[Public] Đánh giá của sân: phân trang + điểm trung bình aggregate (§3.8)',
+  })
+  reviews(
+    @Param('idOrSlug') idOrSlug: string,
+    @Query(new ZodValidationPipe(ReviewsQuerySchema)) query: ReviewsQueryDto,
+  ) {
+    return this.venuesService.listReviews(idOrSlug, query);
   }
 
   @Get(':idOrSlug')
