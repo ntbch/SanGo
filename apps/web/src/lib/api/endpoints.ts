@@ -98,6 +98,8 @@ export const endpoints = {
     updateCourt: (courtId: string): string => '/courts/' + seg(courtId),
     /** REPLACE-ALL semantics, idempotent theo contract. */
     replacePricingRules: (courtId: string): string => '/courts/' + seg(courtId) + '/pricing-rules',
+    /** Đọc quy tắc giá hiện tại của sân con. */
+    getPricingRules: (courtId: string): string => '/courts/' + seg(courtId) + '/pricing-rules',
     /** Lịch trống tuần theo sân con. */
     courtSlots: (courtId: string, query: SlotsQuery): string =>
       '/courts/' + seg(courtId) + '/slots' + qs({ ...query, days: query.days ?? 7 }),

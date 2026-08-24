@@ -1,5 +1,12 @@
 import { UserRole } from '@courthub/shared';
-import { LayoutDashboard, MapPinned, ShieldCheck, type LucideIcon } from 'lucide-react';
+import {
+  BarChart3,
+  CalendarDays,
+  LayoutDashboard,
+  MapPinned,
+  ShieldCheck,
+  type LucideIcon,
+} from 'lucide-react';
 
 export interface NavItem {
   to: string;
@@ -14,6 +21,8 @@ const ALL_ROLES: readonly UserRole[] = [UserRole.CUSTOMER, UserRole.OWNER, UserR
 export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: ALL_ROLES },
   { to: '/dashboard/manage', label: 'Quản lý sân', icon: MapPinned, roles: [UserRole.OWNER] },
+  { to: '/dashboard/bookings', label: 'Đơn đặt', icon: CalendarDays, roles: [UserRole.OWNER] },
+  { to: '/dashboard/statistics', label: 'Thống kê', icon: BarChart3, roles: [UserRole.OWNER] },
   {
     to: '/dashboard/admin',
     label: 'Quản trị hệ thống',

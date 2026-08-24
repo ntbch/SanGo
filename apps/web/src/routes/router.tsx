@@ -12,11 +12,15 @@ import { RegisterPage } from '../features/auth/pages/register-page';
 import { restoreSession } from '../features/auth/api';
 import { VenueDetailPage } from '../features/public/pages/venue-detail-page';
 import { VenuesPage } from '../features/public/pages/venues-page';
+import { ApprovalQueuePage } from '../features/admin/pages/approval-queue-page';
+import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
+import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
+import { StatisticsPage } from '../features/owner/pages/statistics-page';
 import { useAuthStore } from '../lib/auth/auth-store';
-import { AdminPage } from '../pages/admin-page';
+
 import { DashboardPage } from '../pages/dashboard-page';
 import { HomePage } from '../pages/home-page';
-import { ManagePage } from '../pages/manage-page';
+
 import { NotFoundPage } from '../pages/not-found-page';
 
 /**
@@ -69,7 +73,23 @@ export function AppRoutes(): ReactElement {
             path="manage"
             element={
               <ProtectedRoute roles={[UserRole.OWNER]}>
-                <ManagePage />
+                <MyVenuesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="bookings"
+            element={
+              <ProtectedRoute roles={[UserRole.OWNER]}>
+                <OwnerBookingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="statistics"
+            element={
+              <ProtectedRoute roles={[UserRole.OWNER]}>
+                <StatisticsPage />
               </ProtectedRoute>
             }
           />
@@ -77,7 +97,7 @@ export function AppRoutes(): ReactElement {
             path="admin"
             element={
               <ProtectedRoute roles={[UserRole.ADMIN]}>
-                <AdminPage />
+                <ApprovalQueuePage />
               </ProtectedRoute>
             }
           />

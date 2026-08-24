@@ -46,7 +46,7 @@ describe('routing + role guards', () => {
     asUser(UserRole.OWNER);
     renderApp({ route: '/dashboard/manage' });
 
-    expect(await screen.findByRole('heading', { name: 'Quản lý sân' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Sân của tôi' })).toBeTruthy();
   });
 
   it('đã đăng nhập vào /login → chuyển tới dashboard', async () => {

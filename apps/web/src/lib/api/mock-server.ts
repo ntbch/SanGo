@@ -80,6 +80,9 @@ interface MockVenue {
   id: string;
   name: string;
   slug: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectReason?: string | null;
+  ownerId?: string;
   address: string;
   lat: number;
   lng: number;
@@ -96,6 +99,7 @@ interface MockVenue {
     sportType: string;
     slotMinutes: number;
     defaultPricePerSlot: number;
+    status?: 'ACTIVE' | 'MAINTENANCE';
   }>;
   reviews: Array<{
     id: string;
@@ -111,6 +115,8 @@ const img = (seed: string): string => `https://picsum.photos/seed/${seed}/800/45
 export const MOCK_VENUES: MockVenue[] = [
   {
     id: 'v-1',
+    status: 'APPROVED',
+    ownerId: 'u-owner',
     name: 'Sân Pickleball Saigon',
     slug: 'san-pickleball-saigon',
     address: '12 Nguyễn Văn Bảo, P.4, Q. Gò Vấp, TP.HCM',
@@ -165,6 +171,8 @@ export const MOCK_VENUES: MockVenue[] = [
   },
   {
     id: 'v-2',
+    status: 'PENDING',
+    ownerId: 'u-owner',
     name: 'Cụm Cầu lông Thủ Đức',
     slug: 'cum-cau-long-thu-duc',
     address: '456 Võ Văn Ngân, P. Bình Thọ, TP. Thủ Đức, TP.HCM',
@@ -212,6 +220,9 @@ export const MOCK_VENUES: MockVenue[] = [
   },
   {
     id: 'v-3',
+    status: 'REJECTED',
+    rejectReason: 'Ảnh chưa rõ mặt sân, vui lòng bổ sung tối thiểu 3 ảnh thật.',
+    ownerId: 'u-owner',
     name: 'Tennis Bình Thạnh',
     slug: 'tennis-binh-thanh',
     address: '78 Ngo Sĩ Liên, P.11, Q. Bình Thạnh, TP.HCM',
@@ -235,12 +246,319 @@ export const MOCK_VENUES: MockVenue[] = [
   },
 ];
 
+/** Map venue mock -> phản hồi listMine của owner (kèm _count.courts). */
+function toOwnerVenue(venue: MockVenue): Record<string, unknown> {
+  return {
+    ...venue,
+    status: venue.status ?? 'APPROVED',
+    depositPercent: venue.depositPercent,
+    rejectReason: venue.rejectReason ?? null,
+    createdAt: new Date().toISOString(),
+    _count: { courts: venue.courts.length },
+  };
+}
+
+/** Map venue mock -> item hàng chờ admin. */
+interface AdminVenueRow extends MockVenue {
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  _count: { courts: number };
+}
+
+function toAdminVenue(venue: MockVenue): AdminVenueRow {
+  return {
+    ...venue,
+    status: venue.status ?? 'APPROVED',
+    createdAt: new Date().toISOString(),
+    _count: { courts: venue.courts.length },
+  };
+}
+
+/** Bảng giá REPLACE-ALL theo court — bộ nhớ tạm của mock. */
+const MOCK_PRICING = new Map<
+  string,
+  Array<{
+    dayType: 'WEEKDAY' | 'WEEKEND';
+    startMinute: number;
+    endMinute: number;
+    pricePerSlot: number;
+  }>
+>();
+
+interface MockOwnerBooking {
+  id: string;
+  code: string;
+  venueId: string;
+  courtName: string;
+  customerName: string;
+  date: string;
+  startMinute: number;
+  endMinute: number;
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  amountPaid: number;
+}
+
+/** Đơn mẫu hôm nay — deterministic để test ổn định. */
+let MOCK_BOOKINGS_CACHE: MockOwnerBooking[] | null = null;
+function today(): string {
+  const now = new Date();
+  return (
+    now.getFullYear() +
+    '-' +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(now.getDate()).padStart(2, '0')
+  );
+}
+function mockOwnerBookings(): MockOwnerBooking[] {
+  if (MOCK_BOOKINGS_CACHE !== null) return MOCK_BOOKINGS_CACHE;
+  const date = today();
+  MOCK_BOOKINGS_CACHE = [
+    {
+      id: 'b-1',
+      code: 'CH-' + date.replace(/-/g, '') + '-0001',
+      venueId: 'v-1',
+      courtName: 'Sân 1',
+      customerName: 'Minh T.',
+      date,
+      startMinute: 360,
+      endMinute: 420,
+      status: 'CONFIRMED',
+      amountPaid: 36000,
+    },
+    {
+      id: 'b-2',
+      code: 'CH-' + date.replace(/-/g, '') + '-0002',
+      venueId: 'v-1',
+      courtName: 'Sân 2',
+      customerName: 'Lan H.',
+      date,
+      startMinute: 540,
+      endMinute: 600,
+      status: 'CONFIRMED',
+      amountPaid: 36000,
+    },
+    {
+      id: 'b-3',
+      code: 'CH-' + date.replace(/-/g, '') + '-0003',
+      venueId: 'v-2',
+      courtName: 'Sân A1',
+      customerName: 'Hoàng N.',
+      date,
+      startMinute: 660,
+      endMinute: 720,
+      status: 'CHECKED_IN',
+      amountPaid: 90000,
+    },
+    {
+      id: 'b-4',
+      code: 'CH-' + date.replace(/-/g, '') + '-0004',
+      venueId: 'v-2',
+      courtName: 'Sân Pickle',
+      customerName: 'Phúc D.',
+      date,
+      startMinute: 780,
+      endMinute: 840,
+      status: 'PENDING_PAYMENT',
+      amountPaid: 0,
+    },
+    {
+      id: 'b-5',
+      code: 'CH-' + date.replace(/-/g, '') + '-0005',
+      venueId: 'v-1',
+      courtName: 'Sân 3',
+      customerName: 'Tuấn K.',
+      date,
+      startMinute: 900,
+      endMinute: 990,
+      status: 'COMPLETED',
+      amountPaid: 400000,
+    },
+  ];
+  return MOCK_BOOKINGS_CACHE;
+}
+
 export async function handleMockRequest<T>(
   path: string,
   method = 'GET',
   body?: unknown,
 ): Promise<T> {
   await delay(MOCK_LATENCY_MS);
+
+  const route = method + ' ' + path;
+
+  const payload = (typeof body === 'object' && body !== null ? body : {}) as Record<
+    string,
+    unknown
+  >;
+
+  // ===================== OWNER / ADMIN mock (t10) =====================
+  const [rawPath0, rawQuery0 = ''] = path.split('?');
+  const search0 = new URLSearchParams(rawQuery0);
+
+  // GET /venues/mine — sân của owner đăng nhập (mọi trạng thái).
+  if (method === 'GET' && rawPath0 === '/venues/mine') {
+    const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
+    const limit = Math.max(1, Number(search0.get('limit') ?? '20') || 20);
+    const rows = MOCK_VENUES.map((venue) => ({ ...toOwnerVenue(venue) }));
+    return {
+      items: rows.slice((page - 1) * limit, page * limit),
+      total: rows.length,
+      page,
+      limit,
+      pages: Math.max(1, Math.ceil(rows.length / limit)),
+    } as T;
+  }
+
+  // CRUD venue của owner.
+  if (method === 'POST' && rawPath0 === '/venues') {
+    const now = Date.now();
+    const created: MockVenue = {
+      id: 'v-' + now.toString(36),
+      status: 'PENDING',
+      ownerId: 'u-owner',
+      name: requireString(payload, 'name'),
+      slug: requireString(payload, 'slug') || 'san-' + now.toString(36),
+      address: requireString(payload, 'address'),
+      lat: typeof payload.lat === 'number' ? payload.lat : 10.78,
+      lng: typeof payload.lng === 'number' ? payload.lng : 106.7,
+      images: Array.isArray(payload.images) ? (payload.images as string[]) : [],
+      amenities: Array.isArray(payload.amenities) ? (payload.amenities as string[]) : [],
+      depositPercent: typeof payload.depositPercent === 'number' ? payload.depositPercent : 30,
+      openMinute: typeof payload.openMinute === 'number' ? payload.openMinute : 360,
+      closeMinute: typeof payload.closeMinute === 'number' ? payload.closeMinute : 1380,
+      courts: [],
+      reviews: [],
+    };
+    MOCK_VENUES.unshift(created);
+    return toOwnerVenue(created) as T;
+  }
+  if ((method === 'PUT' || method === 'DELETE') && rawPath0.startsWith('/venues/')) {
+    const id = rawPath0.split('/')[2];
+    const index = MOCK_VENUES.findIndex((venue) => venue.id === id);
+    if (index === -1) throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
+    if (method === 'DELETE') {
+      MOCK_VENUES.splice(index, 1);
+      return { ok: true } as T;
+    }
+    Object.assign(MOCK_VENUES[index], payload);
+    return toOwnerVenue(MOCK_VENUES[index]) as T;
+  }
+
+  // Sân con: GET/POST /venues/:venueId/courts + PUT/DELETE /courts/:id.
+  if (method === 'GET' && /^\/venues\/[^/]+\/courts$/.test(rawPath0)) {
+    const venueId = rawPath0.split('/')[2];
+    const venue = MOCK_VENUES.find((item) => item.id === venueId || item.slug === venueId);
+    if (venue === undefined) throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
+    return {
+      items: venue.courts.map((court) => ({ ...court, status: (court.status ?? 'ACTIVE') as 'ACTIVE' | 'MAINTENANCE', venueId })),
+    } as T;
+  }
+  if (method === 'POST' && /^\/venues\/[^/]+\/courts$/.test(rawPath0)) {
+    const venueId = rawPath0.split('/')[2];
+    const venue = MOCK_VENUES.find((item) => item.id === venueId);
+    if (venue === undefined) throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
+    const court = {
+      id: 'c-' + Date.now().toString(36),
+      name: requireString(payload, 'name'),
+      sportType: requireString(payload, 'sportType') || 'PICKLEBALL',
+      slotMinutes: typeof payload.slotMinutes === 'number' ? payload.slotMinutes : 60,
+      defaultPricePerSlot:
+        typeof payload.defaultPricePerSlot === 'number' ? payload.defaultPricePerSlot : 100000,
+      status: (typeof payload.status === 'string' ? payload.status : 'ACTIVE') as
+        'ACTIVE' | 'MAINTENANCE',
+    };
+    venue.courts.push(court);
+    return court as T;
+  }
+  if ((method === 'PUT' || method === 'DELETE') && /^\/courts\/[^/]+$/.test(rawPath0)) {
+    const courtId = rawPath0.split('/')[2];
+    for (const venue of MOCK_VENUES) {
+      const index = venue.courts.findIndex((court) => court.id === courtId);
+      if (index !== -1) {
+        if (method === 'DELETE') {
+          venue.courts.splice(index, 1);
+          return { ok: true } as T;
+        }
+        venue.courts[index] = {
+          ...venue.courts[index],
+          ...payload,
+        } as (typeof venue.courts)[number];
+        return venue.courts[index] as T;
+      }
+    }
+    throw new ApiError(404, 'Không tìm thấy sân con', 'COURT_NOT_FOUND');
+  }
+
+  // Bảng giá REPLACE-ALL theo court.
+  if (rawPath0.startsWith('/courts/') && rawPath0.endsWith('/pricing-rules')) {
+    const courtId = rawPath0.split('/')[2];
+    if (method === 'GET') return { rules: MOCK_PRICING.get(courtId) ?? [] } as T;
+    if (method === 'PUT' && Array.isArray(payload.rules)) {
+      MOCK_PRICING.set(courtId, payload.rules as never);
+      return { rules: payload.rules } as T;
+    }
+  }
+
+  // Đơn hàng owner: lọc theo venueId/date/status.
+  if (method === 'GET' && rawPath0 === '/owner/bookings') {
+    let rows = mockOwnerBookings();
+    const venueFilter = search0.get('venueId');
+    const dateFilter = search0.get('date');
+    const statusFilter = search0.get('status');
+    if (venueFilter) rows = rows.filter((row) => row.venueId === venueFilter);
+    if (dateFilter) rows = rows.filter((row) => row.date === dateFilter);
+    if (statusFilter) rows = rows.filter((row) => row.status === statusFilter);
+    return { items: rows, total: rows.length, page: 1, limit: 50, pages: 1 } as T;
+  }
+  if (method === 'POST' && rawPath0 === '/bookings/check-in') {
+    const code = requireString(payload, 'code').trim().toUpperCase();
+    const row = mockOwnerBookings().find((item) => item.code.toUpperCase() === code);
+    if (row === undefined || row.status !== 'CONFIRMED') {
+      throw new ApiError(
+        404,
+        'Mã đơn không hợp lệ hoặc không ở trạng thái chờ check-in.',
+        'INVALID_CHECKIN_CODE',
+      );
+    }
+    row.status = 'CHECKED_IN';
+    return row as T;
+  }
+  if (method === 'POST' && /^\/bookings\/[^/]+\/no-show$/.test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const row = mockOwnerBookings().find((item) => item.id === id);
+    if (row === undefined) throw new ApiError(404, 'Không tìm thấy đơn', 'BOOKING_NOT_FOUND');
+    row.status = 'NO_SHOW';
+    return row as T;
+  }
+  if (method === 'DELETE' && /^\/bookings\/[^/]+$/.test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const row = mockOwnerBookings().find((item) => item.id === id);
+    if (row === undefined) throw new ApiError(404, 'Không tìm thấy đơn', 'BOOKING_NOT_FOUND');
+    row.status = 'CANCELLED';
+    return { ok: true } as T;
+  }
+
+  // Admin: hàng chờ duyệt.
+  if (method === 'GET' && rawPath0 === '/admin/venues') {
+    const status = search0.get('status');
+    const q = (search0.get('q') ?? '').trim().toLowerCase();
+    let rows: AdminVenueRow[] = MOCK_VENUES.map((venue) => toAdminVenue(venue));
+    if (status) rows = rows.filter((venue) => venue.status === status);
+    if (q !== '') rows = rows.filter((venue) => venue.name.toLowerCase().includes(q));
+    return { items: rows, total: rows.length } as T;
+  }
+  if (method === 'POST' && /^\/admin\/venues\/[^/]+\/(approve|reject)$/.test(rawPath0)) {
+    const id = rawPath0.split('/')[3];
+    const venue = MOCK_VENUES.find((item) => item.id === id);
+    if (venue === undefined) throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
+    if (rawPath0.endsWith('/approve')) venue.status = 'APPROVED';
+    else {
+      venue.status = 'REJECTED';
+      venue.rejectReason = requireString(payload, 'reason');
+    }
+    return toAdminVenue(venue) as T;
+  }
 
   // GET /venues, /venues/:slugOrId và /venues/:slugOrId/reviews — mock public.
   if (
@@ -295,12 +613,6 @@ export async function handleMockRequest<T>(
     }
     return venue as T;
   }
-
-  const payload = (typeof body === 'object' && body !== null ? body : {}) as Record<
-    string,
-    unknown
-  >;
-  const route = method + ' ' + path;
 
   switch (route) {
     case 'POST /auth/login': {
