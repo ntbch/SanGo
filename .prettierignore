@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.pnpm-store/
+.tooling-cache/
+.agent-teams/
+pnpm-lock.yaml
+*.md

@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+# Không package nào cần chạy postinstall để hoạt động:
+# - esbuild dùng binary từ optional platform package (@esbuild/linux-x64)
+# - @nestjs/core chỉ có script quảng cáo OpenCollective
+allowBuilds:
+  '@nestjs/core': false
+  esbuild: false
