@@ -13,6 +13,7 @@ import { useAuthStore } from '../../../lib/auth/auth-store';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { WeeklyGrid } from '../components/weekly-grid';
 import { useCourtWeeklySlots, useCreateBookingHold } from '../queries';
+import { useAiSuggestedSlots } from '../../ai/queries';
 import { validateContiguousSlots } from '../slot-utils';
 import { validateOpenMatchInput } from '../../matches/match-utils';
 import type { SelectedSlot, TimeSlot } from '../types';
@@ -43,6 +44,8 @@ export function BookingCalendarPage(): ReactElement {
 
   const slotsQuery = useCourtWeeklySlots(activeCourt?.id, fromDate);
   const holdMutation = useCreateBookingHold();
+  // AI-2 (§3.13): dải gợi ý khung giờ theo lịch sử người dùng / giờ vàng.
+  const suggestionsQuery = useAiSuggestedSlots(activeCourt?.id, fromDate);
 
   // Các slot đang chọn
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
@@ -157,7 +160,7 @@ export function BookingCalendarPage(): ReactElement {
         ...(isPublicMatch ? { isPublicMatch: true, slotsNeeded } : {}),
       });
 
-      navigate(`/thanh-toan/checkout/${hold.id}`);
+      navigate(`/thanh-toan/checkout/${hold.holdId}`);
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -251,6 +254,40 @@ export function BookingCalendarPage(): ReactElement {
       </div>
 
       {/* Weekly Slot Grid */}
+      {/* Dải gợi ý khung giờ AI-2 (§3.13) — chỉ hiện khi có đề xuất */}
+      {suggestionsQuery.data !== undefined && suggestionsQuery.data.suggestions.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2">
+          <span className="text-sm font-semibold">💡 Gợi ý cho bạn</span>
+          {suggestionsQuery.data.suggestions.map((suggestion) => (
+            <button
+              key={suggestion.label + String(suggestion.startMinute)}
+              type="button"
+              data-testid="ai-suggestion-chip"
+              title={suggestion.reason}
+              onClick={() => {
+                const days = slotsQuery.data?.byDate ?? [];
+                for (const day of days) {
+                  const match = day.slots.find(
+                    (slot) =>
+                      slot.startMinute === suggestion.startMinute && slot.state === 'AVAILABLE',
+                  );
+                  if (match !== undefined) {
+                    handleToggleSlot(day.date, match);
+                    return;
+                  }
+                }
+                toast({
+                  variant: 'destructive',
+                  title: 'Khung giờ này không còn trống trong tuần đang xem.',
+                });
+              }}
+              className="rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+            >
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {slotsQuery.isPending ? (
         <Skeleton className="h-96 w-full rounded-xl" />
       ) : slotsQuery.isError ? (

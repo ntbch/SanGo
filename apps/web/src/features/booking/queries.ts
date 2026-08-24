@@ -17,6 +17,7 @@ import type {
   CheckoutResponse,
   CourtWeeklySlotsResponse,
   CreateHoldPayload,
+  CreateHoldResponse,
   PaginatedCustomerBookings,
   RefundPreview,
 } from './types';
@@ -41,7 +42,7 @@ export function useBookingHold(holdId: string | undefined) {
 
 export function useCreateBookingHold() {
   const qc = useQueryClient();
-  return useMutation<BookingHold, Error, CreateHoldPayload>({
+  return useMutation<CreateHoldResponse, Error, CreateHoldPayload>({
     mutationFn: createBookingHold,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['court-slots'] });

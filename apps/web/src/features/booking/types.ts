@@ -36,6 +36,18 @@ export interface CreateHoldPayload {
   slotsNeeded?: number;
 }
 
+/** Phản hồi POST /bookings/holds (và /ai/hold) — khớp contract backend §6.1. */
+export interface CreateHoldResponse {
+  holdId: string;
+  courtId: string;
+  date: string;
+  startMinute: number;
+  endMinute: number;
+  subtotal: number;
+  expiresAt: string;
+  depositPercent: number;
+}
+
 export interface BookingHold {
   id: string;
   courtId: string;

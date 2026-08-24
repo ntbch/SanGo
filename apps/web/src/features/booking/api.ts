@@ -6,6 +6,7 @@ import type {
   CheckoutResponse,
   CourtWeeklySlotsResponse,
   CreateHoldPayload,
+  CreateHoldResponse,
   PaginatedCustomerBookings,
   RefundPreview,
 } from './types';
@@ -20,9 +21,9 @@ export function fetchCourtSlots(
   );
 }
 
-/** Giữ chỗ 10 phút. */
-export function createBookingHold(payload: CreateHoldPayload): Promise<BookingHold> {
-  return apiFetch<BookingHold>(endpoints.bookings.hold(), {
+/** Giữ chỗ 10 phút — trả holdId theo contract §6.1. */
+export function createBookingHold(payload: CreateHoldPayload): Promise<CreateHoldResponse> {
+  return apiFetch<CreateHoldResponse>(endpoints.bookings.hold(), {
     method: 'POST',
     body: payload,
   });
