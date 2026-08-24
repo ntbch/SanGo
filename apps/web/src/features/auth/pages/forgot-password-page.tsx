@@ -1,0 +1,117 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { MailCheck, Trophy } from 'lucide-react';
+import { useState, type ReactElement } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+
+import { APP_NAME } from '@courthub/shared';
+import { Button } from '../../../components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '../../../components/ui/form';
+import { Input } from '../../../components/ui/input';
+import { forgotPassword } from '../api';
+import { forgotPasswordSchema, type ForgotPasswordValues } from '../schemas';
+
+export function ForgotPasswordPage(): ReactElement {
+  const [sentTo, setSentTo] = useState<string | null>(null);
+
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  });
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      await forgotPassword(values);
+      setSentTo(values.email.trim().toLowerCase());
+    } catch {
+      // Không tiết lộ email có tồn tại hay không — luôn hiện thông báo chung.
+      setSentTo(values.email.trim().toLowerCase());
+    }
+  });
+
+  const isSubmitting = form.formState.isSubmitting;
+
+  return (
+    <div className="mx-auto w-full max-w-md py-10">
+      <Card>
+        <CardHeader className="space-y-3">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow">
+            <Trophy className="size-6" aria-hidden />
+          </div>
+          <div className="space-y-1.5">
+            <CardTitle className="text-2xl">Quên mật khẩu {APP_NAME}</CardTitle>
+            <CardDescription>
+              Nhập email đăng ký, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {sentTo === null ? (
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-4" noValidate>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="ban@courthub.vn"
+                          autoComplete="email"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Đang gửi…' : 'Gửi hướng dẫn đặt lại mật khẩu'}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <div className="space-y-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
+              <p className="flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-300">
+                <MailCheck className="size-5" aria-hidden /> Đã gửi email hướng dẫn
+              </p>
+              <p className="text-muted-foreground">
+                Nếu <span className="font-mono">{sentTo}</span> tồn tại trong hệ thống, bạn sẽ nhận
+                được email đặt lại mật khẩu trong ít phút. Kiểm tra cả mục thư rác nhé.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setSentTo(null)}>
+                Gửi lại cho email khác
+              </Button>
+            </div>
+          )}
+
+          <p className="text-center text-sm text-muted-foreground">
+            Nhớ lại mật khẩu rồi?{'  '}
+            <Link
+              to="/login"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Quay lại đăng nhập
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
