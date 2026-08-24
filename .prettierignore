@@ -6,3 +6,4 @@ coverage/
 .agent-teams/
 pnpm-lock.yaml
 *.md
+.env.example
