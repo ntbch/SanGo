@@ -6,6 +6,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { CourtsModule } from './courts/courts.module';
 import { HealthModule } from './health/health.module';
 import { PricingModule } from './pricing/pricing.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { VenuesModule } from './venues/venues.module';
@@ -17,6 +18,7 @@ import { VenuesModule } from './venues/venues.module';
     UsersModule,
     VenuesModule,
     BookingsModule,
+    PaymentsModule,
     CourtsModule,
     PricingModule,
     AdminModule,

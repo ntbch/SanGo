@@ -165,7 +165,7 @@ export class BookingsService {
    */
   async confirmFromHold(
     holdId: string,
-    opts: { txnRef: string; method?: PaymentMethod; amountPaid?: number },
+    opts: { txnRef: string; method?: PaymentMethod; amountPaid?: number; paidInFull?: boolean },
   ) {
     return this.prisma.$transaction(async (tx) => {
       const hold = await tx.bookingHold.findUnique({ where: { id: holdId } });
@@ -209,7 +209,10 @@ export class BookingsService {
         where: { id: hold.courtId },
         include: { venue: { select: { depositPercent: true } } },
       });
-      const depositAmount = roundVnd((hold.subtotal * court.venue.depositPercent) / 100);
+      // Trả đủ thì coi như đã đóng toàn bộ giá trị đơn, ngược lại giữ mức cọc của venue.
+      const depositAmount = opts.paidInFull
+        ? hold.subtotal
+        : roundVnd((hold.subtotal * court.venue.depositPercent) / 100);
 
       // Mã đơn CH-YYYYMMDD-NNNN: count + retry unique violation khi hai callback cùng ngày.
       const d = hold.date;
@@ -254,7 +257,7 @@ export class BookingsService {
         data: {
           bookingId: booking.id,
           amount: opts.amountPaid ?? depositAmount,
-          type: PaymentType.DEPOSIT,
+          type: opts.paidInFull ? PaymentType.FULL : PaymentType.DEPOSIT,
           method: opts.method ?? PaymentMethod.MOCK,
           txnRef: opts.txnRef,
           status: PaymentStatus.PAID,
