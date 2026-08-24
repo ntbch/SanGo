@@ -77,16 +77,27 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
   });
 
   afterAll(async () => {
-    if (dbUp) {
+    if (dbUp && ownerA && ownerB) {
+      // Quét TOÀN BỘ user itest-* (gồm rác của những lần chạy crash trước)
+      // và xóa con trước cha để không bao giờ kẹt FK RESTRICT.
+      const users = await prisma.user.findMany({
+        where: { email: { contains: 'itest-' } },
+        select: { id: true },
+      });
+      const ids = users.map((u) => u.id);
+      await prisma.review.deleteMany({ where: { customer: { id: { in: ids } } } });
+      await prisma.payment.deleteMany({ where: { booking: { customerId: { in: ids } } } });
+      await prisma.booking.deleteMany({ where: { customerId: { in: ids } } });
+      await prisma.bookingHold.deleteMany({ where: { userId: { in: ids } } });
       const owned = await prisma.venue.findMany({
-        where: { ownerId: { in: [ownerA.id, ownerB.id] } },
+        where: { ownerId: { in: ids } },
         select: { id: true },
       });
       const venueIds = owned.map((v) => v.id);
       await prisma.pricingRule.deleteMany({ where: { court: { venueId: { in: venueIds } } } });
       await prisma.court.deleteMany({ where: { venueId: { in: venueIds } } });
       await prisma.venue.deleteMany({ where: { id: { in: venueIds } } });
-      await prisma.user.deleteMany({ where: { email: { startsWith: 'itest-' } } });
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();
   });

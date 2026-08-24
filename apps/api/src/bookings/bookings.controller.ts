@@ -98,19 +98,28 @@ export class BookingsController {
 
   @Get('holds/:id')
   @ApiOperation({ summary: 'Xem lượt giữ chỗ của mình' })
-  getHold(@CurrentUser() user: AuthUser, @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string) {
+  getHold(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+  ) {
     return this.bookingsService.getHold(id, user);
   }
 
   @Delete('holds/:id')
   @ApiOperation({ summary: 'Hủy sớm lượt giữ -> nhả slot ngay' })
-  releaseHold(@CurrentUser() user: AuthUser, @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string) {
+  releaseHold(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+  ) {
     return this.bookingsService.releaseHold(id, user);
   }
 
   @Get(':id/refund-preview')
   @ApiOperation({ summary: 'Xem mức hoàn dự kiến trước khi hủy (>24h:100%, 12–24h:50%, <12h:0%)' })
-  refundPreview(@CurrentUser() user: AuthUser, @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string) {
+  refundPreview(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+  ) {
     return this.bookingsService.refundPreview(id, user);
   }
 

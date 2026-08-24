@@ -9,7 +9,7 @@
  */
 import { Test } from '@nestjs/testing';
 import { PrismaClient, type User } from '@prisma/client';
-import { DayType, PaymentStatus, PaymentType } from '@courthub/shared';
+import { DayType, PaymentStatus, PaymentType, SportType } from '@courthub/shared';
 import * as bcrypt from 'bcryptjs';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -72,29 +72,33 @@ describe('Booking engine chống double-booking (integration)', () => {
   });
 
   afterAll(async () => {
-    if (dbUp) {
-      await prisma.payment.deleteMany({
-        where: { booking: { code: { startsWith: `CH-` } }, txnRef: { contains: SUFFIX } },
-      });
-      await prisma.booking.deleteMany({ where: { code: { contains: SUFFIX } } });
-      await prisma.bookingHold.deleteMany({ where: { userId: { in: [custA.id, custB.id] } } });
-      const v = await prisma.venue.findFirst({
-        where: { slug: { startsWith: 'itest-bk-' } },
+    if (dbUp && custA && custB) {
+      // Quét TOÀN BỘ user itest-bk-* (gồm rác của những lần chạy crash trước)
+      // và xóa con trước cha để không bao giờ kẹt FK RESTRICT.
+      const users = await prisma.user.findMany({
+        where: { email: { contains: 'itest-bk-' } },
         select: { id: true },
       });
-      if (v) {
-        await prisma.pricingRule.deleteMany({ where: { court: { venueId: v.id } } });
-        await prisma.bookingHold.deleteMany({ where: { court: { venueId: v.id } } });
-        await prisma.booking.deleteMany({ where: { court: { venueId: v.id } } });
-        await prisma.court.deleteMany({ where: { venueId: v.id } });
-        await prisma.venue.delete({ where: { id: v.id } });
-      }
-      await prisma.user.deleteMany({ where: { email: { contains: 'itest-bk-' } } });
+      const ids = users.map((u) => u.id);
+      await prisma.review.deleteMany({ where: { customer: { id: { in: ids } } } });
+      await prisma.payment.deleteMany({ where: { booking: { customerId: { in: ids } } } });
+      await prisma.booking.deleteMany({ where: { customerId: { in: ids } } });
+      await prisma.bookingHold.deleteMany({ where: { userId: { in: ids } } });
+      const owned = await prisma.venue.findMany({
+        where: { ownerId: { in: ids } },
+        select: { id: true },
+      });
+      const venueIds = owned.map((v) => v.id);
+      await prisma.pricingRule.deleteMany({ where: { court: { venueId: { in: venueIds } } } });
+      await prisma.court.deleteMany({ where: { venueId: { in: venueIds } } });
+      await prisma.venue.deleteMany({ where: { id: { in: venueIds } } });
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();
   });
 
-  const setupCourt = async () => {
+  /** Fixture: owner + venue APPROVED + court 60' + rule giá tối. */
+  const setupCourt = async (): Promise<void> => {
     if (!dbUp) return;
     const ownerHash = await bcrypt.hash('IntegrationPass1!', 4);
     const owner = await prisma.user.create({
@@ -123,13 +127,12 @@ describe('Booking engine chống double-booking (integration)', () => {
       data: {
         name: 'Itest-BK Court',
         venueId: venue.id,
-        sportType: 'FOOTBALL5',
+        sportType: SportType.FOOTBALL5,
         slotMinutes: 60,
         defaultPricePerSlot: 200_000,
       },
     });
     courtId = court.id;
-    // Rule giá cao giờ tối ngày thường: 17:00-22:00 = 260k
     await prisma.pricingRule.create({
       data: {
         courtId: court.id,
