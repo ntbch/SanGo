@@ -223,48 +223,61 @@ export class BookingsService {
         ? hold.subtotal
         : roundVnd((hold.subtotal * court.venue.depositPercent) / 100);
 
-      // Mã đơn CH-YYYYMMDD-NNNN: count + retry unique violation khi hai callback cùng ngày.
+      // Mã đơn CH-YYYYMMDD-NNNN — hotfix 25P02: cấp phát số thứ tự ATOMIC bằng bảng
+      // đếm booking_code_seq trong CÙNG tx. INSERT ... ON CONFLICT DO UPDATE ...
+      // RETURNING là một statement duy nhất nên Postgres không thể hủy tx vì
+      // unique violation trên code như cơ chế count(prefix)+1 + retry cũ
+      // (sau 25P02 cả transaction đã abort nên retry vô nghĩa).
       const d = hold.date;
       const ymd =
         d.getUTCFullYear().toString() +
         String(d.getUTCMonth() + 1).padStart(2, '0') +
         String(d.getUTCDate()).padStart(2, '0');
       const prefix = `CH-${ymd}-`;
-      const baseSeq = (await tx.booking.count({ where: { code: { startsWith: prefix } } })) + 1;
+      // GREATEST(counter+1, max(mã hiện hữu)+1): chịu cả dữ liệu cũ/mù trước khi
+      // bảng đếm tồn tại (đúng điều kiện QA seed mã không liền kề).
+      const seqRows = await tx.$queryRaw<Array<{ lastSeq: number }>>`
+        INSERT INTO "booking_code_seq" ("date", "lastSeq")
+        VALUES (
+          ${d}::date,
+          GREATEST(
+            1,
+            COALESCE(
+              (SELECT MAX(RIGHT("code", 4)::INT) FROM "bookings" WHERE "code" LIKE ${prefix} || '%'),
+              0
+            ) + 1
+          )
+        )
+        ON CONFLICT ("date") DO UPDATE SET
+          "lastSeq" = GREATEST(
+            "booking_code_seq"."lastSeq" + 1,
+            COALESCE(
+              (SELECT MAX(RIGHT("code", 4)::INT) FROM "bookings" WHERE "code" LIKE ${prefix} || '%'),
+              0
+            ) + 1
+          )
+        RETURNING "lastSeq"`;
+      const code = prefix + String(Number(seqRows[0].lastSeq)).padStart(4, '0');
 
-      let booking: Prisma.BookingGetPayload<{ include: { court: true } }> | null = null;
-      for (let attempt = 0; attempt < 6 && !booking; attempt++) {
-        const code = `${prefix}${String(baseSeq + attempt).padStart(4, '0')}`;
-        try {
-          booking = await tx.booking.create({
-            data: {
-              code,
-              customerId: hold.userId,
-              courtId: hold.courtId,
-              date: hold.date,
-              startMinute: hold.startMinute,
-              endMinute: hold.endMinute,
-              subtotal: hold.subtotal,
-              depositAmount,
-              status: BookingStatus.CONFIRMED,
-              // Ghép trận mở (§3.11): đơn mới luôn chưa đủ người.
-              ...(hold.isPublicMatch
-                ? { isPublicMatch: true, slotsNeeded: hold.slotsNeeded, matchFull: false }
-                : {}),
-            },
-            include: { court: true },
-          });
-        } catch (e) {
-          if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') continue;
-          throw e;
-        }
-      }
-      if (!booking) {
-        throw new ConflictException({
-          message: 'Không sinh được mã đơn, thử lại',
-          code: 'CODE_GENERATION_FAILED',
+      const booking: Prisma.BookingGetPayload<{ include: { court: true } }> =
+        await tx.booking.create({
+          data: {
+            code,
+            customerId: hold.userId,
+            courtId: hold.courtId,
+            date: hold.date,
+            startMinute: hold.startMinute,
+            endMinute: hold.endMinute,
+            subtotal: hold.subtotal,
+            depositAmount,
+            status: BookingStatus.CONFIRMED,
+            // Ghép trận mở (§3.11): đơn mới luôn chưa đủ người.
+            ...(hold.isPublicMatch
+              ? { isPublicMatch: true, slotsNeeded: hold.slotsNeeded, matchFull: false }
+              : {}),
+          },
+          include: { court: true },
         });
-      }
 
       await tx.payment.create({
         data: {

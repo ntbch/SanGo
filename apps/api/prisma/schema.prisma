@@ -257,6 +257,16 @@ model MatchParticipant {
   @@map("match_participants")
 }
 
+/// Bộ đếm cấp phát mã đơn CH-YYYYMMDD-NNNN theo ngày (hotfix 25P02):
+/// INSERT ... ON CONFLICT ("date") DO UPDATE ... RETURNING cấp số ATOMIC
+/// ngay trong tx của confirmFromHold -> không bao giờ đụng độ UNIQUE(code).
+model BookingCodeSeq {
+  date    DateTime @id @db.Date
+  lastSeq Int      @default(0)
+
+  @@map("booking_code_seq")
+}
+
 /// txnRef UNIQUE = idempotency key cho callback cổng thanh toán.
 model Payment {
   id        String        @id @default(uuid()) @db.Uuid
