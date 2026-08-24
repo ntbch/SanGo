@@ -1,0 +1,275 @@
+// CourtHub — Mô hình dữ liệu Prisma (đặc tả thiết kế §5)
+// Quy ước:
+// - ID: UUID.
+// - Tiền: số nguyên VND.
+// - Thời gian chơi: cột 'date' kiểu DATE (đại diện ngày chơi theo giờ VN UTC+7),
+//   kèm startMinute/endMinute = phút tính từ 00:00 giờ Việt Nam -> không lỗi múi giờ.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- enums
+// Giá trị enum trùng khớp 1:1 với package '@courthub/shared'.
+
+enum UserRole {
+  CUSTOMER
+  OWNER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+}
+
+enum VenueStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SportType {
+  FOOTBALL5
+  FOOTBALL7
+  PICKLEBALL
+  BADMINTON
+  TENNIS
+}
+
+enum CourtStatus {
+  ACTIVE
+  MAINTENANCE
+}
+
+enum DayType {
+  WEEKDAY
+  WEEKEND
+}
+
+enum BookingHoldStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentType {
+  DEPOSIT
+  FULL
+  REFUND
+}
+
+enum PaymentMethod {
+  VNPAY
+  MOCK
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ---------------------------------------------------------------- models
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  role         UserRole   @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  refreshTokens RefreshToken[]
+  venues        Venue[]
+  bookings      Booking[]      @relation("BookingCustomer")
+  bookingHolds  BookingHold[]
+  reviews       Review[]
+
+  @@map("users")
+}
+
+/// Refresh token xoay vòng — chỉ lưu tokenHash, không lưu token gốc.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Venue {
+  id             String      @id @default(uuid()) @db.Uuid
+  ownerId        String      @db.Uuid
+  name           String
+  slug           String      @unique
+  address        String
+  lat            Float
+  lng            Float
+  openMinute     Int
+  closeMinute    Int
+  images         String[]
+  amenities      String[]
+  depositPercent Int         @default(30)
+  status         VenueStatus @default(PENDING)
+  rejectReason   String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  owner   User     @relation(fields: [ownerId], references: [id])
+  courts  Court[]
+  reviews Review[]
+
+  @@index([status])
+  @@map("venues")
+}
+
+model Court {
+  id                  String      @id @default(uuid()) @db.Uuid
+  venueId             String      @db.Uuid
+  name                String
+  sportType           SportType
+  /// Độ dài slot: chỉ nhận 60 hoặc 90 (validate ở tầng app/zod).
+  slotMinutes         Int
+  defaultPricePerSlot Int
+  status              CourtStatus @default(ACTIVE)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  venue        Venue         @relation(fields: [venueId], references: [id])
+  pricingRules PricingRule[]
+  bookings     Booking[]
+  holds        BookingHold[]
+
+  @@index([venueId])
+  @@map("courts")
+}
+
+/// Quy tắc giá ghi đè theo khung giờ x loại ngày; trùng đúng khung giờ sẽ bị chặn UNIQUE.
+model PricingRule {
+  id           String   @id @default(uuid()) @db.Uuid
+  courtId      String   @db.Uuid
+  dayType      DayType
+  startMinute  Int
+  endMinute    Int
+  pricePerSlot Int
+  createdAt    DateTime @default(now())
+
+  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@unique([courtId, dayType, startMinute, endMinute])
+  @@index([courtId])
+  @@map("pricing_rules")
+}
+
+/// Giữ chỗ tạm 10 phút khi khách bước vào thanh toán; cron mỗi phút chuyển ACTIVE quá hạn -> EXPIRED.
+model BookingHold {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @db.Uuid
+  courtId     String            @db.Uuid
+  date        DateTime          @db.Date
+  startMinute Int
+  endMinute   Int
+  subtotal    Int
+  expiresAt   DateTime
+  status      BookingHoldStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  court Court @relation(fields: [courtId], references: [id])
+
+  @@index([courtId, date, status])
+  @@index([status, expiresAt])
+  @@map("booking_holds")
+}
+
+model Booking {
+  id            String        @id @default(uuid()) @db.Uuid
+  /// Mã đơn CH-YYYYMMDD-NNNN, sinh ở tầng app.
+  code          String        @unique
+  customerId    String        @db.Uuid
+  courtId       String        @db.Uuid
+  date          DateTime      @db.Date
+  startMinute   Int
+  endMinute     Int
+  subtotal      Int
+  depositAmount Int
+  status        BookingStatus @default(CONFIRMED)
+  cancelledAt   DateTime?
+  cancelReason  String?
+  /// Ghép trận mở (GĐ2): chủ đơn công khai "cần ghép slotsNeeded người".
+  isPublicMatch Boolean?
+  slotsNeeded   Int?
+  matchFull     Boolean?
+  createdAt     DateTime      @default(now())
+
+  customer User      @relation("BookingCustomer", fields: [customerId], references: [id])
+  court    Court     @relation(fields: [courtId], references: [id])
+  payments Payment[]
+  review   Review?
+
+  @@index([courtId, date])
+  @@index([customerId, date])
+  @@map("bookings")
+}
+
+/// txnRef UNIQUE = idempotency key cho callback cổng thanh toán.
+model Payment {
+  id        String        @id @default(uuid()) @db.Uuid
+  bookingId String        @db.Uuid
+  amount    Int
+  type      PaymentType
+  method    PaymentMethod
+  txnRef    String        @unique
+  status    PaymentStatus @default(PENDING)
+  paidAt    DateTime?
+  rawPayload Json?
+  createdAt DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("payments")
+}
+
+/// Mỗi đơn chỉ được đánh giá một lần (bookingId UNIQUE); người đánh giá là khách trong đơn COMPLETED.
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  bookingId  String   @unique @db.Uuid
+  venueId    String   @db.Uuid
+  customerId String   @db.Uuid
+  /// 1..5 — validate range ở tầng app (zod).
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  venue    Venue   @relation(fields: [venueId], references: [id])
+  customer User    @relation(fields: [customerId], references: [id])
+
+  @@index([venueId])
+  @@map("reviews")
+}
