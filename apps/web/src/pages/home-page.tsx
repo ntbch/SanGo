@@ -31,13 +31,8 @@ export function HomePage(): ReactElement {
           <Button size="lg" asChild>
             <Link to="/dashboard">Vào bảng điều khiển</Link>
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            disabled
-            title="Sắp có ở task T8 (trang public danh sách sân)"
-          >
-            Khám phá sân thể thao (sắp ra mắt)
+          <Button size="lg" variant="outline" asChild>
+            <Link to="/venues">Khám phá sân thể thao</Link>
           </Button>
         </div>
         <ul className="mt-8 flex flex-wrap items-center justify-center gap-2">

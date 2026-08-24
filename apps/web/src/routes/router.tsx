@@ -10,6 +10,8 @@ import { ForgotPasswordPage } from '../features/auth/pages/forgot-password-page'
 import { LoginPage } from '../features/auth/pages/login-page';
 import { RegisterPage } from '../features/auth/pages/register-page';
 import { restoreSession } from '../features/auth/api';
+import { VenueDetailPage } from '../features/public/pages/venue-detail-page';
+import { VenuesPage } from '../features/public/pages/venues-page';
 import { useAuthStore } from '../lib/auth/auth-store';
 import { AdminPage } from '../pages/admin-page';
 import { DashboardPage } from '../pages/dashboard-page';
@@ -44,6 +46,8 @@ export function AppRoutes(): ReactElement {
         {/* Khu công khai */}
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="venues" element={<VenuesPage />} />
+          <Route path="venues/:slug" element={<VenueDetailPage />} />
           <Route element={<GuestRoute />}>
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
