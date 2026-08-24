@@ -77,10 +77,13 @@ realtime, mobile native, ví nội bộ…). Giải thích thứ tự ưu tiên 
 demo giữa kỳ.
 
 ### 3.3 Thiết kế dữ liệu — sơ đồ ERD (§5)
-Trình bày `docs/diagrams/erd.mmd`: 9 bảng, khóa/unique/index chính
+Trình bày `docs/diagrams/erd.mmd`: 9 bảng của GĐ1, khóa/unique/index chính
 (Booking(courtId,date), BookingHold(courtId,date,status), Venue(status)).
-Quy ước quan trọng: thời gian chơi = date + startMinute/endMinute giờ VN để
-tránh lỗi múi giờ; ID UUID; tiền số nguyên VND.
+Bổ sung GĐ2: bảng **MatchParticipant** ghi người tham gia ghép trận mở —
+(id, bookingId FK → Booking, userId FK → User, status JOINED|LEFT, createdAt,
+UNIQUE(bookingId, userId)) — cùng cụm 3 trường trên Booking: isPublicMatch,
+slotsNeeded, matchFull. Quy ước quan trọng: thời gian chơi = date +
+startMinute/endMinute giờ VN để tránh lỗi múi giờ; ID UUID; tiền số nguyên VND.
 
 ### 3.4 Kiến trúc tổng thể (§4, §9)
 Sơ đồ `architecture.mmd`: tách frontend/backend/db, monorepo pnpm, các dịch
@@ -126,11 +129,28 @@ số tiền + idempotency txnRef UNIQUE; cờ PAYMENT_MODE=mock dự phòng demo
 Venue/Court/Pricing CRUD, check-in QR (§6.3), review, email Resend, cron nhắc
 trận T-2h. Mỗi mục 1–2 đoạn + hình minh hoạ màn hình. **[ĐIỀN SAU]:** ảnh UI.
 
-### 4.6 Ứng dụng AI giai đoạn 2 (§3.12–13) ⭐
-Kiến trúc tool-use: system prompt ràng buộc, 3 tool nội bộ đọc DB thật, guardrail
-(không tự thanh toán, hạn mức 20 tin/h); AI-2 gợi ý slot bằng SQL aggregate
-histogram không tốn phí API. **[ĐIỀN SAU]:** ví dụ hội thoại thật + tỉ lệ trả
-lời đúng khi thử nghiệm.
+### 4.6 Ghép trận mở — open match (§3.11)
+Hiện thực trên nền Booking sẵn có: chủ đơn tick công khai "cần ghép X người"
+(isPublicMatch, slotsNeeded) → đơn xuất hiện trong danh sách tìm trận; người khác
+join ghi dòng MatchParticipant tới khi đủ thì matchFull = true khoá một chiều
+(không vào/rời nữa); rời trận chỉ được trước khi đủ; chủ đơn hủy đơn → cả trận
+tan và hoàn cọc theo chính sách §6.2. Vòng đời đầy đủ: `match-state.mmd`.
+Giới hạn thiết kế ghi rõ với hội đồng: phần tiền còn lại người tham gia trả
+chủ đơn ngoài hệ thống, không đưa vào luồng Payment. **[ĐIỀN SAU]:** ảnh màn
+hình tìm trận + số lượt join trong bản demo.
+
+### 4.7 Ứng dụng AI giai đoạn 2 (§3.12–13) ⭐
+Luồng POST /ai/chat theo `ai-sequence.mmd`: widget chat → guard đăng nhập +
+hạn mức 20 tin nhắn/giờ/người → adapter Google Gemini (provider abstraction dễ
+thay provider). Kiến trúc tool-use chống ảo giác: model chỉ được trả lời từ dữ
+liệu do 3 tool nội bộ trả về (searchVenues / checkSlots / createHold — mọi câu
+truy vấn slot đều đọc DB thật); guardrail không có tool thanh toán (chỉ tạo
+BookingHold 10 phút), không tiết lộ dữ liệu người khác. Provider lỗi/quá hạn mức
+free tier → phản hồi mượt "hệ thống gợi ý bận, thử lại" — thoái hoá an toàn.
+AI-2 gợi ý khung giờ: dải "Gợi ý cho bạn" suy từ histogram thứ + khung giờ lịch
+sử đặt của người dùng bằng SQL aggregate; người mới chưa có lịch sử → giờ phổ
+biến nhất của sân đó; thuần thống kê, không tốn phí API, không thêm bảng mới.
+**[ĐIỀN SAU]:** ví dụ hội thoại thật + tỉ lệ trả lời đúng khi thử nghiệm.
 
 ## Chương 5 — Kiểm thử và đánh giá chất lượng (§8)
 
@@ -187,7 +207,7 @@ nhân về làm việc với AI pair-programming.
 |---|---|---|
 | 1 | ⬜ Chưa viết | Viết sớm được, ít phụ thuộc code |
 | 2 | ⬜ Chưa viết | Có thể song song với GĐ1 |
-| 3 | 🔶 Một phần | ERD + sơ đồ đã có trong docs/diagrams |
-| 4 | ⬜ Chưa viết | Chờ code GĐ1 ổn định, chèn ảnh/code thật |
+| 3 | 🔶 Một phần | ERD (kèm MatchParticipant GĐ2) + 7 sơ đồ đã có trong docs/diagrams |
+| 4 | 🔶 Dàn ý đủ | Đã điền mục open match + AI GĐ2; chèn ảnh/code thật khi code ổn định |
 | 5 | ⬜ Chưa viết | Chờ chạy test thật điền [ĐIỀN SAU] |
 | 6 | 🔶 Một phần | Deploy.md đã có, chờ URL thật |
