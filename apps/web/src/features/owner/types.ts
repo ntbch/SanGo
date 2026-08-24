@@ -47,6 +47,49 @@ export interface PricingRule {
 export type OwnerBookingStatus =
   'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
+/* ---------------- Thống kê chủ sân — GET /owner/analytics (§3.10) ---------------- */
+
+/** Khớp OwnerAnalyticsSeriesPoint của apps/api/src/analytics/dto/analytics.dto.ts. */
+export interface OwnerAnalyticsPoint {
+  /** YYYY-MM-DD (UTC). */
+  date: string;
+  /** Số đơn MỌI trạng thái phát sinh trong ngày. */
+  bookings: number;
+  /** Doanh thu xác nhận trong ngày (depositAmount của đơn CONFIRMED+). */
+  revenue: number;
+}
+
+/** Khớp OwnerAnalyticsTopCourt — đã sắp giảm dần theo bookings từ backend. */
+export interface OwnerAnalyticsTopCourt {
+  courtId: string;
+  courtName: string;
+  bookings: number;
+  revenue: number;
+}
+
+/** Khớp OwnerAnalyticsSummary của backend. */
+export interface OwnerAnalyticsSummary {
+  revenueConfirmed: number;
+  totalBookings: number;
+  cancelledCount: number;
+  noShowCount: number;
+  /** (cancelled + noShow) / totalBookings, làm tròn 4 chữ số; 0 nếu chưa có đơn. */
+  cancelRate: number;
+}
+
+export interface OwnerAnalyticsResponse {
+  meta: {
+    venueId: string;
+    venueName: string;
+    days: number;
+    from: string;
+    to: string;
+  };
+  summary: OwnerAnalyticsSummary;
+  /** Chuỗi theo ngày ĐỦ độ dài `days`, ngày không có đơn được zero-fill. */
+  series: OwnerAnalyticsPoint[];
+  topCourts: OwnerAnalyticsTopCourt[];
+}
 export interface OwnerBooking {
   id: string;
   code: string;

@@ -378,6 +378,132 @@ function mockOwnerBookings(): MockOwnerBooking[] {
   return MOCK_BOOKINGS_CACHE;
 }
 
+/* ------------------------------------------------------------------ */
+/* Thống kê owner (§3.10): sinh chuỗi ngày deterministic từ seed       */
+/* venueId+days — cùng phiên luôn trả cùng số liệu, test ổn định.      */
+/* ------------------------------------------------------------------ */
+
+/** PRNG mulberry32 khởi tạo từ chuỗi — không phụ thuộc thứ tự gọi. */
+function seededRandom(seed: string): () => number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  let state = h >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Ngày địa phương cách hôm nay n ngày, định dạng YYYY-MM-DD. */
+function isoDaysAgo(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+interface MockAnalyticsPayload {
+  meta: { venueId: string; venueName: string; days: number; from: string; to: string };
+  summary: {
+    revenueConfirmed: number;
+    totalBookings: number;
+    cancelledCount: number;
+    noShowCount: number;
+    cancelRate: number;
+  };
+  series: Array<{ date: string; bookings: number; revenue: number }>;
+  topCourts: Array<{ courtId: string; courtName: string; bookings: number; revenue: number }>;
+}
+
+/** Cache theo 'venueId:days' để nhiều lần gọi trong phiên nhất quán. */
+const MOCK_ANALYTICS = new Map<string, MockAnalyticsPayload>();
+
+function buildMockAnalytics(venueId: string, days: number): MockAnalyticsPayload | null {
+  const venue = MOCK_VENUES.find((item) => item.id === venueId);
+  if (venue === undefined) return null;
+  const cacheKey = venueId + ':' + String(days);
+  const cached = MOCK_ANALYTICS.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const rand = seededRandom(cacheKey);
+  const series: MockAnalyticsPayload['series'] = [];
+  let totalBookings = 0;
+  let totalRevenue = 0;
+  for (let i = days - 1; i >= 0; i--) {
+    const date = isoDaysAgo(i);
+    const weekday = new Date(date + 'T00:00:00').getDay();
+    const weekend = weekday === 0 || weekday === 6;
+    // Cuối tuần cao hơn + dao động dài hạn + nhiễu ngẫu nhiên ổn định.
+    const wave = Math.sin((days - i) / 4.5) * 0.5 + 0.5;
+    const base = weekend ? 6 : 4;
+    const bookings = Math.max(0, Math.round(base * (0.5 + rand()) * (0.55 + wave * 0.9)));
+    const avgPrice = 90000 + Math.floor(rand() * 5) * 30000; // 90k..210k/slot
+    const revenue = bookings * avgPrice;
+    totalBookings += bookings;
+    totalRevenue += revenue;
+    series.push({ date, bookings, revenue });
+  }
+
+  const cancelledCount = Math.round(totalBookings * (0.05 + rand() * 0.06));
+  const noShowCount = Math.round(totalBookings * (0.01 + rand() * 0.03));
+  const combined = totalBookings > 0 ? cancelledCount + noShowCount : 0;
+
+  // Chia đều có trọng số cho các sân con; giữ đúng tổng để khớp summary.
+  const courts =
+    venue.courts.length > 0
+      ? venue.courts.map((court) => ({ id: court.id, name: court.name }))
+      : [{ id: venueId + '-main', name: 'Sân chính' }];
+  const weights = courts.map(() => 0.4 + rand());
+  const weightSum = weights.reduce((acc, value) => acc + value, 0);
+  let leftBookings = totalBookings;
+  let leftRevenue = totalRevenue;
+  const ranked = courts.map((court, index) => {
+    const isLast = index === courts.length - 1;
+    const bookings = isLast
+      ? leftBookings
+      : Math.round((totalBookings * weights[index]) / weightSum);
+    const revenue = isLast ? leftRevenue : Math.round((totalRevenue * weights[index]) / weightSum);
+    leftBookings -= bookings;
+    leftRevenue -= revenue;
+    return { courtId: court.id, courtName: court.name, bookings, revenue };
+  });
+  ranked.sort(
+    (a, b) =>
+      b.bookings - a.bookings || b.revenue - a.revenue || a.courtName.localeCompare(b.courtName),
+  );
+
+  const payload: MockAnalyticsPayload = {
+    meta: {
+      venueId,
+      venueName: venue.name,
+      days,
+      from: series[0]?.date ?? isoDaysAgo(days - 1),
+      to: today(),
+    },
+    summary: {
+      revenueConfirmed: totalRevenue,
+      totalBookings,
+      cancelledCount,
+      noShowCount,
+      cancelRate: totalBookings > 0 ? Math.round((combined / totalBookings) * 10000) / 10000 : 0,
+    },
+    series,
+    topCourts: ranked.filter((row) => row.bookings > 0),
+  };
+  MOCK_ANALYTICS.set(cacheKey, payload);
+  return payload;
+}
+
 interface MockHoldStore {
   id: string;
   courtId: string;
@@ -803,6 +929,21 @@ export async function handleMockRequest<T>(
     if (dateFilter) rows = rows.filter((row) => row.date === dateFilter);
     if (statusFilter) rows = rows.filter((row) => row.status === statusFilter);
     return { items: rows, total: rows.length, page: 1, limit: 50, pages: 1 } as T;
+  }
+  // Thống kê owner (§3.10): venueId bắt buộc, days 1..90 (mặc định 30).
+  if (method === 'GET' && rawPath0 === '/owner/analytics') {
+    const venueId = search0.get('venueId') ?? '';
+    const daysRaw = Number(search0.get('days') ?? '30');
+    const days =
+      Number.isFinite(daysRaw) && daysRaw >= 1 && daysRaw <= 90 ? Math.floor(daysRaw) : 30;
+    if (venueId === '') {
+      throw new ApiError(400, 'venueId là bắt buộc', 'VENUE_ID_REQUIRED');
+    }
+    const payload = buildMockAnalytics(venueId, days);
+    if (payload === null) {
+      throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
+    }
+    return payload as T;
   }
   if (method === 'POST' && rawPath0 === '/bookings/check-in') {
     const code = requireString(payload, 'code').trim().toUpperCase();

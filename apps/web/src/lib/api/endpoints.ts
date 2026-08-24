@@ -59,6 +59,13 @@ export interface OwnerBookingsQuery {
   status?: string;
 }
 
+export interface OwnerAnalyticsQuery {
+  /** Bắt buộc theo contract — UUID cụm sân của chủ đang đăng nhập. */
+  venueId: string;
+  /** Số ngày thống kê tính đến hôm nay; backend chặn 1..90, mặc định 30. */
+  days?: number;
+}
+
 export interface ReviewsQuery {
   page?: number;
   size?: number;
@@ -138,5 +145,7 @@ export const endpoints = {
 
   owner: {
     bookings: (query: OwnerBookingsQuery): string => '/owner/bookings' + qs(query),
+    /** Thống kê cụm sân (§3.10) — venueId bắt buộc, days 1..90 (backend mặc định 30). */
+    analytics: (query: OwnerAnalyticsQuery): string => '/owner/analytics' + qs(query),
   },
 } as const;

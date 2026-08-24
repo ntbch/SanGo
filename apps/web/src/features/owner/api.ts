@@ -1,7 +1,14 @@
 import { apiFetch } from '../../lib/api/client';
 import { endpoints } from '../../lib/api/endpoints';
 
-import type { CourtRow, OwnerBooking, OwnerVenue, Paginated, PricingRule } from './types';
+import type {
+  CourtRow,
+  OwnerAnalyticsResponse,
+  OwnerBooking,
+  OwnerVenue,
+  Paginated,
+  PricingRule,
+} from './types';
 
 /** Payload tạo/sửa venue — khớp CreateVenueSchema của backend. */
 export interface VenueFormPayload {
@@ -88,6 +95,14 @@ export function fetchOwnerBookings(
       status: filters.status,
     }),
   );
+}
+
+/** GET /owner/analytics — thống kê cụm sân theo khoảng days ngày (§3.10). */
+export function fetchOwnerAnalytics(
+  venueId: string,
+  days: number,
+): Promise<OwnerAnalyticsResponse> {
+  return apiFetch<OwnerAnalyticsResponse>(endpoints.owner.analytics({ venueId, days }));
 }
 
 export function checkInByCode(code: string): Promise<OwnerBooking> {

@@ -1,9 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { CourtRow, OwnerBooking, OwnerVenue, Paginated, PricingRule } from './types';
+import type {
+  CourtRow,
+  OwnerAnalyticsResponse,
+  OwnerBooking,
+  OwnerVenue,
+  Paginated,
+  PricingRule,
+} from './types';
 
 import {
   cancelBookingAsOwner,
+  fetchOwnerAnalytics,
   checkInByCode,
   createCourt,
   createVenue,
@@ -52,6 +60,19 @@ export function useOwnerBookings(
   return useQuery({
     queryKey: ['owner', 'bookings', filters],
     queryFn: () => fetchOwnerBookings(filters),
+  });
+}
+
+/** Thống kê cụm sân (§3.10) — venueId rỗng/undefined thì không gọi API. */
+export function useOwnerAnalytics(filters: {
+  venueId?: string;
+  days: number;
+}): ReturnType<typeof useQuery<OwnerAnalyticsResponse>> {
+  const { venueId, days } = filters;
+  return useQuery({
+    queryKey: ['owner', 'analytics', venueId, days],
+    queryFn: () => fetchOwnerAnalytics(venueId as string, days),
+    enabled: venueId !== undefined && venueId !== '',
   });
 }
 
