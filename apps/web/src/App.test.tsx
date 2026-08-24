@@ -1,17 +1,37 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { screen } from '@testing-library/react';
+import { UserRole } from '@courthub/shared';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import App from './App';
+import { resetMockSession } from './lib/api/mock-server';
+import { useAuthStore } from './lib/auth/auth-store';
+import { type AuthUser } from './lib/api/types';
+import { renderApp } from './test/test-utils';
 
-describe('App placeholder', () => {
-  it('hiển thị tiêu đề CourtHub', () => {
-    render(<App />);
-    const heading = screen.getByRole('heading', { level: 1 });
-    expect(heading.textContent).toBe('CourtHub');
+vi.stubEnv('VITE_USE_MOCK', 'true');
+
+const sampleUser: AuthUser = {
+  id: 'u-1',
+  email: 'customer@courthub.vn',
+  fullName: 'Nguyễn Văn Bình',
+  role: UserRole.CUSTOMER,
+};
+
+describe('App smoke', () => {
+  beforeEach(() => {
+    useAuthStore.getState().clearSession();
+    resetMockSession();
   });
 
-  it('liệt kê đủ 5 loại sân từ @courthub/shared', () => {
-    render(<App />);
-    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+  it('chưa đăng nhập truy cập “/” → redirect sang trang đăng nhập', async () => {
+    renderApp({ route: '/' });
+
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập CourtHub' })).toBeTruthy();
+  });
+
+  it('đã đăng nhập truy cập “/” → trang chủ placeholder chào mừng', async () => {
+    useAuthStore.getState().setSession(sampleUser, 'token-test');
+    renderApp({ route: '/' });
+
+    expect(await screen.findByRole('heading', { name: 'CourtHub' })).toBeTruthy();
   });
 });
