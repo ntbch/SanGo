@@ -159,6 +159,16 @@ export const endpoints = {
     open: (query: OpenMatchesQuery = {}): string => '/matches/open' + qs(query),
   },
 
+  ai: {
+    /** [Public] Trợ lý đặt sân tiếng Việt — Bearer tuỳ chọn (§3.12). */
+    chat: (): string => '/ai/chat',
+    /** [Public] Gợi ý khung giờ AI-2 (§3.13). */
+    suggestedSlots: (query: { courtId: string; date?: string }): string =>
+      '/ai/suggested-slots' + qs(query),
+    /** [Bearer bắt buộc] Giữ chỗ 10 phút từ chat — guardrail §3.12. */
+    hold: (): string => '/ai/hold',
+  },
+
   owner: {
     bookings: (query: OwnerBookingsQuery): string => '/owner/bookings' + qs(query),
     /** Thống kê cụm sân (§3.10) — venueId bắt buộc, days 1..90 (backend mặc định 30). */

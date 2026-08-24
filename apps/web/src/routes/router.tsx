@@ -12,6 +12,7 @@ import { RegisterPage } from '../features/auth/pages/register-page';
 import { restoreSession } from '../features/auth/api';
 import { VenueDetailPage } from '../features/public/pages/venue-detail-page';
 import { MatchesPage } from '../features/matches/pages/matches-page';
+import { AiChatWidget } from '../features/ai/components/ai-chat-widget';
 import { VenuesPage } from '../features/public/pages/venues-page';
 import { ApprovalQueuePage } from '../features/admin/pages/approval-queue-page';
 import { BookingCalendarPage } from '../features/booking/pages/booking-calendar-page';
@@ -51,6 +52,8 @@ export function AppRoutes(): ReactElement {
   return (
     <>
       <Toaster />
+      {/* Floating AI assistant — hiển thị toàn app (wireframe 08, §3.12) */}
+      <AiChatWidget />
       <Routes>
         {/* Khu công khai */}
         <Route element={<PublicLayout />}>

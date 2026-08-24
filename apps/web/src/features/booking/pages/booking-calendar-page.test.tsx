@@ -81,4 +81,17 @@ describe('BookingCalendarPage', () => {
     const freshCheckbox = (await screen.findByTestId('open-match-checkbox')) as HTMLInputElement;
     expect(freshCheckbox.checked).toBe(false);
   });
+
+  it('dải gợi ý khung giờ AI hiển thị và chọn được slot trống', async () => {
+    const user = userEvent.setup();
+    renderApp({ route: '/venues/san-pickleball-saigon/book' });
+    const chips = await screen.findAllByTestId('ai-suggestion-chip');
+    expect(chips.length).toBeGreaterThan(0);
+
+    // Chip '18:00' luôn trống trong mock -> bấm là chọn slot tương ứng
+    await user.click(chips[0]);
+    await waitFor(() => {
+      expect(screen.getByText(/Đã chọn 1 slot/)).toBeTruthy();
+    });
+  });
 });

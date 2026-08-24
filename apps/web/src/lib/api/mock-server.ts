@@ -44,9 +44,13 @@ const accounts: MockAccount[] = [
 /** Phiên đăng nhập hiện tại của mock — mô phỏng refresh cookie phía server. */
 let sessionEmail: string | null = null;
 
+/** Số tin nhắn AI đã gửi trong phiên — demo throttle 20 tin/h (§3.12). */
+let MOCK_AI_CALLS = 0;
+
 /** Xoá phiên mock (dùng trong unit test để cách ly trạng thái giữa các case). */
 export function resetMockSession(): void {
   sessionEmail = null;
+  MOCK_AI_CALLS = 0;
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -684,6 +688,13 @@ export async function handleMockRequest<T>(
 ): Promise<T> {
   await delay(MOCK_LATENCY_MS);
 
+  // POST /ai/hold tái dùng nguyên transaction giữ chỗ của bookings (§3.12) —
+  // mock cũng làm vậy: đổi đường dẫn rồi rơi xuống nhánh /bookings/holds.
+  if (method === 'POST' && path.split('?')[0] === '/ai/hold') {
+    path = '/bookings/holds';
+    method = 'POST';
+  }
+
   const route = method + ' ' + path;
 
   const payload = (typeof body === 'object' && body !== null ? body : {}) as Record<
@@ -696,6 +707,109 @@ export async function handleMockRequest<T>(
 
   // ===================== BOOKING & PAYMENTS mock (t11) =====================
   // 1. GET /courts/:courtId/slots?from=YYYY-MM-DD&days=7
+  // ===================== AI assistant mock (§3.12-13) ======================
+  // Đếm lượt chat trong phiên để demo throttle 20/h; resetMockSession xoá.
+  if (method === 'POST' && rawPath0 === '/ai/chat') {
+    const text = requireString(payload, 'message').toLowerCase();
+    MOCK_AI_CALLS += 1;
+    if (MOCK_AI_CALLS > 20 || text.includes('rate-limit-me')) {
+      throw new ApiError(
+        429,
+        'Bạn đã gửi quá nhiều tin nhắn. Thử lại sau ít phút.',
+        'RATE_LIMITED',
+      );
+    }
+
+    const sportHint = text.includes('pickle')
+      ? 'PICKLEBALL'
+      : text.includes('cầu lông') || text.includes('badminton')
+        ? 'BADMINTON'
+        : text.includes('tennis')
+          ? 'TENNIS'
+          : null;
+
+    // Hỏi giờ của một sân đã tìm ở câu trước -> trả slot trống tối nay.
+    const askSlots = /giờ|slot|trống/.test(text) && /(saigon|thủ đức|sân)/.test(text);
+    if (askSlots) {
+      return {
+        intent: 'SEARCH_SLOTS',
+        reply: 'Tối nay còn các khung giờ sau, chạm một khung để giữ chỗ nhé:',
+        toolsUsed: ['searchVenues', 'checkSlots'],
+        data: {
+          slots: {
+            courtId: 'c-1',
+            courtName: 'Sân 1',
+            date: today(),
+            slotMinutes: 60,
+            available: [
+              { label: '18:00–19:00', startMinute: 1080, endMinute: 1140 },
+              { label: '19:00–20:00', startMinute: 1140, endMinute: 1200 },
+              { label: '20:00–21:00', startMinute: 1200, endMinute: 1260 },
+            ],
+          },
+        },
+      } as T;
+    }
+
+    // Tìm sân theo loại môn.
+    if (sportHint !== null || /sân|tìm|đặt/.test(text)) {
+      const venues = MOCK_VENUES.filter((venue) =>
+        sportHint === null ? true : venue.courts.some((court) => court.sportType === sportHint),
+      ).map((venue) => ({
+        venueId: venue.id,
+        name: venue.name,
+        address: venue.address,
+        image: venue.images[0],
+        minPrice:
+          venue.courts.length > 0
+            ? Math.min(...venue.courts.map((court) => court.defaultPricePerSlot))
+            : null,
+        courts: venue.courts.map((court) => ({
+          courtId: court.id,
+          name: court.name,
+          sportType: court.sportType as never,
+          pricePerSlot: court.defaultPricePerSlot,
+          slotMinutes: court.slotMinutes,
+        })),
+      }));
+      return {
+        intent: 'SEARCH_SLOTS',
+        reply:
+          venues.length > 0
+            ? 'Mình tìm được ' + String(venues.length) + ' sân khớp, bạn xem nhé:'
+            : 'Chưa có sân nào khớp yêu cầu của bạn.',
+        toolsUsed: ['searchVenues'],
+        data: { venues },
+      } as T;
+    }
+
+    return {
+      intent: 'FALLBACK',
+      reply: 'Mình giúp tìm sân và xem giờ trống — bạn muốn chơi môn gì nhỉ?',
+      toolsUsed: [],
+      data: {},
+    } as T;
+  }
+
+  // Gợi ý khung giờ AI-2: giờ vàng cố định, deterministic cho test.
+  if (method === 'GET' && rawPath0 === '/ai/suggested-slots') {
+    const date = search0.get('date') ?? today();
+    return {
+      courtId: search0.get('courtId') ?? '',
+      date,
+      suggestions: [
+        {
+          startMinute: 1080,
+          label: '18:00',
+          score: 0.9,
+          reason: 'Giờ vàng — nhiều người thường chơi khung này.',
+        },
+        { startMinute: 1140, label: '19:00', score: 0.75, reason: 'Bạn hay chơi khung tối muộn.' },
+        { startMinute: 1020, label: '17:00', score: 0.6, reason: 'Vừa sức sau giờ làm.' },
+        { startMinute: 360, label: '06:00', score: 0.5, reason: 'Khung sáng sớm thoáng mát.' },
+      ],
+    } as T;
+  }
   if (method === 'GET' && /^\/courts\/[^/]+\/slots/.test(rawPath0)) {
     const courtId = rawPath0.split('/')[2];
     const fromDate = search0.get('from') || new Date().toISOString().slice(0, 10);
@@ -805,7 +919,20 @@ export async function handleMockRequest<T>(
     };
     MOCK_HOLDS.set(holdId, holdObj);
 
-    return holdObj as T;
+    // Contract thật trả holdId + khung giờ liền kề (bookings.service.createHold).
+    const startMinute = slots.length > 0 ? Math.min(...slots.map((s) => s.startMinute)) : 0;
+    const endMinute = slots.length > 0 ? Math.max(...slots.map((s) => s.endMinute)) : 0;
+    return {
+      holdId: holdObj.id,
+      courtId,
+      date,
+      startMinute,
+      endMinute,
+      subtotal,
+      depositPercent,
+      expiresAt,
+      ...(holdObj.isPublicMatch ? { isPublicMatch: true, slotsNeeded: holdObj.slotsNeeded } : {}),
+    } as T;
   }
 
   // 3. GET /bookings/holds/:id
