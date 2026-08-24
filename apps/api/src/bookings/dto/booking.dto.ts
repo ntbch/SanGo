@@ -13,14 +13,32 @@ export type SlotsQueryDto = z.infer<typeof SlotsQuerySchema>;
  * POST /bookings/holds — spec §6.1: {courtId, date, slots[]}.
  * slots = mảng phút BẮT ĐẦU các slot liền kề (vd [1020,1110] cho 2 slot 90').
  */
-export const CreateHoldSchema = z.object({
-  courtId: z.string().uuid('courtId phải là UUID'),
-  date: z.string().regex(DATE_RE, 'date phải là YYYY-MM-DD'),
-  slots: z
-    .array(z.number().int().min(0).max(1439))
-    .min(1, 'Chọn ít nhất một slot')
-    .max(8, 'Tối đa 8 slot liền kề mỗi lần giữ'),
-});
+export const CreateHoldSchema = z
+  .object({
+    courtId: z.string().uuid('courtId phải là UUID'),
+    date: z.string().regex(DATE_RE, 'date phải là YYYY-MM-DD'),
+    slots: z
+      .array(z.number().int().min(0).max(1439))
+      .min(1, 'Chọn ít nhất một slot')
+      .max(8, 'Tối đa 8 slot liền kề mỗi lần giữ'),
+    /// Ghép trận mở (§3.11): chủ đơn chọn công khai "cần ghép X người".
+    isPublicMatch: z.boolean().optional(),
+    slotsNeeded: z
+      .number()
+      .int()
+      .min(1, 'Cần tối thiểu 1 người ghép')
+      .max(10, 'Tối đa 10 người ghép mỗi đơn')
+      .optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.isPublicMatch && !v.slotsNeeded) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['slotsNeeded'],
+        message: 'slotsNeeded (1..10) là bắt buộc khi bật ghép trận mở',
+      });
+    }
+  });
 export type CreateHoldDto = z.infer<typeof CreateHoldSchema>;
 
 export const CancelBookingSchema = z.object({

@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { CourtsModule } from './courts/courts.module';
 import { HealthModule } from './health/health.module';
+import { MatchesModule } from './matches/matches.module';
 import { PricingModule } from './pricing/pricing.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -25,6 +26,7 @@ import { VenuesModule } from './venues/venues.module';
     AdminModule,
     AnalyticsModule,
     HealthModule,
+    MatchesModule,
   ],
 })
 export class AppModule {}

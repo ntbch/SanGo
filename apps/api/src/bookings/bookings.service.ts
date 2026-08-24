@@ -124,6 +124,10 @@ export class BookingsService {
           endMinute,
           subtotal,
           expiresAt: new Date(Date.now() + HOLD_TTL_MINUTES * 60_000),
+          // Ghép trận mở (§3.11): giữ lựa chọn để confirmFromHold copy sang Booking.
+          ...(dto.isPublicMatch
+            ? { isPublicMatch: true, slotsNeeded: dto.slotsNeeded ?? null }
+            : {}),
         },
       });
       return {
@@ -243,6 +247,10 @@ export class BookingsService {
               subtotal: hold.subtotal,
               depositAmount,
               status: BookingStatus.CONFIRMED,
+              // Ghép trận mở (§3.11): đơn mới luôn chưa đủ người.
+              ...(hold.isPublicMatch
+                ? { isPublicMatch: true, slotsNeeded: hold.slotsNeeded, matchFull: false }
+                : {}),
             },
             include: { court: true },
           });
@@ -599,6 +607,134 @@ export class BookingsService {
       page: query.page,
       limit: query.limit,
       pages: Math.max(1, Math.ceil(total / query.limit)),
+    };
+  }
+
+  /* ------------------- Ghép trận mở (open match) — §3.11 ------------------- */
+
+  /**
+   * Tham gia ghép trận của người khác: chặn tự join, trùng join, join khi đã đủ.
+   * Transaction + row lock trên dòng booking để hai người bấm cùng lúc vẫn đếm đúng.
+   */
+  async joinOpenMatch(bookingId: string, user: { id: string; role: string }) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        customerId: true,
+        status: true,
+        isPublicMatch: true,
+        slotsNeeded: true,
+        matchFull: true,
+      },
+    });
+    if (!booking)
+      throw new NotFoundException({ message: 'Không tìm thấy đơn đặt', code: 'BOOKING_NOT_FOUND' });
+    if (booking.customerId === user.id) {
+      throw new BadRequestException({
+        message: 'Bạn là chủ đơn, không cần tự tham gia',
+        code: 'SELF_JOIN_NOT_ALLOWED',
+      });
+    }
+    if (booking.status !== BookingStatus.CONFIRMED || !booking.isPublicMatch) {
+      throw new ConflictException({
+        message: 'Đơn này không mở ghép trận',
+        code: 'JOIN_NOT_ALLOWED',
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${booking.id}::uuid FOR UPDATE`;
+      const fresh = await tx.booking.findUniqueOrThrow({
+        where: { id: booking.id },
+        select: { slotsNeeded: true, matchFull: true },
+      });
+      const joinedCount = await tx.matchParticipant.count({ where: { bookingId: booking.id } });
+      const needed = fresh.slotsNeeded ?? 0;
+      if (fresh.matchFull || joinedCount >= needed) {
+        // Đồng bộ cờ nếu dữ liệu đang lệch (vd người tham gia chưa kịp đánh dấu full).
+        if (!fresh.matchFull && joinedCount >= needed && needed > 0) {
+          await tx.booking.update({ where: { id: booking.id }, data: { matchFull: true } });
+        }
+        throw new ConflictException({ message: 'Đơn đã đủ người ghép', code: 'MATCH_FULL' });
+      }
+
+      try {
+        await tx.matchParticipant.create({ data: { bookingId: booking.id, userId: user.id } });
+      } catch (e) {
+        // UNIQUE(bookingId, userId) chặn join trùng cả trong race.
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          throw new ConflictException({
+            message: 'Bạn đã tham gia đơn này rồi',
+            code: 'ALREADY_JOINED',
+          });
+        }
+        throw e;
+      }
+
+      const matchFull = joinedCount + 1 >= needed;
+      await tx.booking.update({ where: { id: booking.id }, data: { matchFull } });
+      return {
+        bookingId: booking.id,
+        joinedCount: joinedCount + 1,
+        slotsNeeded: fresh.slotsNeeded,
+        matchFull,
+      };
+    });
+  }
+
+  /** Rời ghép trận: xóa bản ghi participant; đơn đang full sẽ tự mở lại chỗ trống. */
+  async leaveOpenMatch(bookingId: string, user: { id: string }) {
+    const key = { bookingId_userId: { bookingId, userId: user.id } };
+    const participant = await this.prisma.matchParticipant.findUnique({ where: key });
+    if (!participant)
+      throw new NotFoundException({ message: 'Bạn chưa tham gia đơn này', code: 'JOIN_NOT_FOUND' });
+
+    await this.prisma.matchParticipant.delete({ where: key });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { slotsNeeded: true, matchFull: true },
+    });
+    let matchFull = booking?.matchFull ?? false;
+    if (booking?.matchFull && (booking.slotsNeeded ?? 0) > 0) {
+      const remaining = await this.prisma.matchParticipant.count({ where: { bookingId } });
+      if (remaining < (booking.slotsNeeded ?? 0)) {
+        await this.prisma.booking.update({ where: { id: bookingId }, data: { matchFull: false } });
+        matchFull = false;
+      }
+    }
+    return { left: true, bookingId, matchFull };
+  }
+
+  /** Danh sách người đã tham gia ghép trận — chỉ chủ đơn hoặc ADMIN. */
+  async listMatchParticipants(bookingId: string, user: { id: string; role: string }) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { customerId: true, slotsNeeded: true, matchFull: true },
+    });
+    if (!booking)
+      throw new NotFoundException({ message: 'Không tìm thấy đơn đặt', code: 'BOOKING_NOT_FOUND' });
+    if (booking.customerId !== user.id && user.role !== 'ADMIN') {
+      throw new ForbiddenException({
+        message: 'Chỉ chủ đơn hoặc admin xem được danh sách người tham gia',
+        code: 'BOOKING_FORBIDDEN',
+      });
+    }
+    const rows = await this.prisma.matchParticipant.findMany({
+      where: { bookingId },
+      orderBy: { joinedAt: 'asc' },
+      include: { user: { select: { id: true, fullName: true } } },
+    });
+    return {
+      bookingId,
+      slotsNeeded: booking.slotsNeeded ?? null,
+      matchFull: booking.matchFull ?? false,
+      joinedCount: rows.length,
+      participants: rows.map((r) => ({
+        userId: r.user.id,
+        fullName: r.user.fullName,
+        joinedAt: r.joinedAt,
+      })),
     };
   }
 }

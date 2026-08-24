@@ -197,6 +197,39 @@ export class BookingsController {
     return this.bookingsService.createReview(id, user, dto);
   }
 
+  @Post(':id/join')
+  @ApiOperation({
+    summary:
+      'Tham gia ghép trận mở (§3.11): chặn chủ đơn tự join (400), trùng (409 ALREADY_JOINED), đủ người (409 MATCH_FULL)',
+  })
+  @ApiResponse({ status: 201, description: 'joinedCount / slotsNeeded / matchFull sau khi join' })
+  @ApiResponse({ status: 400, description: 'SELF_JOIN_NOT_ALLOWED' })
+  @ApiResponse({ status: 409, description: 'MATCH_FULL | ALREADY_JOINED | JOIN_NOT_ALLOWED' })
+  joinMatch(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+  ) {
+    return this.bookingsService.joinOpenMatch(id, user);
+  }
+
+  @Delete(':id/join')
+  @ApiOperation({ summary: 'Rời ghép trận — nếu đơn đang đầy sẽ tự mở lại chỗ trống' })
+  leaveMatch(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+  ) {
+    return this.bookingsService.leaveOpenMatch(id, user);
+  }
+
+  @Get(':id/participants')
+  @ApiOperation({ summary: '[Chủ đơn/ADMIN] Danh sách người đã tham gia ghép trận' })
+  matchParticipants(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+  ) {
+    return this.bookingsService.listMatchParticipants(id, user);
+  }
+
   @Delete(':id')
   @ApiOperation({
     summary: 'Hủy đơn của mình (owner/admin hủy hộ) — tạo Payment(REFUND) nếu được hoàn',
