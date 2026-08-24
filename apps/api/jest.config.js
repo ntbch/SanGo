@@ -10,4 +10,6 @@ module.exports = {
   moduleNameMapper: {
     '^@courthub/shared$': '<rootDir>/../../packages/shared/src/index.ts',
   },
+  // Tuần tự hoá test suites khi chạy với Postgres DB chung (tránh tranh chấp integration holds/locks)
+  maxWorkers: 1,
 };

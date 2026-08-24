@@ -11,17 +11,15 @@ vi.stubEnv('VITE_USE_MOCK', 'true');
 
 describe('ApprovalQueuePage (admin)', () => {
   beforeEach(() => {
-    useAuthStore
-      .getState()
-      .setSession(
-        {
-          id: 'u-admin',
-          email: 'admin@courthub.vn',
-          role: UserRole.ADMIN,
-          fullName: 'Quản Trị Viên',
-        },
-        'tok',
-      );
+    useAuthStore.getState().setSession(
+      {
+        id: 'u-admin',
+        email: 'admin@courthub.vn',
+        role: UserRole.ADMIN,
+        fullName: 'Quản Trị Viên',
+      },
+      'tok',
+    );
     resetMockSession();
   });
 
