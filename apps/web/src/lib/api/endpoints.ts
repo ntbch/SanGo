@@ -104,7 +104,8 @@ export const endpoints = {
   },
 
   bookings: {
-    hold: (): string => '/bookings/hold',
+    /** Swagger t5: POST /bookings/holds (số nhiều) — nguồn sự thật. */
+    hold: (): string => '/bookings/holds',
     holdById: (id: string): string => '/bookings/holds/' + seg(id),
     mine: (query: MyBookingsQuery = {}): string => '/bookings/me' + qs(query),
     refundPreview: (id: string): string => '/bookings/' + seg(id) + '/refund-preview',
