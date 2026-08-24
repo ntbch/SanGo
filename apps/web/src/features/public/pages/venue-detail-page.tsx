@@ -207,7 +207,9 @@ export function VenueDetailPage(): ReactElement {
             {reviews.map((review) => (
               <li key={review.id} className="rounded-xl border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-semibold">{review.author}</span>
+                  <span className="text-sm font-semibold">
+                    {review.customer?.fullName ?? review.author ?? 'Khách hàng'}
+                  </span>
                   <span className="text-xs text-muted-foreground">{review.createdAt}</span>
                 </div>
                 <StarRating value={review.rating} className="mt-1" />

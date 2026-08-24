@@ -36,6 +36,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SLOTS_NOT_CONTIGUOUS: 'Các slot trong một đơn phải liền kề nhau.',
   SLOTS_MISALIGNED: 'Slot không khớp độ dài cấu hình của sân.',
   OUTSIDE_OPENING_HOURS: 'Thời gian chọn nằm ngoài giờ mở cửa của sân.',
+  // Review errors (t6):
+  REVIEW_NOT_ALLOWED: 'Chỉ có thể đánh giá sau khi đã hoàn thành trận đấu.',
+  REVIEW_EXISTS: 'Bạn đã đánh giá đơn đặt này rồi.',
+  BOOKING_FORBIDDEN: 'Bạn không có quyền thao tác trên đơn đặt này.',
+  BOOKING_NOT_FOUND: 'Không tìm thấy đơn đặt sân.',
   FORBIDDEN_ROLE: 'Bạn không có quyền thực hiện thao tác này.',
 };
 

@@ -47,8 +47,9 @@ export interface PaginatedVenues {
 
 /** Một đánh giá — shape dự kiến của GET /venues/:slugOrId/reviews. */
 export interface VenueReview {
-  id: string;
-  author: string;
+  id?: string;
+  author?: string;
+  customer?: { fullName: string };
   rating: number;
   comment?: string;
   createdAt: string;
@@ -60,4 +61,5 @@ export interface PaginatedReviews {
   page: number;
   size: number;
   pages: number;
+  avgRating?: number;
 }
