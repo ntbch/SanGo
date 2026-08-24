@@ -102,3 +102,5 @@ export const SPORT_TYPE_LABELS: Record<SportType, string> = {
   [SportType.BADMINTON]: 'Cầu lông',
   [SportType.TENNIS]: 'Tennis',
 };
+
+export * from './schemas';

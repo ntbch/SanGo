@@ -3,28 +3,29 @@ import { endpoints } from '../../lib/api/endpoints';
 import { apiFetch } from '../../lib/api/client';
 import { type AuthResponse } from '../../lib/api/types';
 import { useAuthStore } from '../../lib/auth/auth-store';
-import { type ForgotPasswordValues, type LoginValues, type RegisterValues } from './schemas';
+import { type ForgotPasswordDto, type LoginDto, type RegisterFormValues } from './schemas';
 
 export interface MessageResponse {
   message: string;
 }
 
-export function login(values: LoginValues): Promise<AuthResponse> {
+export function login(values: LoginDto): Promise<AuthResponse> {
   return apiFetch<AuthResponse>(endpoints.auth.login(), { method: 'POST', body: values });
 }
 
-export function register(values: RegisterValues): Promise<AuthResponse> {
+export function register(values: RegisterFormValues): Promise<AuthResponse> {
   return apiFetch<AuthResponse>(endpoints.auth.register(), {
     method: 'POST',
     body: {
       fullName: values.fullName.trim(),
       email: values.email.trim().toLowerCase(),
       password: values.password,
+      ...(values.phone !== undefined ? { phone: values.phone.trim() } : {}),
     },
   });
 }
 
-export function forgotPassword(values: ForgotPasswordValues): Promise<MessageResponse> {
+export function forgotPassword(values: ForgotPasswordDto): Promise<MessageResponse> {
   return apiFetch<MessageResponse>(endpoints.auth.forgotPassword(), {
     method: 'POST',
     body: { email: values.email.trim().toLowerCase() },

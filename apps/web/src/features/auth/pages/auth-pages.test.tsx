@@ -27,7 +27,7 @@ describe('Trang xác thực (mock mode)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
-    expect(await screen.findByText('Email là bắt buộc.')).toBeTruthy();
+    expect(await screen.findByText('Email không hợp lệ')).toBeTruthy();
   });
 
   it('đăng nhập owner thành công → vào dashboard', async () => {
@@ -49,7 +49,7 @@ describe('Trang xác thực (mock mode)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Đăng ký' }));
 
-    expect(await screen.findByText('Họ tên tối thiểu 2 ký tự.')).toBeTruthy();
+    expect(await screen.findByText('Họ tên tối thiểu 2 ký tự')).toBeTruthy();
   });
 
   it('quên mật khẩu gửi xong hiện thông báo đã gửi email', async () => {

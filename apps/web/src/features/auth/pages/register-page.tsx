@@ -33,15 +33,15 @@ import { Input } from '../../../components/ui/input';
 import { toast } from '../../../components/ui/use-toast';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { register } from '../api';
-import { registerSchema, type RegisterValues } from '../schemas';
+import { registerFormSchema, type RegisterFormValues } from '../schemas';
 
 export function RegisterPage(): ReactElement {
   const navigate = useNavigate();
   const [successOpen, setSuccessOpen] = useState(false);
 
-  const form = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' },
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -100,6 +100,25 @@ export function RegisterPage(): ReactElement {
                         type="email"
                         placeholder="ban@courthub.vn"
                         autoComplete="email"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        inputMode="tel"
+                        placeholder="0901234567 (không bắt buộc)"
+                        autoComplete="tel"
                         {...field}
                       />
                     </FormControl>

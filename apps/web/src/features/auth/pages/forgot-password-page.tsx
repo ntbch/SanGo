@@ -23,12 +23,12 @@ import {
 } from '../../../components/ui/form';
 import { Input } from '../../../components/ui/input';
 import { forgotPassword } from '../api';
-import { forgotPasswordSchema, type ForgotPasswordValues } from '../schemas';
+import { forgotPasswordSchema, type ForgotPasswordDto } from '../schemas';
 
 export function ForgotPasswordPage(): ReactElement {
   const [sentTo, setSentTo] = useState<string | null>(null);
 
-  const form = useForm<ForgotPasswordValues>({
+  const form = useForm<ForgotPasswordDto>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });

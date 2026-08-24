@@ -103,11 +103,13 @@ export async function handleMockRequest<T>(
       if (accounts.some((a) => a.email === email)) {
         throw new ApiError(409, 'Email này đã được sử dụng.', 'EMAIL_TAKEN');
       }
+      const phone = requireString(payload, 'phone').trim();
       const account: MockAccount = {
         id: 'u-' + Date.now().toString(36),
         email,
         password,
         fullName,
+        ...(phone !== '' ? { phone } : {}),
         role: UserRole.CUSTOMER,
       };
       accounts.push(account);

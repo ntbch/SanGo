@@ -27,7 +27,7 @@ import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { useAuthStore } from '../../../lib/auth/auth-store';
 import { env } from '../../../lib/env';
 import { login } from '../api';
-import { loginSchema, type LoginValues } from '../schemas';
+import { loginSchema, type LoginDto } from '../schemas';
 
 /** Tài khoản demo hiển thị khi chạy chế độ mock (VITE_USE_MOCK=true). */
 const MOCK_HINT_ACCOUNTS = ['customer@courthub.vn', 'owner@courthub.vn', 'admin@courthub.vn'];
@@ -37,7 +37,7 @@ export function LoginPage(): ReactElement {
   const location = useLocation();
   const setSession = useAuthStore((state) => state.setSession);
 
-  const form = useForm<LoginValues>({
+  const form = useForm<LoginDto>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });

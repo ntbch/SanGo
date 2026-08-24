@@ -1,31 +1,42 @@
 /**
- * Zod schema cho các form xác thực — nguồn chân lý của validate phía client.
- * TODO(shared): khi backend (task T3) chốt DTO, dời nhóm schema này lên
- * packages/shared để web + api dùng chung; hiện đặt tại web vì phạm vi T7
- * chỉ gồm apps/web/src/**.
+ * Schema form xác thực của web — NỀN là schema dùng chung từ @courthub/shared
+ * (nguồn chính tắc: apps/api/src/auth/dto/auth.dto.ts). Phần UI-only
+ * (confirmPassword + refine khớp mật khẩu, tiền xử lý phone rỗng → undefined)
+ * được GIỮ lại ở web theo quyết định của captain.
  */
 import { z } from 'zod';
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema as registerSchemaBase,
+  type ForgotPasswordDto,
+  type LoginDto,
+  type RegisterDto,
+} from '@courthub/shared';
 
-export const loginSchema = z.object({
-  email: z.string().min(1, 'Email là bắt buộc.').email('Email không hợp lệ.'),
-  password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự.'),
-});
-export type LoginValues = z.infer<typeof loginSchema>;
+// Dùng lại nguyên xi từ shared:
+export { forgotPasswordSchema, loginSchema };
+export type { LoginDto, ForgotPasswordDto };
 
-export const registerSchema = z
+/**
+ * Form đăng ký = DTO API + confirmPassword (UI-only). Phone rỗng được tiền xử
+ * lý thành undefined để regex optional của shared không báo lỗi khi bỏ trống.
+ */
+export const registerFormSchema = z
   .object({
-    fullName: z.string().min(2, 'Họ tên tối thiểu 2 ký tự.').max(80, 'Họ tên tối đa 80 ký tự.'),
-    email: z.string().min(1, 'Email là bắt buộc.').email('Email không hợp lệ.'),
-    password: z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự.').max(72, 'Mật khẩu tối đa 72 ký tự.'),
-    confirmPassword: z.string(),
+    email: registerSchemaBase.shape.email,
+    password: registerSchemaBase.shape.password,
+    fullName: registerSchemaBase.shape.fullName,
+    phone: z.preprocess(
+      (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+      registerSchemaBase.shape.phone,
+    ),
+    confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu'),
   })
   .refine((values) => values.password === values.confirmPassword, {
     message: 'Mật khẩu nhập lại không khớp.',
     path: ['confirmPassword'],
   });
-export type RegisterValues = z.infer<typeof registerSchema>;
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().min(1, 'Email là bắt buộc.').email('Email không hợp lệ.'),
-});
-export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+/** Giá trị form đăng ký: DTO API + confirmPassword. */
+export type RegisterFormValues = RegisterDto & { confirmPassword: string };
