@@ -11,6 +11,7 @@ import { LoginPage } from '../features/auth/pages/login-page';
 import { RegisterPage } from '../features/auth/pages/register-page';
 import { restoreSession } from '../features/auth/api';
 import { VenueDetailPage } from '../features/public/pages/venue-detail-page';
+import { MatchesPage } from '../features/matches/pages/matches-page';
 import { VenuesPage } from '../features/public/pages/venues-page';
 import { ApprovalQueuePage } from '../features/admin/pages/approval-queue-page';
 import { BookingCalendarPage } from '../features/booking/pages/booking-calendar-page';
@@ -57,6 +58,7 @@ export function AppRoutes(): ReactElement {
           <Route path="venues" element={<VenuesPage />} />
           <Route path="venues/:slug" element={<VenueDetailPage />} />
           <Route path="venues/:slug/book" element={<BookingCalendarPage />} />
+          <Route path="matches" element={<MatchesPage />} />
           <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
           <Route element={<GuestRoute />}>
             <Route path="login" element={<LoginPage />} />

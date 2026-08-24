@@ -296,6 +296,10 @@ interface MockOwnerBooking {
   endMinute: number;
   status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
   amountPaid: number;
+  /** Ghép trận mở (§3.11). */
+  isPublicMatch?: boolean;
+  slotsNeeded?: number | null;
+  matchFull?: boolean;
 }
 
 /** Đơn mẫu hôm nay — deterministic để test ổn định. */
@@ -325,6 +329,10 @@ function mockOwnerBookings(): MockOwnerBooking[] {
       endMinute: 420,
       status: 'CONFIRMED',
       amountPaid: 36000,
+      // §3.11: đơn công khai đang tìm người ghép (badge + modal chủ đơn).
+      isPublicMatch: true,
+      slotsNeeded: 4,
+      matchFull: false,
     },
     {
       id: 'b-2',
@@ -504,6 +512,87 @@ function buildMockAnalytics(venueId: string, days: number): MockAnalyticsPayload
   return payload;
 }
 
+/* ------------------------------------------------------------------ */
+/* Ghép trận mở (§3.11): dữ liệu mẫu + trạng thái tham gia theo phiên. */
+/* ------------------------------------------------------------------ */
+
+interface MockOpenMatch {
+  bookingId: string;
+  code: string;
+  courtName: string;
+  sportType: 'FOOTBALL5' | 'FOOTBALL7' | 'PICKLEBALL' | 'BADMINTON' | 'TENNIS';
+  date: string;
+  startMinute: number;
+  endMinute: number;
+  subtotal: number;
+  depositAmount: number;
+  hostName: string;
+  slotsNeeded: number;
+  /** Số người đã tham gia ban đầu; tăng/giảm khi join/leave trong phiên. */
+  joinedCount: number;
+}
+
+function futureDate(daysAhead: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+/** Danh sách trận mở mẫu — deterministic, đủ nhiều loại sân để test filter. */
+const MOCK_OPEN_MATCHES: MockOpenMatch[] = [
+  {
+    bookingId: 'om-1',
+    code: 'CH-' + today().replace(/-/g, '') + '-0090',
+    courtName: 'Sân Pickleball Saigon · Sân 1',
+    sportType: 'PICKLEBALL',
+    date: futureDate(1),
+    startMinute: 1080,
+    endMinute: 1200,
+    subtotal: 480000,
+    depositAmount: 144000,
+    hostName: 'Trần Thị Cẩm Lan',
+    slotsNeeded: 4,
+    joinedCount: 2,
+  },
+  {
+    bookingId: 'om-2',
+    code: 'CH-' + today().replace(/-/g, '') + '-0091',
+    courtName: 'Cụm Cầu lông Thủ Đức · Sân A1',
+    sportType: 'BADMINTON',
+    date: futureDate(2),
+    startMinute: 1080,
+    endMinute: 1170,
+    subtotal: 360000,
+    depositAmount: 108000,
+    hostName: 'Lê Quốc Hoàng',
+    slotsNeeded: 3,
+    joinedCount: 1,
+  },
+  {
+    bookingId: 'om-3',
+    code: 'CH-' + today().replace(/-/g, '') + '-0092',
+    courtName: 'Sân Bóng Đá Gò Vấp · Sân 5',
+    sportType: 'FOOTBALL5',
+    date: futureDate(3),
+    startMinute: 1020,
+    endMinute: 1110,
+    subtotal: 900000,
+    depositAmount: 270000,
+    hostName: 'Phạm Quốc Dũng',
+    slotsNeeded: 9,
+    joinedCount: 5,
+  },
+];
+
+/** bookingId đã được người dùng hiện tại tham gia (demo một người dùng). */
+const MOCK_JOINED = new Set<string>();
+
 interface MockHoldStore {
   id: string;
   courtId: string;
@@ -514,6 +603,9 @@ interface MockHoldStore {
   subtotal: number;
   depositPercent: number;
   expiresAt: string;
+  /** Ghép trận mở (§3.11) — giữ lựa chọn để hiển thị lại ở checkout. */
+  isPublicMatch?: boolean;
+  slotsNeeded?: number | null;
 }
 
 const MOCK_HOLDS = new Map<string, MockHoldStore>();
@@ -536,6 +628,10 @@ interface MockCustomerBookingItem {
   hasReviewed?: boolean;
   review?: { rating: number; comment?: string };
   createdAt: string;
+  /** Ghép trận mở (§3.11). */
+  isPublicMatch?: boolean;
+  slotsNeeded?: number | null;
+  matchFull?: boolean;
 }
 
 const MOCK_CUSTOMER_BOOKINGS: MockCustomerBookingItem[] = [
@@ -554,6 +650,10 @@ const MOCK_CUSTOMER_BOOKINGS: MockCustomerBookingItem[] = [
     totalPrice: 240000,
     paymentType: 'DEPOSIT',
     depositPercent: 30,
+    // §3.11: đơn công khai đang tìm người ghép.
+    isPublicMatch: true,
+    slotsNeeded: 4,
+    matchFull: false,
     createdAt: '2026-08-24T10:00:00.000Z',
   },
   {
@@ -687,6 +787,21 @@ export async function handleMockRequest<T>(
       subtotal,
       depositPercent,
       expiresAt,
+      // §3.11: chỉ nhận khi bật công khai và slotsNeeded hợp lệ 1..10.
+      ...(payload.isPublicMatch === true
+        ? (() => {
+            const needed = Number(payload.slotsNeeded);
+            const valid = Number.isInteger(needed) && needed >= 1 && needed <= 10;
+            if (!valid) {
+              throw new ApiError(
+                400,
+                'slotsNeeded (1..10) là bắt buộc khi bật ghép trận mở',
+                'SLOTS_NEEDED_INVALID',
+              );
+            }
+            return { isPublicMatch: true, slotsNeeded: needed };
+          })()
+        : {}),
     };
     MOCK_HOLDS.set(holdId, holdObj);
 
@@ -944,6 +1059,80 @@ export async function handleMockRequest<T>(
       throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
     }
     return payload as T;
+  }
+  // Ghép trận mở (§3.11): danh sách public, lọc sportType/date, phân trang.
+  if (method === 'GET' && rawPath0 === '/matches/open') {
+    const sportType = search0.get('sportType');
+    const date = search0.get('date');
+    const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
+    let rows = MOCK_OPEN_MATCHES.filter((m) => m.joinedCount < m.slotsNeeded);
+    if (sportType) rows = rows.filter((m) => m.sportType === sportType);
+    if (date) rows = rows.filter((m) => m.date === date);
+    const limit = 12;
+    const start = (page - 1) * limit;
+    return {
+      items: rows.slice(start, start + limit).map((m) => ({
+        ...m,
+        joinedCount: m.joinedCount + (MOCK_JOINED.has(m.bookingId) ? 1 : 0),
+      })),
+      total: rows.length,
+      page,
+      limit,
+      pages: Math.max(1, Math.ceil(rows.length / limit)),
+    } as T;
+  }
+
+  // Tham gia ghép trận: chặn trùng (409 ALREADY_JOINED) và đầy chỗ (409 MATCH_FULL).
+  if (method === 'POST' && /^\/bookings\/[^/]+\/join$/.test(rawPath0)) {
+    const bookingId = rawPath0.split('/')[2];
+    const match = MOCK_OPEN_MATCHES.find((m) => m.bookingId === bookingId);
+    if (match !== undefined) {
+      if (MOCK_JOINED.has(bookingId)) {
+        throw new ApiError(409, 'Bạn đã tham gia trận này rồi', 'ALREADY_JOINED');
+      }
+      if (match.joinedCount >= match.slotsNeeded) {
+        throw new ApiError(409, 'Trận đã đủ người', 'MATCH_FULL');
+      }
+      MOCK_JOINED.add(bookingId);
+      const joinedCount = match.joinedCount + 1;
+      return {
+        joinedCount,
+        slotsNeeded: match.slotsNeeded,
+        matchFull: joinedCount >= match.slotsNeeded,
+      } as T;
+    }
+    throw new ApiError(404, 'Không tìm thấy đơn đặt', 'BOOKING_NOT_FOUND');
+  }
+
+  // Rời ghép trận.
+  if (method === 'DELETE' && /^\/bookings\/[^/]+\/join$/.test(rawPath0)) {
+    const bookingId = rawPath0.split('/')[2];
+    const match = MOCK_OPEN_MATCHES.find((m) => m.bookingId === bookingId);
+    if (!MOCK_JOINED.delete(bookingId)) {
+      throw new ApiError(404, 'Bạn chưa tham gia trận này', 'NOT_JOINED');
+    }
+    const needed = match?.slotsNeeded ?? 0;
+    // Rời ghép -> nếu đơn đang đầy sẽ tự mở lại chỗ trống (khớp service thật).
+    void needed;
+    return { left: true, bookingId, matchFull: false } as T;
+  }
+
+  // Danh sách người tham gia — demo trả tên mẫu cho các đơn mock.
+  if (method === 'GET' && /^\/bookings\/[^/]+\/participants$/.test(rawPath0)) {
+    const bookingId = rawPath0.split('/')[2];
+    return {
+      bookingId,
+      slotsNeeded: 4,
+      matchFull: false,
+      joinedCount: 1,
+      participants: [
+        {
+          userId: 'u-customer-01',
+          fullName: 'Nguyễn Văn Bình',
+          joinedAt: new Date().toISOString(),
+        },
+      ],
+    } as T;
   }
   if (method === 'POST' && rawPath0 === '/bookings/check-in') {
     const code = requireString(payload, 'code').trim().toUpperCase();

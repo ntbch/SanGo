@@ -30,6 +30,10 @@ export interface CreateHoldPayload {
   courtId: string;
   date: string;
   slots: Array<{ startMinute: number; endMinute: number }>;
+  /** Ghép trận mở (§3.11): công khai tìm người ghép. */
+  isPublicMatch?: boolean;
+  /** 1..10 — bắt buộc khi isPublicMatch (khớp CreateHoldSchema backend). */
+  slotsNeeded?: number;
 }
 
 export interface BookingHold {
@@ -43,6 +47,9 @@ export interface BookingHold {
   depositPercent: number;
   depositAmount?: number;
   expiresAt: string;
+  /** Ghép trận mở: hold đang công khai tìm người ghép. */
+  isPublicMatch?: boolean;
+  slotsNeeded?: number | null;
 }
 
 export interface CheckoutPayload {
@@ -85,6 +92,10 @@ export interface CustomerBooking {
   hasReviewed?: boolean;
   review?: { rating: number; comment?: string };
   createdAt: string;
+  /** Ghép trận mở (§3.11) — badge 'Đang tìm người' khi chưa đủ người. */
+  isPublicMatch?: boolean;
+  slotsNeeded?: number | null;
+  matchFull?: boolean;
 }
 
 export interface PaginatedCustomerBookings {

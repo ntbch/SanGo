@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactElement } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
+import { Label } from '../../../components/ui/label';
 import { Badge } from '../../../components/ui/badge';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
@@ -13,6 +14,7 @@ import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { WeeklyGrid } from '../components/weekly-grid';
 import { useCourtWeeklySlots, useCreateBookingHold } from '../queries';
 import { validateContiguousSlots } from '../slot-utils';
+import { validateOpenMatchInput } from '../../matches/match-utils';
 import type { SelectedSlot, TimeSlot } from '../types';
 
 export function BookingCalendarPage(): ReactElement {
@@ -44,6 +46,10 @@ export function BookingCalendarPage(): ReactElement {
 
   // Các slot đang chọn
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
+
+  // Ghép trận mở (§3.11): công khai tìm người ghép + số người cần.
+  const [isPublicMatch, setIsPublicMatch] = useState(false);
+  const [slotsNeeded, setSlotsNeeded] = useState(4);
 
   // Đổi tuần
   const changeWeek = (offsetDays: number) => {
@@ -130,6 +136,16 @@ export function BookingCalendarPage(): ReactElement {
       return;
     }
 
+    const matchValidation = validateOpenMatchInput(isPublicMatch, slotsNeeded);
+    if (!matchValidation.valid) {
+      toast({
+        variant: 'destructive',
+        title: 'Ghép trận chưa hợp lệ',
+        description: matchValidation.message,
+      });
+      return;
+    }
+
     const date = selectedSlots[0].date;
     const sortedSlots = [...selectedSlots].sort((a, b) => a.startMinute - b.startMinute);
 
@@ -138,6 +154,7 @@ export function BookingCalendarPage(): ReactElement {
         courtId: activeCourt.id,
         date,
         slots: sortedSlots.map((s) => ({ startMinute: s.startMinute, endMinute: s.endMinute })),
+        ...(isPublicMatch ? { isPublicMatch: true, slotsNeeded } : {}),
       });
 
       navigate(`/thanh-toan/checkout/${hold.id}`);
@@ -201,6 +218,8 @@ export function BookingCalendarPage(): ReactElement {
               onClick={() => {
                 setSelectedCourtId(court.id);
                 setSelectedSlots([]);
+                // Đổi sân con -> reset lựa chọn ghép trận (người chơi theo từng sân).
+                setIsPublicMatch(false);
               }}
               className="rounded-full font-medium"
             >
@@ -253,6 +272,44 @@ export function BookingCalendarPage(): ReactElement {
       {/* Sticky Bottom Bar / Action card */}
       <Card className="sticky bottom-4 border-primary/40 shadow-lg bg-card/95 backdrop-blur-xs">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+          {selectedSlots.length > 0 ? (
+            <div className="w-full rounded-lg border bg-muted/40 px-3 py-2.5">
+              <label
+                htmlFor="open-match-toggle"
+                className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium"
+              >
+                <input
+                  id="open-match-toggle"
+                  type="checkbox"
+                  data-testid="open-match-checkbox"
+                  checked={isPublicMatch}
+                  onChange={(event) => setIsPublicMatch(event.target.checked)}
+                  className="size-4 accent-primary"
+                />
+                Công khai tìm người ghép
+              </label>
+              {isPublicMatch ? (
+                <div className="mt-2 flex items-center gap-2 pl-6">
+                  <Label htmlFor="slots-needed" className="text-xs text-muted-foreground">
+                    Cần ghép
+                  </Label>
+                  <select
+                    id="slots-needed"
+                    data-testid="slots-needed-select"
+                    value={slotsNeeded}
+                    onChange={(event) => setSlotsNeeded(Number(event.target.value))}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n} người
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="space-y-1">
             {selectedSlots.length > 0 ? (
               <>

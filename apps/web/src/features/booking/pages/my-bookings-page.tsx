@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Star, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Star, Loader2, UsersRound } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -24,6 +24,8 @@ import {
   useRefundPreview,
   useSubmitBookingReview,
 } from '../queries';
+import { formatJoinedCount } from '../../matches/match-utils';
+import { useMatchParticipants } from '../../matches/queries';
 import type { CustomerBooking } from '../types';
 
 type TabFilter = 'upcoming' | 'history' | 'cancelled';
@@ -63,6 +65,12 @@ export function MyCustomerBookingsPage(): ReactElement {
   const [reviewTarget, setReviewTarget] = useState<CustomerBooking | undefined>(undefined);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+
+  // Modal Người tham gia ghép trận (§3.11) — chủ đơn xem danh sách.
+  const [participantsTarget, setParticipantsTarget] = useState<CustomerBooking | undefined>(
+    undefined,
+  );
+  const participantsQuery = useMatchParticipants(participantsTarget?.id);
 
   const bookings = bookingsQuery.data?.items ?? [];
 
@@ -170,6 +178,16 @@ export function MyCustomerBookingsPage(): ReactElement {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono font-bold text-sm text-primary">{b.code}</span>
                       <Badge variant={badge.variant}>{badge.label}</Badge>
+                      {b.isPublicMatch && b.status === 'CONFIRMED' ? (
+                        <Badge
+                          variant={b.matchFull ? 'success' : 'warning'}
+                          data-testid="open-match-badge"
+                        >
+                          {b.matchFull
+                            ? 'Đã đủ người'
+                            : `Đang tìm người${b.slotsNeeded ? ` · cần ${b.slotsNeeded}` : ''}`}
+                        </Badge>
+                      ) : null}
                     </div>
 
                     <div className="space-y-1">
@@ -236,6 +254,17 @@ export function MyCustomerBookingsPage(): ReactElement {
                         }}
                       >
                         <Star className="mr-1 size-3.5 fill-amber-400 text-amber-400" /> Đánh giá
+                      </Button>
+                    ) : null}
+
+                    {b.isPublicMatch && b.status === 'CONFIRMED' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid="view-participants"
+                        onClick={() => setParticipantsTarget(b)}
+                      >
+                        <UsersRound className="mr-1 size-3.5" aria-hidden /> Người tham gia
                       </Button>
                     ) : null}
                   </div>
@@ -381,6 +410,66 @@ export function MyCustomerBookingsPage(): ReactElement {
               Gửi đánh giá
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Modal Người tham gia ghép trận (§3.11) — chỉ chủ đơn xem được. */}
+      <Dialog
+        open={Boolean(participantsTarget)}
+        onOpenChange={(open) => {
+          if (!open) setParticipantsTarget(undefined);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Người tham gia {participantsTarget?.code}</DialogTitle>
+            <DialogDescription>Người chơi đã ghép vào đơn công khai của bạn.</DialogDescription>
+          </DialogHeader>
+          {participantsQuery.isPending ? (
+            <div className="space-y-2 py-2">
+              {[0, 1].map((i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-md" />
+              ))}
+            </div>
+          ) : participantsQuery.isError ? (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {friendlyApiMessage(participantsQuery.error)}
+            </p>
+          ) : participantsQuery.data ? (
+            <div className="space-y-3 py-1">
+              <p className="text-sm text-muted-foreground">
+                Đã tham gia:{' '}
+                <strong className="text-foreground">
+                  {formatJoinedCount(
+                    participantsQuery.data.joinedCount,
+                    participantsQuery.data.slotsNeeded ?? 0,
+                  )}
+                </strong>
+                {participantsQuery.data.matchFull ? ' · đơn đã đủ người' : ''}
+              </p>
+              {participantsQuery.data.participants.length === 0 ? (
+                <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                  Chưa có ai tham gia. Đơn đang hiển thị ở trang Ghép trận.
+                </p>
+              ) : (
+                <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                  {participantsQuery.data.participants.map((p) => (
+                    <li
+                      key={p.userId}
+                      className="flex items-center gap-3 rounded-md border px-3 py-2"
+                    >
+                      <span
+                        aria-hidden
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 font-bold text-primary"
+                      >
+                        {p.fullName.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{p.fullName}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>
