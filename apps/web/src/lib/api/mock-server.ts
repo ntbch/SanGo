@@ -378,6 +378,79 @@ function mockOwnerBookings(): MockOwnerBooking[] {
   return MOCK_BOOKINGS_CACHE;
 }
 
+interface MockHoldStore {
+  id: string;
+  courtId: string;
+  courtName: string;
+  venueName: string;
+  date: string;
+  slots: Array<{ startMinute: number; endMinute: number }>;
+  subtotal: number;
+  depositPercent: number;
+  expiresAt: string;
+}
+
+const MOCK_HOLDS = new Map<string, MockHoldStore>();
+
+interface MockCustomerBookingItem {
+  id: string;
+  code: string;
+  venueId: string;
+  venueName: string;
+  courtName: string;
+  sportType: string;
+  date: string;
+  startMinute: number;
+  endMinute: number;
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  amountPaid: number;
+  totalPrice: number;
+  paymentType: 'DEPOSIT' | 'FULL';
+  depositPercent: number;
+  hasReviewed?: boolean;
+  review?: { rating: number; comment?: string };
+  createdAt: string;
+}
+
+const MOCK_CUSTOMER_BOOKINGS: MockCustomerBookingItem[] = [
+  {
+    id: 'cb-1',
+    code: 'CH-20260828-0001',
+    venueId: 'v-1',
+    venueName: 'Sân Pickleball Saigon',
+    courtName: 'Sân 1',
+    sportType: 'PICKLEBALL',
+    date: '2026-08-28',
+    startMinute: 1080,
+    endMinute: 1200,
+    status: 'CONFIRMED',
+    amountPaid: 72000,
+    totalPrice: 240000,
+    paymentType: 'DEPOSIT',
+    depositPercent: 30,
+    createdAt: '2026-08-24T10:00:00.000Z',
+  },
+  {
+    id: 'cb-2',
+    code: 'CH-20260820-0002',
+    venueId: 'v-2',
+    venueName: 'Cụm Cầu lông Thủ Đức',
+    courtName: 'Sân A1',
+    sportType: 'BADMINTON',
+    date: '2026-08-20',
+    startMinute: 360,
+    endMinute: 480,
+    status: 'COMPLETED',
+    amountPaid: 180000,
+    totalPrice: 180000,
+    paymentType: 'FULL',
+    depositPercent: 30,
+    hasReviewed: true,
+    review: { rating: 5, comment: 'Sân rất thoáng mát, sàn BWF chuẩn thi đấu.' },
+    createdAt: '2026-08-19T08:00:00.000Z',
+  },
+];
+
 export async function handleMockRequest<T>(
   path: string,
   method = 'GET',
@@ -392,9 +465,225 @@ export async function handleMockRequest<T>(
     unknown
   >;
 
-  // ===================== OWNER / ADMIN mock (t10) =====================
   const [rawPath0, rawQuery0 = ''] = path.split('?');
   const search0 = new URLSearchParams(rawQuery0);
+
+  // ===================== BOOKING & PAYMENTS mock (t11) =====================
+  // 1. GET /courts/:courtId/slots?from=YYYY-MM-DD&days=7
+  if (method === 'GET' && /^\/courts\/[^/]+\/slots/.test(rawPath0)) {
+    const courtId = rawPath0.split('/')[2];
+    const fromDate = search0.get('from') || new Date().toISOString().slice(0, 10);
+    const [y, m, d] = fromDate.split('-').map(Number);
+    const base = new Date(y, m - 1, d);
+
+    // Tìm court và venue tương ứng
+    let courtInfo = { slotMinutes: 60, defaultPricePerSlot: 120000 };
+    for (const v of MOCK_VENUES) {
+      const found = v.courts.find((c) => c.id === courtId);
+      if (found) {
+        courtInfo = found;
+        break;
+      }
+    }
+
+    const byDate = [];
+    for (let i = 0; i < 7; i++) {
+      const curr = new Date(base);
+      curr.setDate(base.getDate() + i);
+      const dateStr =
+        curr.getFullYear() +
+        '-' +
+        String(curr.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(curr.getDate()).padStart(2, '0');
+
+      const slots = [];
+      for (
+        let minute = 360;
+        minute + courtInfo.slotMinutes <= 1380;
+        minute += courtInfo.slotMinutes
+      ) {
+        // Giả lập trạng thái
+        let state: 'AVAILABLE' | 'BOOKED' | 'HELD' | 'MAINTENANCE' | 'PAST' = 'AVAILABLE';
+        if (i === 1 && minute === 540) state = 'BOOKED';
+        if (i === 2 && minute === 660) state = 'HELD';
+        if (i === 4 && minute === 780) state = 'MAINTENANCE';
+
+        slots.push({
+          startMinute: minute,
+          endMinute: minute + courtInfo.slotMinutes,
+          state,
+          price: courtInfo.defaultPricePerSlot,
+        });
+      }
+      byDate.push({ date: dateStr, slots });
+    }
+
+    return { courtId, byDate } as T;
+  }
+
+  // 2. POST /bookings/holds
+  if (method === 'POST' && (rawPath0 === '/bookings/holds' || rawPath0 === '/bookings/hold')) {
+    const courtId = requireString(payload, 'courtId');
+    const date = requireString(payload, 'date');
+    const slots = (Array.isArray(payload.slots) ? payload.slots : []) as Array<{
+      startMinute: number;
+      endMinute: number;
+    }>;
+
+    let venueName = 'Sân thể thao';
+    let courtName = 'Sân 1';
+    let slotPrice = 120000;
+    let depositPercent = 30;
+
+    for (const v of MOCK_VENUES) {
+      const found = v.courts.find((c) => c.id === courtId);
+      if (found) {
+        venueName = v.name;
+        courtName = found.name;
+        slotPrice = found.defaultPricePerSlot;
+        depositPercent = v.depositPercent;
+        break;
+      }
+    }
+
+    const holdId = 'h-' + Date.now().toString(36);
+    const subtotal = slots.length * slotPrice;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    const holdObj: MockHoldStore = {
+      id: holdId,
+      courtId,
+      courtName,
+      venueName,
+      date,
+      slots,
+      subtotal,
+      depositPercent,
+      expiresAt,
+    };
+    MOCK_HOLDS.set(holdId, holdObj);
+
+    return holdObj as T;
+  }
+
+  // 3. GET /bookings/holds/:id
+  if (method === 'GET' && rawPath0.startsWith('/bookings/holds/')) {
+    const id = rawPath0.split('/')[3];
+    const hold = MOCK_HOLDS.get(id);
+    if (!hold) {
+      // Fallback hold mẫu
+      return {
+        id,
+        courtId: 'c-1',
+        courtName: 'Sân 1',
+        venueName: 'Sân Pickleball Saigon',
+        date: '2026-08-28',
+        slots: [{ startMinute: 1080, endMinute: 1200 }],
+        subtotal: 240000,
+        depositPercent: 30,
+        expiresAt: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
+      } as T;
+    }
+    return hold as T;
+  }
+
+  // 4. DELETE /bookings/holds/:id
+  if (method === 'DELETE' && rawPath0.startsWith('/bookings/holds/')) {
+    const id = rawPath0.split('/')[3];
+    MOCK_HOLDS.delete(id);
+    return { ok: true } as T;
+  }
+
+  // 5. POST /payments/checkout
+  if (method === 'POST' && rawPath0 === '/payments/checkout') {
+    const holdId = requireString(payload, 'holdId');
+    const type = (payload.type as 'DEPOSIT' | 'FULL') || 'DEPOSIT';
+    const hold = MOCK_HOLDS.get(holdId);
+
+    const subtotal = hold?.subtotal ?? 240000;
+    const depositPercent = hold?.depositPercent ?? 30;
+    const amount = type === 'DEPOSIT' ? Math.round((subtotal * depositPercent) / 100) : subtotal;
+    const txnRef = 'CH-' + Date.now().toString().slice(-8);
+
+    // Tạo booking thành công trong mock
+    const newBooking: MockCustomerBookingItem = {
+      id: 'cb-' + Date.now().toString(36),
+      code: txnRef,
+      venueId: 'v-1',
+      venueName: hold?.venueName ?? 'Sân Pickleball Saigon',
+      courtName: hold?.courtName ?? 'Sân 1',
+      sportType: 'PICKLEBALL',
+      date: hold?.date ?? '2026-08-28',
+      startMinute: hold?.slots[0]?.startMinute ?? 1080,
+      endMinute: hold?.slots[hold?.slots.length - 1]?.endMinute ?? 1200,
+      status: 'CONFIRMED',
+      amountPaid: amount,
+      totalPrice: subtotal,
+      paymentType: type,
+      depositPercent,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_CUSTOMER_BOOKINGS.unshift(newBooking);
+
+    return {
+      txnRef,
+      amount,
+      type,
+      mode: 'mock',
+      paymentUrl: `/thanh-toan/ket-qua?status=SUCCESS&code=${txnRef}`,
+      redirectUrl: `/thanh-toan/ket-qua?status=SUCCESS&code=${txnRef}`,
+    } as T;
+  }
+
+  // 6. GET /bookings/me
+  if (method === 'GET' && rawPath0 === '/bookings/me') {
+    const filter = search0.get('filter') || 'upcoming';
+    let filtered = [...MOCK_CUSTOMER_BOOKINGS];
+    if (filter === 'upcoming') {
+      filtered = filtered.filter((b) => b.status === 'CONFIRMED' || b.status === 'CHECKED_IN');
+    } else if (filter === 'history') {
+      filtered = filtered.filter((b) => b.status === 'COMPLETED');
+    } else if (filter === 'cancelled') {
+      filtered = filtered.filter((b) => b.status === 'CANCELLED' || b.status === 'NO_SHOW');
+    }
+    return {
+      items: filtered,
+      total: filtered.length,
+      page: 1,
+      pages: 1,
+    } as T;
+  }
+
+  // 7. GET /bookings/:id/refund-preview
+  if (method === 'GET' && rawPath0.endsWith('/refund-preview')) {
+    const id = rawPath0.split('/')[2];
+    const b = MOCK_CUSTOMER_BOOKINGS.find((item) => item.id === id);
+    const amountPaid = b?.amountPaid ?? 108000;
+    return {
+      refundPercent: 100,
+      refundAmount: amountPaid,
+      amountPaid,
+      hoursUntilMatch: 48,
+      policyDescription: 'Hủy trước giờ chơi >24h hoàn 100% số tiền đã cọc.',
+    } as T;
+  }
+
+  // 8. POST /bookings/:id/review
+  if (method === 'POST' && rawPath0.endsWith('/review')) {
+    const id = rawPath0.split('/')[2];
+    const b = MOCK_CUSTOMER_BOOKINGS.find((item) => item.id === id);
+    if (b) {
+      b.hasReviewed = true;
+      b.review = {
+        rating: typeof payload.rating === 'number' ? payload.rating : 5,
+        comment: typeof payload.comment === 'string' ? payload.comment : '',
+      };
+    }
+    return { ok: true } as T;
+  }
+
+  // ===================== OWNER / ADMIN mock (t10) =====================
 
   // GET /venues/mine — sân của owner đăng nhập (mọi trạng thái).
   if (method === 'GET' && rawPath0 === '/venues/mine') {
@@ -451,7 +740,11 @@ export async function handleMockRequest<T>(
     const venue = MOCK_VENUES.find((item) => item.id === venueId || item.slug === venueId);
     if (venue === undefined) throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
     return {
-      items: venue.courts.map((court) => ({ ...court, status: (court.status ?? 'ACTIVE') as 'ACTIVE' | 'MAINTENANCE', venueId })),
+      items: venue.courts.map((court) => ({
+        ...court,
+        status: (court.status ?? 'ACTIVE') as 'ACTIVE' | 'MAINTENANCE',
+        venueId,
+      })),
     } as T;
   }
   if (method === 'POST' && /^\/venues\/[^/]+\/courts$/.test(rawPath0)) {

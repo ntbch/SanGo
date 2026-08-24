@@ -20,6 +20,7 @@ const ALL_ROLES: readonly UserRole[] = [UserRole.CUSTOMER, UserRole.OWNER, UserR
 /** Menu sidebar của dashboard — lọc theo vai trò người dùng. */
 export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: ALL_ROLES },
+  { to: '/dashboard/my-bookings', label: 'Đơn của tôi', icon: CalendarDays, roles: ALL_ROLES },
   { to: '/dashboard/manage', label: 'Quản lý sân', icon: MapPinned, roles: [UserRole.OWNER] },
   { to: '/dashboard/bookings', label: 'Đơn đặt', icon: CalendarDays, roles: [UserRole.OWNER] },
   { to: '/dashboard/statistics', label: 'Thống kê', icon: BarChart3, roles: [UserRole.OWNER] },

@@ -170,10 +170,7 @@ export function VenueDetailPage(): ReactElement {
                     từ {formatVnd(court.defaultPricePerSlot)}/slot
                   </p>
                   <Button asChild size="sm" className="w-full">
-                    {/* t11 sẽ thay bằng lịch tuần của court này */}
-                    <a href={`/venues/${venue.slug}`} onClick={(event) => event.preventDefault()}>
-                      Chọn giờ →
-                    </a>
+                    <Link to={`/venues/${venue.slug}/book?courtId=${court.id}`}>Chọn giờ →</Link>
                   </Button>
                 </CardContent>
               </Card>

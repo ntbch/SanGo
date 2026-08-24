@@ -13,6 +13,10 @@ import { restoreSession } from '../features/auth/api';
 import { VenueDetailPage } from '../features/public/pages/venue-detail-page';
 import { VenuesPage } from '../features/public/pages/venues-page';
 import { ApprovalQueuePage } from '../features/admin/pages/approval-queue-page';
+import { BookingCalendarPage } from '../features/booking/pages/booking-calendar-page';
+import { CheckoutHoldPage } from '../features/booking/pages/checkout-hold-page';
+import { MyCustomerBookingsPage } from '../features/booking/pages/my-bookings-page';
+import { PaymentResultPage } from '../features/booking/pages/payment-result-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
@@ -52,12 +56,24 @@ export function AppRoutes(): ReactElement {
           <Route index element={<HomePage />} />
           <Route path="venues" element={<VenuesPage />} />
           <Route path="venues/:slug" element={<VenueDetailPage />} />
+          <Route path="venues/:slug/book" element={<BookingCalendarPage />} />
+          <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
           <Route element={<GuestRoute />}>
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="forgot-password" element={<ForgotPasswordPage />} />
           </Route>
         </Route>
+
+        {/* Thanh toán checkout yêu cầu đăng nhập */}
+        <Route
+          path="/thanh-toan/checkout/:holdId"
+          element={
+            <ProtectedRoute>
+              <CheckoutHoldPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Dashboard yêu cầu đăng nhập; route con giới hạn theo vai trò */}
         <Route
@@ -69,6 +85,7 @@ export function AppRoutes(): ReactElement {
           }
         >
           <Route index element={<DashboardPage />} />
+          <Route path="my-bookings" element={<MyCustomerBookingsPage />} />
           <Route
             path="manage"
             element={
