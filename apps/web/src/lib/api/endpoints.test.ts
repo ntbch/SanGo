@@ -6,6 +6,8 @@ describe('endpoints — auth', () => {
   it('trả về đường dẫn tĩnh đúng contract', () => {
     expect(endpoints.auth.login()).toBe('/auth/login');
     expect(endpoints.auth.refresh()).toBe('/auth/refresh');
+    expect(endpoints.auth.resetPassword()).toBe('/auth/reset-password');
+    expect(endpoints.users.me()).toBe('/users/me');
   });
 });
 

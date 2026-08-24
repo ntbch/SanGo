@@ -23,7 +23,7 @@ import {
 } from '../../../components/ui/form';
 import { Input } from '../../../components/ui/input';
 import { toast } from '../../../components/ui/use-toast';
-import { ApiError } from '../../../lib/api/api-error';
+import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { useAuthStore } from '../../../lib/auth/auth-store';
 import { env } from '../../../lib/env';
 import { login } from '../api';
@@ -56,8 +56,7 @@ export function LoginPage(): ReactElement {
       toast({
         variant: 'destructive',
         title: 'Đăng nhập thất bại',
-        description:
-          error instanceof ApiError ? error.message : 'Có lỗi xảy ra, vui lòng thử lại sau.',
+        description: friendlyApiMessage(error),
       });
     }
   });
