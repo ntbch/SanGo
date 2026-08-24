@@ -9,6 +9,24 @@ jobs:
   verify:
     name: Lint · Typecheck · Test · Build
     runs-on: ubuntu-latest
+
+    # Postgres 16 cho integration test chạy thật (đặc tả §8: Jest + Postgres
+    # docker — luồng hold/convert, callback idempotent, race 2 request cùng slot)
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: courthub
+          POSTGRES_USER: courthub
+          POSTGRES_PASSWORD: courthub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U courthub"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -29,8 +47,15 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Tạo schema trên service postgres trước khi integration test chạy
+      # (migrations nằm ở apps/api/prisma/migrations — task T2)
+      - name: Migrate database for integration tests
+        run: pnpm --filter @courthub/api exec prisma migrate deploy
+
       - name: Test
         run: pnpm test
+        env:
+          DATABASE_URL: postgresql://courthub:courthub@localhost:5432/courthub
 
       - name: Build api + web
         run: pnpm build
