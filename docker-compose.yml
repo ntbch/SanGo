@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: courthub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: courthub
+      POSTGRES_USER: courthub
+      POSTGRES_PASSWORD: courthub
+    ports:
+      - '5432:5432'
+    volumes:
+      - courthub_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U courthub -d courthub']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  courthub_pgdata:
