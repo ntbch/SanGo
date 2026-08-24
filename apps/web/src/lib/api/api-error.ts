@@ -43,6 +43,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   BOOKING_FORBIDDEN: 'Bạn không có quyền thao tác trên đơn đặt này.',
   BOOKING_NOT_FOUND: 'Không tìm thấy đơn đặt sân.',
   FORBIDDEN_ROLE: 'Bạn không có quyền thực hiện thao tác này.',
+  VENUE_FORBIDDEN: 'Bạn không có quyền quản lý cụm sân này.',
 };
 
 /**

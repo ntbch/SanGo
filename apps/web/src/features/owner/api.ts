@@ -43,9 +43,7 @@ export function deleteVenue(id: string): Promise<void> {
 }
 
 export function fetchCourtsOfVenue(venueId: string): Promise<{ items: CourtRow[] }> {
-  // Chi tiết public đã kèm courts ACTIVE; owner cần cả MAINTENANCE nên dùng
-  // detail admin? Backend t5 trả courts trong venue detail theo select cố định.
-  return apiFetch<{ items: CourtRow[] }>(`/venues/${venueId}/courts`);
+  return apiFetch<{ items: CourtRow[] }>(endpoints.venues.courtsByVenue(venueId));
 }
 
 export function createCourt(venueId: string, values: CourtFormPayload): Promise<CourtRow> {

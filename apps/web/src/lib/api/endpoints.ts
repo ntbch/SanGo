@@ -94,6 +94,7 @@ export const endpoints = {
     remove: (id: string): string => '/venues/' + seg(id),
     removeCourt: (courtId: string): string => '/courts/' + seg(courtId),
     update: (id: string): string => '/venues/' + seg(id),
+    courtsByVenue: (venueId: string): string => '/venues/' + seg(venueId) + '/courts',
     addCourt: (venueId: string): string => '/venues/' + seg(venueId) + '/courts',
     updateCourt: (courtId: string): string => '/courts/' + seg(courtId),
     /** REPLACE-ALL semantics, idempotent theo contract. */
