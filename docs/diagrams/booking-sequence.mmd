@@ -1,0 +1,48 @@
+%% SequenceDiagram luồng đặt sân chống double-booking — đặc tả §6.1 ⭐.
+%% Trình tự: chọn slot -> hold transaction (FOR UPDATE + overlap check,
+%% trùng thì 409 SLOT_TAKEN) -> redirect VNPay -> callback verify HMAC-SHA512
+%% + idempotency txnRef UNIQUE -> Booking CONFIRMED. Kèm nhánh cron hết hạn
+%% hold mỗi 1 phút. Sơ đồ trọng tâm của chương thiết kế + hiện thực.
+sequenceDiagram
+    autonumber
+    participant B as Browser - Khách hàng
+    participant API as API - bookings/payments module
+    participant DB as PostgreSQL Neon
+    participant VNP as VNPay sandbox
+    participant CRON as Cron mỗi 1 phút
+
+    B->>API: POST /api/v1/bookings/hold {courtId, date, slots[]}
+    API->>API: Validate slots liền kề + nằm trong giờ mở cửa
+    API->>DB: BEGIN TRANSACTION
+    API->>DB: SELECT id FROM Court WHERE id = ? FOR UPDATE
+    Note over API,DB: Row-level lock tuần tự hoá mọi request cùng sân — độc lập timing application
+    API->>DB: Overlap check: Booking CONFIRMED/CHECKED_IN ∪ Hold ACTIVE?
+    alt Slot đã bị chiếm
+        DB-->>API: Có dòng trùng lịch
+        API-->>B: HTTP 409 SLOT_TAKEN + ROLLBACK
+    else Slot trống
+        API->>DB: INSERT BookingHold ACTIVE expiresAt = now + 10 phút
+        API->>DB: COMMIT
+        API-->>B: holdId + số tiền cọc + redirect sang VNPay với txnRef UNIQUE
+        B->>VNP: Khách thanh toán cọc 30% (hoặc full)
+        VNP->>API: GET /api/v1/payments/callback kèm vnp_SecureHash
+
+        opt Hold đã EXPIRED trước khi thanh toán xong
+            API-->>VNP: Từ chối — hold không còn ACTIVE, không tạo Booking
+        end
+        alt Chữ ký HMAC-SHA512 hợp lệ và số tiền khớp
+            API->>DB: TXN: Payment PAID + Hold CONVERTED + INSERT Booking CONFIRMED
+            Note over API,DB: txnRef UNIQUE là idempotency key — VNPay gọi callback lặp lại vẫn an toàn
+            API-->>VNP: ACK 200
+            VNP-->>B: Redirect về web — đơn CONFIRMED kèm mã QR check-in
+        else Sai chữ ký hoặc lệch số tiền
+            API->>DB: Payment FAILED + lưu rawPayload để đối soát
+            API-->>VNP: Từ chối callback
+        end
+    end
+
+    loop Mỗi 1 phút chạy cron
+        CRON->>DB: Hold ACTIVE quá hạn → EXPIRED (tự nhả slot)
+        CRON->>DB: Booking CONFIRMED đã qua giờ kết thúc → COMPLETED
+    end
+    Note over CRON,DB: Cron còn gửi email nhắc trận trước 2h chơi (module notifications — §3.9)

@@ -1,0 +1,28 @@
+%% Máy trạng thái (state machine) của thực thể Booking — đặc tả §5.
+%% Luồng chính: CONFIRMED -> CHECKED_IN -> COMPLETED; hai nhánh kết thúc sớm
+%% là CANCELLED (chính sách hủy §6.2) và NO_SHOW (chủ sân đánh dấu).
+%% Lưu ý thiết kế: Booking KHÔNG có trạng thái chờ thanh toán — suốt quá trình
+%% thanh toán slot do BookingHold giữ, callback thành công mới tạo Booking.
+stateDiagram-v2
+    direction TB
+    [*] --> CONFIRMED : Callback VNPay PAID — Hold CONVERTED (§6.1)
+    CONFIRMED --> CHECKED_IN : Chủ sân quét/nhập mã QR check-in (§6.3)
+    CHECKED_IN --> COMPLETED : Cron tự chuyển khi qua giờ kết thúc
+    CONFIRMED --> CANCELLED : Khách hủy theo chính sách §6.2 hoặc owner/admin hủy hộ
+    CHECKED_IN --> NO_SHOW : Chủ sân đánh dấu khách vắng mặt
+    CANCELLED --> [*]
+    NO_SHOW --> [*]
+    COMPLETED --> [*] : Cho phép đánh giá 1 lần (§3.8)
+
+    note right of CONFIRMED
+        Booking chỉ sinh ra khi Payment đã PAID.
+        "Booking đang chiếm slot" = CONFIRMED
+        hoặc CHECKED_IN (quy ước §6.1).
+    end note
+
+    note left of CANCELLED
+        Mức hoàn theo thời điểm hủy:
+        trước giờ chơi hơn 24h hoàn 100%,
+        12–24h hoàn 50%, dưới 12h không hoàn.
+        Ghi nhận bằng bản ghi Payment REFUND.
+    end note

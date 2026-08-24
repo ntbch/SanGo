@@ -1,0 +1,124 @@
+%% ERD CourtHub — 9 bảng theo đặc tả §5 (Mô hình dữ liệu Prisma).
+%% Dùng cho chương Phân tích thiết kế của báo cáo tốt nghiệp.
+%% Kiểu dữ liệu: các trường trạng thái dùng đúng tên enum đã chốt trong
+%% packages/shared (UserRole, VenueStatus, BookingStatus, PaymentStatus...).
+%% Quan hệ: || = 1, o{ = 0..N, o| = 0..1. Chữ ghì cạnh quan hệ là tên FK.
+erDiagram
+  USER {
+    uuid id PK
+    string email UK
+    string passwordHash
+    string fullName
+    string phone
+    UserRole role "CUSTOMER | OWNER | ADMIN"
+    UserStatus status "ACTIVE | LOCKED"
+  }
+
+  REFRESH_TOKEN {
+    uuid id PK
+    uuid userId FK
+    string tokenHash
+    datetime expiresAt
+    datetime revokedAt "null = còn hiệu lực"
+  }
+
+  VENUE {
+    uuid id PK
+    uuid ownerId FK
+    string name
+    string slug UK
+    string address
+    float lat
+    float lng
+    int openMinute "phút trong ngày, giờ VN UTC+7"
+    int closeMinute
+    string images "mảng URL Cloudinary"
+    string amenities "mảng tiện ích"
+    int depositPercent "mặc định 30"
+    VenueStatus status "PENDING | APPROVED | REJECTED"
+    string rejectReason "nullable"
+  }
+
+  COURT {
+    uuid id PK
+    uuid venueId FK
+    string name
+    SportType sportType "FOOTBALL5 | FOOTBALL7 | PICKLEBALL | BADMINTON | TENNIS"
+    int slotMinutes "60 | 90"
+    int defaultPricePerSlot "VND, số nguyên"
+    CourtStatus status "ACTIVE | MAINTENANCE"
+  }
+
+  PRICING_RULE {
+    uuid id PK
+    uuid courtId FK
+    DayType dayType "WEEKDAY | WEEKEND"
+    int startMinute
+    int endMinute
+    int pricePerSlot "ghi đè giá mặc định theo khung giờ"
+  }
+
+  BOOKING_HOLD {
+    uuid id PK
+    uuid userId FK
+    uuid courtId FK
+    date date "YYYY-MM-DD giờ VN"
+    int startMinute
+    int endMinute
+    int subtotal
+    datetime expiresAt "now + 10 phut"
+    BookingHoldStatus status "ACTIVE | CONVERTED | EXPIRED"
+  }
+
+  BOOKING {
+    uuid id PK
+    string code UK "CH-YYYYMMDD-NNNN + QR check-in"
+    uuid customerId FK
+    uuid courtId FK
+    date date "YYYY-MM-DD giờ VN"
+    int startMinute
+    int endMinute
+    int subtotal
+    int depositAmount
+    BookingStatus status "CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED | NO_SHOW"
+    datetime cancelledAt "nullable"
+    string cancelReason "nullable"
+    bool isPublicMatch "ghép trận mo GĐ2"
+    int slotsNeeded "GĐ2"
+    bool matchFull "GĐ2"
+  }
+
+  PAYMENT {
+    uuid id PK
+    uuid bookingId FK
+    int amount "VND số nguyên"
+    PaymentType type "DEPOSIT | FULL | REFUND"
+    PaymentMethod method "VNPAY | MOCK"
+    string txnRef UK "idempotency key callback"
+    PaymentStatus status "PENDING | PAID | FAILED | REFUNDED"
+    datetime paidAt "nullable"
+    jsonb rawPayload "payload gốc cổng thanh toán"
+  }
+
+  REVIEW {
+    uuid id PK
+    uuid bookingId FK "UNIQUE - moi don 1 danh gia"
+    uuid venueId FK
+    uuid customerId FK
+    int rating "1..5 sao"
+    string comment
+    datetime createdAt
+  }
+
+  USER ||--o{ REFRESH_TOKEN : "userId"
+  USER ||--o{ VENUE : "ownerId"
+  VENUE ||--o{ COURT : "venueId"
+  COURT ||--o{ PRICING_RULE : "courtId"
+  USER ||--o{ BOOKING_HOLD : "userId"
+  COURT ||--o{ BOOKING_HOLD : "courtId"
+  USER ||--o{ BOOKING : "customerId"
+  COURT ||--o{ BOOKING : "courtId"
+  BOOKING ||--o{ PAYMENT : "bookingId"
+  BOOKING ||--o| REVIEW : "bookingId UNIQUE"
+  VENUE ||--o{ REVIEW : "venueId"
+  USER ||--o{ REVIEW : "customerId"

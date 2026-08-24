@@ -1,0 +1,38 @@
+%% Kiến trúc tổng thể hệ thống CourtHub — đặc tả §4 + §9.
+%% Browser -> Vercel (web React) -> Render (API NestJS, các module nghiệp vụ)
+%% -> Neon PostgreSQL, tích hợp Cloudinary / Resend / VNPay sandbox,
+%% kèm cron jobs chạy trong tiến trình API (@nestjs/schedule).
+%% Dùng cho chương Phân tích thiết kế + Hiện thực của báo cáo.
+flowchart TB
+  U["Người dùng<br/>Khách hàng · Chủ sân · Admin"]
+
+  subgraph VERCEL["Vercel — hosting frontend"]
+    WEB["apps/web<br/>React 18 + Vite + TailwindCSS<br/>TanStack Query · React Router · Leaflet · Chart.js"]
+  end
+
+  subgraph RENDER["Render — hosting backend (free tier)"]
+    API["apps/api — NestJS 10<br/>REST /api/v1 · Swagger /api/docs<br/>Helmet · Throttler · CORS whitelist"]
+    subgraph MODULES["Modules nghiệp vụ"]
+      direction LR
+      AUTH["auth"] --- USERS["users"] --- VENUES["venues"] --- COURTS["courts"] --- PRICING["pricing"]
+      BOOKINGS["bookings ⭐"] --- PAYMENTS["payments<br/>VnPayGateway | MockGateway"] --- REVIEWS["reviews"] --- NOTIF["notifications"]
+      AI["ai (GĐ2)"] --- ADMIN["admin"] --- COMMON["common<br/>guards · filters · interceptors"]
+    end
+    CRON["@nestjs/schedule cron jobs<br/>• mỗi 1 phút: Hold ACTIVE quá hạn → EXPIRED<br/>• qua giờ kết thúc: CONFIRMED → COMPLETED<br/>• T-2h trước giờ chơi: gửi email nhắc"]
+  end
+
+  subgraph EXTERNAL["Dịch vụ bên ngoài"]
+    NEON[("Neon<br/>PostgreSQL 16")]
+    VNPAY["VNPay sandbox<br/>HMAC-SHA512 · txnRef UNIQUE"]
+    RESEND["Resend<br/>email xác nhận / hủy / nhắc trận"]
+    CLOUDINARY["Cloudinary<br/>ảnh cụm sân"]
+  end
+
+  U -->|"HTTPS"| WEB
+  WEB -->|"JSON /api/v1<br/>access token 15' trong memory<br/>refresh 7' cookie httpOnly"| API
+  API -->|"Prisma ORM<br/>transaction + row lock FOR UPDATE"| NEON
+  API -->|"redirect thanh toán<br/>+ callback verify chữ ký"| VNPAY
+  API -->|"SMTP API"| RESEND
+  API -.->|"signed upload / URL ảnh"| CLOUDINARY
+  WEB -.->|"hiển thị ảnh qua CDN"| CLOUDINARY
+  CRON -->|"chạy trong tiến trình API"| NEON

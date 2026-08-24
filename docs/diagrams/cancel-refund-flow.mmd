@@ -1,0 +1,22 @@
+%% Flowchart chính sách hủy và hoàn cọc — đặc tả §6.2.
+%% Ba mức hoàn theo khoảng cách giờ chơi: hơn 24h hoàn 100%,
+%% 12–24h hoàn 50%, dưới 12h không hoàn. Mọi thay đổi tiền được ghi thành
+%% bản ghi Payment loại REFUND; sandbox/mock không đẩy tiền thật.
+flowchart TD
+    START(["Khách yêu cầu hủy đơn<br/>DELETE /api/v1/bookings/:id"]) --> CHK{"Booking đang ở<br/>trạng thái CONFIRMED?"}
+    CHK -->|"Không — CHECKED_IN hoặc COMPLETED"| REJECT(["Từ chối hủy<br/>trả lỗi nghiệp vụ thống nhất"])
+    CHK -->|"Có"| PERM{"Người yêu cầu<br/>có quyền?"}
+    PERM -->|"Khách hủy đơn của mình<br/>hoặc owner/admin hủy hộ"| CALC["Tính khoảng cách<br/>thời điểm hủy tới giờ chơi"]
+    PERM -->|"Đơn người khác"| FORBID(["403 — không có quyền"])
+    CALC --> D1{"Còn hơn 24h<br/>trước giờ chơi?"}
+    D1 -->|"Có"| R100["Hoàn 100%<br/>số tiền đã trả"]
+    D1 -->|"Không"| D2{"Còn từ 12h<br/>đến 24h?"}
+    D2 -->|"Có"| R50["Hoàn 50%"]
+    D2 -->|"Dưới 12h"| R0["Không hoàn — mức 0%"]
+    R100 --> UPD["UPDATE Booking:<br/>status = CANCELLED<br/>ghi cancelledAt + cancelReason"]
+    R50 --> UPD
+    R0 --> UPD
+    UPD --> PAY["INSERT Payment:<br/>type = REFUND · status = REFUNDED<br/>amount = mức hoàn tương ứng"]
+    PAY --> LEDGER["Sandbox/mock không đẩy tiền thật —<br/>chỉ ghi nhận sổ sách để báo cáo thống kê"]
+    PAY --> MAIL["Gửi email xác nhận hủy qua Resend"]
+    MAIL --> DONE(["Slot tự mở lại —<br/>người khác đặt được bình thường"])
