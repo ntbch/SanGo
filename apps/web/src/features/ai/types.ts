@@ -58,11 +58,11 @@ export interface AiChatResponse {
   reply: string;
   /** Tên tool đã chạy — UI hiện '[tool: xxx ✓]' minh bạch chống ảo giác. */
   toolsUsed: string[];
+  /** data là object phẳng theo intent (không bọc {type, payload}). */
   data: {
     venues?: AiVenueCard[];
     slots?: AiSlotsResult;
     suggestions?: AiSlotSuggestion[];
-    courtId?: string;
     dateHint?: string;
   };
 }
