@@ -1,4 +1,5 @@
 /** Lớp gọi API cho tính năng xác thực (đặc tả §3.1). */
+import { endpoints } from '../../lib/api/endpoints';
 import { apiFetch } from '../../lib/api/client';
 import { type AuthResponse } from '../../lib/api/types';
 import { useAuthStore } from '../../lib/auth/auth-store';
@@ -9,11 +10,11 @@ export interface MessageResponse {
 }
 
 export function login(values: LoginValues): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/login', { method: 'POST', body: values });
+  return apiFetch<AuthResponse>(endpoints.auth.login(), { method: 'POST', body: values });
 }
 
 export function register(values: RegisterValues): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/register', {
+  return apiFetch<AuthResponse>(endpoints.auth.register(), {
     method: 'POST',
     body: {
       fullName: values.fullName.trim(),
@@ -24,7 +25,7 @@ export function register(values: RegisterValues): Promise<AuthResponse> {
 }
 
 export function forgotPassword(values: ForgotPasswordValues): Promise<MessageResponse> {
-  return apiFetch<MessageResponse>('/auth/forgot-password', {
+  return apiFetch<MessageResponse>(endpoints.auth.forgotPassword(), {
     method: 'POST',
     body: { email: values.email.trim().toLowerCase() },
   });
@@ -33,7 +34,7 @@ export function forgotPassword(values: ForgotPasswordValues): Promise<MessageRes
 /** Đăng xuất: gọi API xoá refresh cookie rồi luôn dọn trạng thái client. */
 export async function logout(): Promise<void> {
   try {
-    await apiFetch<MessageResponse | undefined>('/auth/logout', { method: 'POST' });
+    await apiFetch<MessageResponse | undefined>(endpoints.auth.logout(), { method: 'POST' });
   } finally {
     useAuthStore.getState().clearSession();
   }
@@ -45,7 +46,7 @@ export async function logout(): Promise<void> {
  */
 export async function restoreSession(): Promise<AuthResponse | null> {
   try {
-    return await apiFetch<AuthResponse>('/auth/refresh', { method: 'POST' });
+    return await apiFetch<AuthResponse>(endpoints.auth.refresh(), { method: 'POST' });
   } catch {
     return null;
   }
