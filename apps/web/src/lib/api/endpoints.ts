@@ -59,6 +59,13 @@ export interface OwnerBookingsQuery {
   status?: string;
 }
 
+export interface OpenMatchesQuery {
+  sportType?: 'FOOTBALL5' | 'FOOTBALL7' | 'PICKLEBALL' | 'BADMINTON' | 'TENNIS';
+  /** YYYY-MM-DD. */
+  date?: string;
+  page?: number;
+}
+
 export interface OwnerAnalyticsQuery {
   /** Bắt buộc theo contract — UUID cụm sân của chủ đang đăng nhập. */
   venueId: string;
@@ -122,6 +129,10 @@ export const endpoints = {
     cancel: (id: string): string => '/bookings/' + seg(id),
     review: (id: string): string => '/bookings/' + seg(id) + '/review',
     checkIn: (): string => '/bookings/check-in',
+    /** Ghép trận mở (§3.11): tham gia / rời ghép trên đơn của người khác. */
+    joinMatch: (id: string): string => '/bookings/' + seg(id) + '/join',
+    /** [Chủ đơn/ADMIN] Danh sách người đã tham gia. */
+    matchParticipants: (id: string): string => '/bookings/' + seg(id) + '/participants',
     noShow: (id: string): string => '/bookings/' + seg(id) + '/no-show',
   },
 
@@ -141,6 +152,11 @@ export const endpoints = {
     venue: (id: string): string => '/admin/venues/' + seg(id),
     approve: (id: string): string => '/admin/venues/' + seg(id) + '/approve',
     reject: (id: string): string => '/admin/venues/' + seg(id) + '/reject',
+  },
+
+  matches: {
+    /** [Public] Danh sách trận mở chưa đủ người (§3.11). */
+    open: (query: OpenMatchesQuery = {}): string => '/matches/open' + qs(query),
   },
 
   owner: {
