@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/guards/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -21,6 +21,14 @@ import { CourtsService } from './courts.service';
 @Controller()
 export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
+
+  @Get('venues/:venueId/courts')
+  @ApiOperation({
+    summary: '[OWNER] Liệt kê toàn bộ sân con của cụm sân (kèm trạng thái MAINTENANCE)',
+  })
+  listByVenue(@CurrentUser() user: AuthUser, @Param('venueId') venueId: string) {
+    return this.courtsService.listByVenue(venueId, user);
+  }
 
   @Post('venues/:venueId/courts')
   @ApiOperation({ summary: '[OWNER] Thêm sân con vào cụm sân của mình' })

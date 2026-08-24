@@ -12,6 +12,15 @@ export class CourtsService {
     private readonly venues: VenuesService,
   ) {}
 
+  /** Liệt kê toàn bộ sân con (bao gồm cả MAINTENANCE) của một venue — owner của venue hoặc ADMIN */
+  async listByVenue(venueId: string, user: Pick<User, 'id' | 'role'>) {
+    await this.venues.canManageVenue(venueId, user);
+    return this.prisma.court.findMany({
+      where: { venueId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   /** Thêm sân con vào venue — phải là chủ venue đó. */
   async create(user: Pick<User, 'id' | 'role'>, venueId: string, dto: CreateCourtDto) {
     await this.venues.canManageVenue(venueId, user);
