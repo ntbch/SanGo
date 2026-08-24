@@ -162,11 +162,12 @@ request) · E2E Playwright (luồng đặt tới trang thanh toán).
 
 ### 5.2 Kết quả kiểm thử
 Tổng hợp số test, độ phủ, thời gian CI.
-Số liệu giữa kỳ GĐ2 (QA smoke): API 77 test (66 pass / 11 fail do 1 blocker
-đang hotfix — sinh mã đơn trùng trong transaction khi DB có dữ liệu seed);
-typecheck + lint xanh; smoke HTTP 5/5 kịch bản §3.10–13 PASS trên DB thật.
-**[ĐIỀN SAU]:** cập nhật lại bảng sau hotfix + coverage %, thời gian CI. Ngưỡng chất lượng: CI xanh là điều
-kiện merge; booking flow phải có integration test mới tính là xong.
+Số liệu chốt GĐ2 (QA tổng duyệt): API Jest **82/82 test xanh (10/10 suites)**,
+Web Vitest **91/91 (23 files)**; lint + typecheck + build api/web đều xanh;
+smoke HTTP §3.10–13 PASS trên DB thật, gồm regression blocker mã đơn
+(callback thành công với mã distinct trên ngày từng có gap mã) và analytics
+đếm đúng đơn "hôm nay" theo ngày business Asia/Ho_Chi_Minh.
+Ngưỡng chất lượng: CI xanh là điều kiện merge; booking flow phải có integration test mới tính là xong.
 **[ĐIỀN SAU]:** bảng số liệu chạy thật (số test, coverage %, thời gian).
 
 ### 5.3 Thử nghiệm hiệu năng tình huống tranh chấp slot
