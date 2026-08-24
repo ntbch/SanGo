@@ -395,6 +395,102 @@ describe('Booking engine chống double-booking (integration)', () => {
     );
   });
 
+  it('my-bookings filter: upcoming / history / cancelled', async () => {
+    if (!dbUp) return;
+    const resAll = await bookings.listMine(uA(), { page: 1, limit: 10 });
+    expect(resAll.total).toBeGreaterThanOrEqual(1);
+
+    const resUp = await bookings.listMine(uA(), { filter: 'upcoming', page: 1, limit: 10 });
+    expect(resUp.items.every((b) => b.status === 'CONFIRMED' || b.status === 'CHECKED_IN')).toBe(
+      true,
+    );
+
+    const resCancel = await bookings.listMine(uA(), { filter: 'cancelled', page: 1, limit: 10 });
+    expect(resCancel.items.every((b) => b.status === 'CANCELLED' || b.status === 'NO_SHOW')).toBe(
+      true,
+    );
+  });
+
+  it('check-in và no-show: owner của sân check-in đúng mã, owner khác bị 403', async () => {
+    if (!dbUp) return;
+    const bk = await prisma.booking.create({
+      data: {
+        code: `CH-CK-${SUFFIX}`,
+        customerId: custA.id,
+        courtId,
+        date: new Date(dstr(tomorrow())),
+        startMinute: 480,
+        endMinute: 540,
+        subtotal: 200_000,
+        depositAmount: 100_000,
+        status: 'CONFIRMED',
+      },
+    });
+
+    const ownerUser = await prisma.venue.findUniqueOrThrow({
+      where: { id: (await prisma.court.findUniqueOrThrow({ where: { id: courtId } })).venueId },
+      select: { ownerId: true },
+    });
+
+    // Khách không có quyền check-in
+    await expect(
+      bookings.checkIn(bk.code, { id: custB.id, role: 'CUSTOMER' }),
+    ).rejects.toMatchObject({
+      response: { code: 'BOOKING_FORBIDDEN' },
+    });
+
+    // Owner sân check-in thành công
+    const res = await bookings.checkIn(bk.code, { id: ownerUser.ownerId, role: 'OWNER' });
+    expect(res.booking.status).toBe('CHECKED_IN');
+
+    // Check-in lại idempotency
+    const resAgain = await bookings.checkIn(bk.code, { id: ownerUser.ownerId, role: 'OWNER' });
+    expect(resAgain.message).toContain('đã check-in');
+
+    // No-show
+    const bkNoShow = await prisma.booking.create({
+      data: {
+        code: `CH-NS-${SUFFIX}`,
+        customerId: custA.id,
+        courtId,
+        date: new Date(dstr(tomorrow())),
+        startMinute: 540,
+        endMinute: 600,
+        subtotal: 200_000,
+        depositAmount: 100_000,
+        status: 'CONFIRMED',
+      },
+    });
+    const ns = await bookings.markNoShow(bkNoShow.id, { id: ownerUser.ownerId, role: 'OWNER' });
+    expect(ns.status).toBe('NO_SHOW');
+  });
+
+  it('owner bookings: xem đơn theo venueId', async () => {
+    if (!dbUp) return;
+    const court = await prisma.court.findUniqueOrThrow({ where: { id: courtId } });
+    const ownerUser = await prisma.venue.findUniqueOrThrow({
+      where: { id: court.venueId },
+      select: { ownerId: true },
+    });
+
+    const list = await bookings.listOwnerBookings(
+      { id: ownerUser.ownerId, role: 'OWNER' },
+      { venueId: court.venueId, page: 1, limit: 20 },
+    );
+    expect(list.total).toBeGreaterThanOrEqual(1);
+    expect(list.items.every((b) => b.court.name === 'Itest-BK Court')).toBe(true);
+
+    // Owner khác không xem được
+    await expect(
+      bookings.listOwnerBookings(
+        { id: custA.id, role: 'OWNER' },
+        { venueId: court.venueId, page: 1, limit: 20 },
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'VENUE_FORBIDDEN' },
+    });
+  });
+
   function round50(x: number): number {
     return Math.round((x * 50) / 100 / 1000) * 1000;
   }

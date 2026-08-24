@@ -8,7 +8,12 @@ import {
 } from '@nestjs/common';
 import { Prisma, BookingStatus, PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateHoldDto, CreateReviewDto } from './dto/booking.dto';
+import {
+  CreateHoldDto,
+  CreateReviewDto,
+  MyBookingsQueryDto,
+  OwnerBookingsQueryDto,
+} from './dto/booking.dto';
 import { priceForSlot, roundVnd, slotDateTime } from './pricing.util';
 
 const HOLD_TTL_MINUTES = 10;
@@ -411,5 +416,189 @@ export class BookingsService {
       }
       throw e;
     }
+  }
+
+  /** Lấy danh sách đơn đặt của khách hàng (GET /bookings/me) */
+  async listMine(user: { id: string }, query: MyBookingsQueryDto) {
+    const todayMidnight = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
+
+    let whereStatus: Prisma.BookingWhereInput = {};
+    if (query.filter === 'upcoming') {
+      whereStatus = {
+        status: { in: [BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN] },
+        date: { gte: todayMidnight },
+      };
+    } else if (query.filter === 'history') {
+      whereStatus = {
+        OR: [
+          { status: BookingStatus.COMPLETED },
+          {
+            status: { in: [BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN] },
+            date: { lt: todayMidnight },
+          },
+        ],
+      };
+    } else if (query.filter === 'cancelled') {
+      whereStatus = {
+        status: { in: [BookingStatus.CANCELLED, BookingStatus.NO_SHOW] },
+      };
+    }
+
+    const where: Prisma.BookingWhereInput = {
+      customerId: user.id,
+      ...whereStatus,
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        orderBy: [{ date: 'desc' }, { startMinute: 'desc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        include: {
+          court: {
+            include: {
+              venue: {
+                select: { id: true, name: true, slug: true, address: true, images: true },
+              },
+            },
+          },
+          payments: true,
+          review: true,
+        },
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page: query.page,
+      limit: query.limit,
+      pages: Math.max(1, Math.ceil(total / query.limit)),
+    };
+  }
+
+  /** Check-in bằng mã đơn (POST /bookings/check-in) — spec §6.3: owner/admin */
+  async checkIn(code: string, user: { id: string; role: string }) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { code },
+      include: {
+        court: { include: { venue: { select: { id: true, ownerId: true, name: true } } } },
+        customer: { select: { id: true, fullName: true, phone: true, email: true } },
+      },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Không tìm thấy đơn đặt với mã này',
+        code: 'BOOKING_NOT_FOUND',
+      });
+    }
+
+    if (user.role !== 'ADMIN' && booking.court.venue.ownerId !== user.id) {
+      throw new ForbiddenException({
+        message: 'Bạn không có quyền check-in đơn của cụm sân này',
+        code: 'BOOKING_FORBIDDEN',
+      });
+    }
+
+    if (booking.status === BookingStatus.CHECKED_IN) {
+      return { message: 'Đơn này đã check-in trước đó', booking };
+    }
+
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      throw new ConflictException({
+        message: `Không thể check-in đơn đang ở trạng thái ${booking.status}`,
+        code: 'CHECKIN_NOT_ALLOWED',
+      });
+    }
+
+    const updated = await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: BookingStatus.CHECKED_IN },
+      include: {
+        court: { include: { venue: { select: { id: true, name: true } } } },
+        customer: { select: { id: true, fullName: true, phone: true, email: true } },
+      },
+    });
+
+    return { message: 'Check-in thành công', booking: updated };
+  }
+
+  /** Đánh dấu No-show cho đơn không đến (POST /bookings/:id/no-show) — owner/admin */
+  async markNoShow(bookingId: string, user: { id: string; role: string }) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { court: { include: { venue: { select: { ownerId: true } } } } },
+    });
+    if (!booking) {
+      throw new NotFoundException({ message: 'Không tìm thấy đơn đặt', code: 'BOOKING_NOT_FOUND' });
+    }
+
+    if (user.role !== 'ADMIN' && booking.court.venue.ownerId !== user.id) {
+      throw new ForbiddenException({
+        message: 'Bạn không có quyền thao tác trên đơn này',
+        code: 'BOOKING_FORBIDDEN',
+      });
+    }
+
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      throw new ConflictException({
+        message: 'Chỉ có thể đánh dấu no-show cho đơn CONFIRMED',
+        code: 'NOSHOW_NOT_ALLOWED',
+      });
+    }
+
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: BookingStatus.NO_SHOW },
+    });
+  }
+
+  /** Danh sách đơn đặt theo venue cho Owner (GET /owner/bookings) */
+  async listOwnerBookings(user: { id: string; role: string }, query: OwnerBookingsQueryDto) {
+    const venue = await this.prisma.venue.findUnique({
+      where: { id: query.venueId },
+      select: { id: true, ownerId: true },
+    });
+    if (!venue) {
+      throw new NotFoundException({ message: 'Không tìm thấy cụm sân', code: 'VENUE_NOT_FOUND' });
+    }
+
+    if (user.role !== 'ADMIN' && venue.ownerId !== user.id) {
+      throw new ForbiddenException({
+        message: 'Bạn không phải chủ của cụm sân này',
+        code: 'VENUE_FORBIDDEN',
+      });
+    }
+
+    const where: Prisma.BookingWhereInput = {
+      court: { venueId: query.venueId },
+      ...(query.date ? { date: new Date(query.date + 'T00:00:00.000Z') } : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        orderBy: [{ date: 'desc' }, { startMinute: 'asc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        include: {
+          court: { select: { id: true, name: true, sportType: true } },
+          customer: { select: { id: true, fullName: true, phone: true, email: true } },
+          payments: true,
+        },
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page: query.page,
+      limit: query.limit,
+      pages: Math.max(1, Math.ceil(total / query.limit)),
+    };
   }
 }

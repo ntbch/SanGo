@@ -32,3 +32,23 @@ export const CreateReviewSchema = z.object({
   comment: z.string().trim().min(4, 'Nhận xét tối thiểu 4 ký tự').max(500),
 });
 export type CreateReviewDto = z.infer<typeof CreateReviewSchema>;
+export const MyBookingsQuerySchema = z.object({
+  filter: z.enum(['upcoming', 'history', 'cancelled']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+export type MyBookingsQueryDto = z.infer<typeof MyBookingsQuerySchema>;
+
+export const CheckInSchema = z.object({
+  code: z.string().trim().min(1, 'Mã đơn là bắt buộc'),
+});
+export type CheckInDto = z.infer<typeof CheckInSchema>;
+
+export const OwnerBookingsQuerySchema = z.object({
+  venueId: z.string().uuid('venueId phải là UUID'),
+  date: z.string().regex(DATE_RE, 'date phải là YYYY-MM-DD').optional(),
+  status: z.enum(['CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type OwnerBookingsQueryDto = z.infer<typeof OwnerBookingsQuerySchema>;
