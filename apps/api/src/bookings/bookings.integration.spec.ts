@@ -491,6 +491,146 @@ describe('Booking engine chống double-booking (integration)', () => {
     });
   });
 
+  /**
+   * HOTFIX 25P02 (QA smoke t8): tái hiện kịch bản blocker — DB đã có đơn mã
+   * CH-<ngày>-0002 KHÔNG liền kề; callback mới phải CONFIRMED với mã không trùng,
+   * Payment PAID, hold CONVERTED (cơ chế count+retry P2002 cũ làm hỏng cả tx).
+   */
+  it('HOTFIX: seed mã CH-<ngày>-0002 không liền kề -> callback mới vẫn CONFIRMED', async () => {
+    if (!dbUp) return console.warn('[integration] skip');
+    const prefix = `CH-${DATE.replaceAll('-', '')}-`;
+    const dateObj = new Date(DATE + 'T00:00:00.000Z');
+    // Tự dọn state của những lần chạy crash trước (mã trùng / hold ACTIVE kẹt).
+    await prisma.payment.deleteMany({
+      where: {
+        booking: {
+          OR: [{ code: `${prefix}0002` }, { customerId: custA.id, courtId, date: dateObj }],
+        },
+      },
+    });
+    await prisma.review.deleteMany({
+      where: {
+        OR: [
+          { booking: { code: `${prefix}0002` } },
+          { customer: { id: custA.id }, venue: { courts: { some: { id: courtId } } } },
+        ],
+      },
+    });
+    await prisma.booking.deleteMany({
+      where: { OR: [{ code: `${prefix}0002` }, { customerId: custA.id, courtId, date: dateObj }] },
+    });
+    await prisma.bookingHold.updateMany({
+      where: { userId: custA.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const stranger = await prisma.user.create({
+      data: {
+        email: `itbk-stranger-${SUFFIX}@courthub.vn`,
+        passwordHash: 'seed-only',
+        fullName: 'Stranger',
+        role: 'CUSTOMER',
+      },
+    });
+    await prisma.booking.create({
+      data: {
+        code: `${prefix}0002`,
+        customerId: stranger.id,
+        courtId,
+        date: dateObj,
+        startMinute: 60, // dữ liệu bẩn ngoài giờ mở cửa — chỉ để đụng độ dãy mã
+        endMinute: 150,
+        subtotal: 200_000,
+        depositAmount: 100_000,
+        status: 'CONFIRMED',
+      },
+    });
+
+    const hold = (await bookings.createHold(uA(), {
+      courtId,
+      date: DATE,
+      slots: [1260],
+    })) as { holdId: string };
+    const booking = (await bookings.confirmFromHold(hold.holdId, {
+      txnRef: `TXN-${SUFFIX}-hotfix`,
+    })) as { id: string; code: string; status: string };
+
+    expect(booking.status).toBe('CONFIRMED');
+    expect(booking.code.startsWith(prefix)).toBe(true);
+    expect(booking.code).not.toBe(`${prefix}0002`);
+    const payment = await prisma.payment.findUniqueOrThrow({
+      where: { txnRef: `TXN-${SUFFIX}-hotfix` },
+    });
+    expect(payment.status).toBe(PaymentStatus.PAID);
+    expect(
+      (await prisma.bookingHold.findUniqueOrThrow({ where: { id: hold.holdId } })).status,
+    ).toBe('CONVERTED');
+  });
+
+  /** HOTFIX race: hai callback khác hold cùng ngày chạy đồng thời vẫn distinct mã. */
+  it('HOTFIX race: 2 callback đồng thời khác sân cùng ngày -> 2 mã distinct', async () => {
+    if (!dbUp) return console.warn('[integration] skip');
+    // Nhả mọi hold ACTIVE tồn đọng từ test trước để không dính HOLD_LIMIT.
+    await prisma.bookingHold.updateMany({
+      where: { userId: { in: [custA.id, custB.id] }, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    await prisma.payment.deleteMany({
+      where: {
+        booking: {
+          customerId: { in: [custA.id, custB.id] },
+          startMinute: 840,
+          date: new Date(DATE + 'T00:00:00.000Z'),
+        },
+      },
+    });
+    await prisma.booking.deleteMany({
+      where: {
+        customerId: { in: [custA.id, custB.id] },
+        startMinute: 840,
+        date: new Date(DATE + 'T00:00:00.000Z'),
+      },
+    });
+    const court1 = await prisma.court.findUniqueOrThrow({
+      where: { id: courtId },
+      select: { venueId: true },
+    });
+    const court2 = await prisma.court.create({
+      data: {
+        venueId: court1.venueId,
+        name: 'Itest-BK Court-Race',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 200_000,
+      },
+    });
+
+    const h1 = (await bookings.createHold(uA(), {
+      courtId,
+      date: DATE,
+      slots: [840],
+    })) as { holdId: string };
+    const h2 = (await bookings.createHold(uB(), {
+      courtId: court2.id,
+      date: DATE,
+      slots: [840],
+    })) as { holdId: string };
+
+    const results = await Promise.allSettled([
+      bookings.confirmFromHold(h1.holdId, { txnRef: `TXN-${SUFFIX}-race-a` }),
+      bookings.confirmFromHold(h2.holdId, { txnRef: `TXN-${SUFFIX}-race-b` }),
+    ]);
+    const fulfilled = results.filter((r) => r.status === 'fulfilled') as Array<
+      PromiseFulfilledResult<{ code: string }>
+    >;
+    expect(results.some((r) => r.status === 'rejected')).toBe(false);
+    expect(fulfilled).toHaveLength(2);
+    const codes = fulfilled.map((r) => r.value.code);
+    expect(new Set(codes).size).toBe(2);
+    for (const txn of [`TXN-${SUFFIX}-race-a`, `TXN-${SUFFIX}-race-b`]) {
+      const p = await prisma.payment.findUniqueOrThrow({ where: { txnRef: txn } });
+      expect(p.status).toBe(PaymentStatus.PAID);
+    }
+  });
   function round50(x: number): number {
     return Math.round((x * 50) / 100 / 1000) * 1000;
   }
