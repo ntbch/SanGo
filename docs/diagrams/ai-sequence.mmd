@@ -1,0 +1,35 @@
+%% SequenceDiagram luồng Trợ lý AI đặt sân ngôn ngữ tự nhiên — đặc tả §3.12 ⭐ (luồng nghiệp vụ §6.4).
+%% Trình tự: POST /ai/chat (JWT) -> guardrail hạn mức -> NLU Gemini qua adapter ->
+%% function-calling 3 tool nội bộ (searchVenues / checkSlots / createHold) đọc DB thật
+%% -> model chỉ diễn giải từ dữ liệu tool (chống ảo giác). Guardrail: KHÔNG có tool
+%% thanh toán; cần đăng nhập mới tạo giữ chỗ; API provider lỗi -> phản hồi mượt.
+sequenceDiagram
+    autonumber
+    participant U as Browser - Widget chat (webapp)
+    participant API as API - NestJS ai module
+    participant LLM as NLU - Gemini adapter (provider abstraction)
+    participant DB as PostgreSQL Neon
+
+    U->>API: POST /api/v1/ai/chat { message } kèm JWT
+    API->>API: Guard: đã đăng nhập + hạn mức 20 tin nhắn/giờ/người
+    API->>LLM: System prompt ràng buộc + câu hỏi + lịch sử hội thoại
+
+    loop Model quyết định gọi tool để trả lời
+        LLM-->>API: Function call: searchVenues / checkSlots / createHold
+        alt Tra cứu sân hoặc khung giờ trống
+            API->>DB: SELECT Venue / Court / slot còn trống (dữ liệu thật)
+            DB-->>API: Danh sách sân, giá, khung giờ
+        else Khách muốn giữ chỗ
+            Note over API,DB: Guardrail: chỉ createHold 10 phút — KHÔNG tồn tại tool thanh toán
+            API->>DB: INSERT BookingHold ACTIVE expiresAt = now + 10 phút
+            DB-->>API: holdId + thời hạn giữ chỗ
+        end
+        API->>LLM: Gửi kết quả tool về cho model diễn giải
+    end
+
+    LLM-->>API: Câu trả lời cuối CHỈ dựa trên dữ liệu tool-call (tool-use chống ảo giác)
+    API-->>U: 200 { reply } hiển thị bong bóng chat
+
+    opt Provider Gemini lỗi, timeout hoặc hết hạn mức free tier
+        API-->>U: Thoái hoá an toàn: "Hệ thống gợi ý đang bận, bạn thử lại sau nhé"
+    end

@@ -12,6 +12,8 @@ version-control vừa render PNG/SVG chất lượng cao lúc đóng báo cáo.
 | `booking-sequence.mmd` | sequenceDiagram | Luồng đặt sân: hold FOR UPDATE → overlap check → VNPay callback idempotent | §6.1 ⭐ |
 | `booking-state.mmd` | stateDiagram-v2 | Máy trạng thái Booking 5 trạng thái | §5 |
 | `cancel-refund-flow.mmd` | flowchart TD | Chính sách hủy 3 mức hoàn cọc | §6.2 |
+| `ai-sequence.mmd` | sequenceDiagram | Luồng POST /ai/chat: widget → NLU Gemini (adapter) → 3 tool nội bộ searchVenues/checkSlots/createHold → DB; guardrail không tự thanh toán, fallback lỗi provider | §3.12, §6.4 ⭐ |
+| `match-state.mmd` | stateDiagram-v2 | Vòng đời ghép trận mở: đặt công khai → join tới đủ → matchFull khoá; rời trận, hủy bởi chủ đơn | §3.11 |
 
 ## Lệnh render đề xuất
 
@@ -23,6 +25,8 @@ npx --yes @mermaid-js/mermaid-cli mmdc -i docs/diagrams/architecture.mmd       -
 npx --yes @mermaid-js/mermaid-cli mmdc -i docs/diagrams/booking-sequence.mmd   -o docs/diagrams/booking-sequence.png   -w 1600 -b white
 npx --yes @mermaid-js/mermaid-cli mmdc -i docs/diagrams/booking-state.mmd      -o docs/diagrams/booking-state.png      -w 1600 -b white
 npx --yes @mermaid-js/mermaid-cli mmdc -i docs/diagrams/cancel-refund-flow.mmd -o docs/diagrams/cancel-refund-flow.png -w 1600 -b white
+npx --yes @mermaid-js/mermaid-cli mmdc -i docs/diagrams/ai-sequence.mmd        -o docs/diagrams/ai-sequence.png        -w 1600 -b white
+npx --yes @mermaid-js/mermaid-cli mmdc -i docs/diagrams/match-state.mmd         -o docs/diagrams/match-state.png         -w 1600 -b white
 ```
 
 Rút gọn (bash loop):
@@ -48,9 +52,18 @@ Muốn vector cho LaTeX/InDesign thì thay đuôi output `.png` bằng `.svg`.
   }
   ```
 
-  rồi thêm `-p puppeteer-config.json` vào lệnh mmdc. Cả 5 file `.mmd` trong
-  thư mục này đã được parse + render SVG thành công bằng mermaid-cli 11.16.0
+  rồi thêm `-p puppeteer-config.json` vào lệnh mmdc. Cả 7 file `.mmd` trong
+  thư mục này đã được parse + render thành công bằng mermaid-cli 11.16.0
   với cấu hình trên.
+- **Lỗi npx "too many arguments":** trên một số máy, wrapper npx truyền thừa
+  tham số khiến mmdc báo `error: too many arguments`. Khi gặp lỗi này, chạy
+  thẳng entrypoint JS trong cache npx:
+
+  ```bash
+  P=$(ls -d ~/.npm/_npx/*/node_modules/@mermaid-js/mermaid-cli | head -1)
+  node "$P/src/cli.js" -i docs/diagrams/ai-sequence.mmd \
+    -o docs/diagrams/ai-sequence.png -w 1600 -b white -p puppeteer-config.json
+  ```
 - **Kiểm tra cú pháp nhanh không cần render:** mở file trên
   <https://mermaid.live> — nội dung sau các dòng `%%` comment là phần vẽ.
 - Sửa sơ đồ = sửa file `.mmd` rồi render lại; **không sửa tay file PNG/SVG**.

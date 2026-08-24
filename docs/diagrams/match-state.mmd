@@ -1,0 +1,28 @@
+%% Máy trạng thái vòng đời Ghép trận mở (open match) — đặc tả §3.11.
+%% Trạng thái chồng lên 1 Booking thường: isPublicMatch/slotsNeeded/matchFull
+%% trên Booking + bảng MatchParticipant(bookingId FK, userId FK, status) GĐ2.
+%% OPEN = isPublicMatch true & matchFull false; FULL = matchFull true (khoá 1 chiều);
+%% CANCELLED = chủ đơn hủy đơn đặt sân, cả trận tan (hoàn cọc theo chính sách §6.2).
+stateDiagram-v2
+    direction TB
+    [*] --> OPEN : Chủ đơn đặt sân chọn công khai "cần ghép X người" — Booking.isPublicMatch = true, slotsNeeded = X
+    OPEN --> OPEN : Người khác tham gia — INSERT MatchParticipant (UNIQUE bookingId + userId)
+    OPEN --> OPEN : Người đã tham gia rời trận — chỉ được khi trận CHƯA đủ
+    OPEN --> FULL : Số người đã tham gia = slotsNeeded — matchFull = true, khoá danh sách
+    OPEN --> CANCELLED : Chủ đơn hủy đơn đặt sân — trận tan, hoàn cọc theo chính sách §6.2
+    FULL --> CANCELLED : Chủ đơn hủy đơn đặt sân — trận tan, hoàn cọc theo chính sách §6.2
+    FULL --> [*] : Trận diễn ra bình thường theo vòng đời Booking CONFIRMED → COMPLETED
+    CANCELLED --> [*]
+
+    note right of OPEN
+        Đơn hiển thị trong danh sách "tìm trận"
+        công khai cho người khác duyệt và join.
+        Giới hạn ghi rõ §3.11: tiền phần còn lại
+        người tham gia trả chủ đơn NGOÀI hệ thống.
+    end note
+
+    note left of FULL
+        matchFull = true là khoá 1 chiều: không nhận
+        thêm người mới và không cho rời nữa — bảo
+        đảm đúng đủ số người khi đến giờ chơi.
+    end note
