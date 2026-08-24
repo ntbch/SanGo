@@ -19,7 +19,7 @@ const accounts: MockAccount[] = [
   {
     id: 'u-customer-01',
     email: 'customer@courthub.vn',
-    password: '12345678',
+    password: 'Courthub@2026',
     fullName: 'Nguyễn Văn Bình',
     phone: '0901234567',
     role: UserRole.CUSTOMER,
@@ -27,7 +27,7 @@ const accounts: MockAccount[] = [
   {
     id: 'u-owner-01',
     email: 'owner@courthub.vn',
-    password: '12345678',
+    password: 'Courthub@2026',
     fullName: 'Trần Thị Cẩm Lan',
     phone: '0912345678',
     role: UserRole.OWNER,
@@ -35,7 +35,7 @@ const accounts: MockAccount[] = [
   {
     id: 'u-admin-01',
     email: 'admin@courthub.vn',
-    password: '12345678',
+    password: 'Courthub@2026',
     fullName: 'Phạm Quốc Dũng',
     role: UserRole.ADMIN,
   },

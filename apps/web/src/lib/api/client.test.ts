@@ -33,7 +33,7 @@ describe('apiFetch — chế độ mock', () => {
   it('login mock hợp lệ trả về user + access token', async () => {
     const result = await apiFetch<AuthResponse>('/auth/login', {
       method: 'POST',
-      body: { email: 'owner@courthub.vn', password: '12345678' },
+      body: { email: 'owner@courthub.vn', password: 'Courthub@2026' },
     });
 
     expect(result.accessToken).toMatch(/^mock-access-/);

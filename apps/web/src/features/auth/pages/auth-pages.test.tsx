@@ -36,7 +36,7 @@ describe('Trang xác thực (mock mode)', () => {
     fireEvent.change(await screen.findByLabelText('Email'), {
       target: { value: 'owner@courthub.vn' },
     });
-    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: '12345678' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'Courthub@2026' } });
     fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
     expect(await screen.findByRole('heading', { name: 'Tổng quan' })).toBeTruthy();

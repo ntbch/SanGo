@@ -138,7 +138,7 @@ export function LoginPage(): ReactElement {
           {env.useMock && (
             <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground">Chế độ demo (mock)</p>
-              Đăng nhập thử với mật khẩu <code className="text-primary">12345678</code>:
+              Đăng nhập thử với mật khẩu <code className="text-primary">Courthub@2026</code>:
               <ul className="mt-1 list-inside list-disc">
                 {MOCK_HINT_ACCOUNTS.map((account) => (
                   <li key={account} className="font-mono">
