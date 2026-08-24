@@ -133,7 +133,7 @@ DELETE /bookings/:id (khách hủy đơn của mình; owner/admin hủy hộ)
 QR chứa mã đơn; chủ sân quét/nhập mã → kiểm tra đơn thuộc venue của mình → chuyển `CHECKED_IN`.
 
 ### 6.4 Trợ lý AI (GĐ2)
-Client giữ hội thoại, gửi mảng messages lên `POST /ai/chat`; server stateless; system prompt ràng buộc: chỉ trả lời về đặt sân, mọi slot/sân phải đến từ tool call; `createHold` yêu cầu JWT. Timeout 15s + retry 1 lần; vượt hạn mức → thông báo thân thiện.
+Client gửi `{message}` lên `POST /ai/chat`; server stateless với provider abstraction (`RuleBasedNluProvider` mặc định, `GeminiAdapter` cài khi có `GEMINI_API_KEY`); guardrail: chỉ trả lời về đặt sân, mọi slot/sân phải đến từ tool call DB thật (`toolsUsed` echo về UI minh bạch); giữ chỗ qua `POST /ai/hold` yêu cầu JWT — chat không bao giờ tự thanh toán. Timeout 15s; vượt hạn mức 20 tin/h/user → thông báo thân thiện.
 
 ## 7. Bảo mật
 - bcrypt cost 12; access token 15' (client giữ trong memory) + refresh 7' trong cookie `httpOnly; Secure; SameSite=Lax`, xoay vòng mỗi lần dùng, phát hiện reuse → thu hồi cả session.
