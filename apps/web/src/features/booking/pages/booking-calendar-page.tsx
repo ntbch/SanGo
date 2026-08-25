@@ -21,6 +21,7 @@ import { useAuthStore } from '../../../lib/auth/auth-store';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { WeeklyGrid } from '../components/weekly-grid';
 import { useCourtWeeklySlots, useCreateBookingHold } from '../queries';
+import { useMyTeams } from '../../teams/queries';
 import { useFilteredAiSuggestions } from '../../ai/filtered-suggestions';
 import { cn } from '../../../lib/utils';
 import { validateContiguousSlots } from '../slot-utils';
@@ -64,6 +65,10 @@ export function BookingCalendarPage(): ReactElement {
   // Ghép trận mở (§3.11): công khai tìm người ghép + số người cần.
   const [isPublicMatch, setIsPublicMatch] = useState(false);
   const [slotsNeeded, setSlotsNeeded] = useState(4);
+
+  // S2-F1: Đặt dưới tư cách Đội — chọn từ danh sách đội tôi tham gia (tuỳ chọn).
+  const myTeamsQuery = useMyTeams();
+  const [teamId, setTeamId] = useState<string>('');
 
   // Đổi tuần
   const changeWeek = (offsetDays: number) => {
@@ -168,6 +173,8 @@ export function BookingCalendarPage(): ReactElement {
         date,
         slots: sortedSlots.map((s) => ({ startMinute: s.startMinute, endMinute: s.endMinute })),
         ...(isPublicMatch ? { isPublicMatch: true, slotsNeeded } : {}),
+        // S2-F1: gắn đội để đơn xuất hiện trong lịch sử & quỹ chia tiền của đội.
+        ...(teamId ? { teamId } : {}),
       });
 
       navigate(`/thanh-toan/checkout/${hold.holdId}`);
@@ -369,6 +376,30 @@ export function BookingCalendarPage(): ReactElement {
                     {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>
                         {n} người
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              {/* S2-F1: Đặt dưới tư cách Đội — gắn đơn vào đội thể thao của bạn. */}
+              {(myTeamsQuery.data?.length ?? 0) > 0 ? (
+                <div className="mt-2 flex items-center gap-2 pl-6">
+                  <Label htmlFor="team-as" className="text-xs text-muted-foreground">
+                    Tư cách
+                  </Label>
+                  <select
+                    id="team-as"
+                    data-testid="team-as-select"
+                    value={teamId}
+                    onChange={(event) => setTeamId(event.target.value)}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="">Cá nhân</option>
+                    {(myTeamsQuery.data ?? []).map((m) => (
+                      <option key={m.team.id} value={m.team.id}>
+                        Đội {m.team.name}
+                        {m.role === 'CAPTAIN' ? ' (đội trưởng)' : ''}
                       </option>
                     ))}
                   </select>

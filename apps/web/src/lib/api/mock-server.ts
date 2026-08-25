@@ -69,6 +69,8 @@ export function resetMockSession(): void {
   MOCK_WALLET_LEDGER.length = 0;
   // Voucher dựng lại từ seed — danh sách/quota cách ly giữa các test (F3).
   resetMockVouchers();
+  // Teams dựng lại từ seed — thành viên/quỹ cách ly giữa các test (F1).
+  resetMockTeams();
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -2019,9 +2021,113 @@ interface MockHoldStore {
   /** F3 voucher: snapshot giảm giá (null/undefined = chưa áp). */
   discountAmount?: number | null;
   finalAmount?: number | null;
+  /** S2-F1: hold tạo tư cách đội. */
+  teamId?: string | null;
 }
 
 const MOCK_HOLDS = new Map<string, MockHoldStore>();
+
+/* ===================== TEAMS mock (F1) ===================== */
+
+interface MockTeam {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  description: string | null;
+  sportType: string;
+  captainId: string;
+  createdAt: string;
+}
+
+interface MockTeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: 'CAPTAIN' | 'MEMBER';
+  status: 'ACTIVE' | 'PENDING';
+  joinedAt: string;
+}
+
+interface MockExpenseShare {
+  id: string;
+  teamId: string;
+  bookingId: string | null;
+  payerId: string;
+  debtorId: string;
+  amount: number;
+  note: string | null;
+  status: 'UNPAID' | 'PAID';
+  createdAt: string;
+}
+
+const MOCK_TEAMS: MockTeam[] = [
+  {
+    id: 'team-01',
+    name: 'Dragon Pickleball Club',
+    logoUrl: null,
+    description: 'Nhóm chơi pickleball tối thứ 3 - thứ 5 tại Quần Ngựa.',
+    sportType: 'PICKLEBALL',
+    captainId: 'u-customer-01',
+    createdAt: '2026-08-15T02:00:00.000Z',
+  },
+];
+
+let MOCK_TEAM_MEMBERS: MockTeamMember[] = [
+  {
+    id: 'tm-01',
+    teamId: 'team-01',
+    userId: 'u-customer-01',
+    role: 'CAPTAIN',
+    status: 'ACTIVE',
+    joinedAt: '2026-08-15T02:00:00.000Z',
+  },
+  {
+    id: 'tm-02',
+    teamId: 'team-01',
+    userId: 'u-owner-01',
+    role: 'MEMBER',
+    status: 'ACTIVE',
+    joinedAt: '2026-08-16T02:00:00.000Z',
+  },
+  {
+    id: 'tm-03',
+    teamId: 'team-01',
+    userId: 'u-admin-01',
+    role: 'MEMBER',
+    status: 'ACTIVE',
+    joinedAt: '2026-08-17T02:00:00.000Z',
+  },
+];
+
+let MOCK_EXPENSES: MockExpenseShare[] = [
+  {
+    id: 'es-01',
+    teamId: 'team-01',
+    bookingId: null,
+    payerId: 'u-customer-01',
+    debtorId: 'u-owner-01',
+    amount: 80000,
+    note: 'Tiền nước trận cuối tuần',
+    status: 'UNPAID',
+    createdAt: '2026-08-22T02:00:00.000Z',
+  },
+  {
+    id: 'es-02',
+    teamId: 'team-01',
+    bookingId: null,
+    payerId: 'u-customer-01',
+    debtorId: 'u-admin-01',
+    amount: 120000,
+    note: 'Thuê sân chia đều',
+    status: 'PAID',
+    createdAt: '2026-08-20T02:00:00.000Z',
+  },
+];
+
+function resetMockTeams(): void {
+  MOCK_TEAM_MEMBERS = MOCK_TEAM_MEMBERS.filter((m) => ['tm-01', 'tm-02', 'tm-03'].includes(m.id));
+  MOCK_EXPENSES = MOCK_EXPENSES.filter((e) => ['es-01', 'es-02'].includes(e.id));
+}
 
 /* ===================== WALLET mock (F6) =====================
    Contract backend wallets.controller:
@@ -2169,6 +2275,8 @@ interface MockCustomerBookingItem {
   isPublicMatch?: boolean;
   slotsNeeded?: number | null;
   matchFull?: boolean;
+  /** S2-F1: đơn đặt tư cách đội (lịch sử đặt sân của đội). */
+  teamId?: string | null;
 }
 
 const MOCK_CUSTOMER_BOOKINGS: MockCustomerBookingItem[] = [
@@ -2191,6 +2299,8 @@ const MOCK_CUSTOMER_BOOKINGS: MockCustomerBookingItem[] = [
     isPublicMatch: true,
     slotsNeeded: 4,
     matchFull: false,
+    // S2-F1: đơn này đặt tư cách Dragon Pickleball Club (demo lịch sử đội).
+    teamId: 'team-01',
     createdAt: '2026-08-24T10:00:00.000Z',
   },
   {
@@ -2461,6 +2571,8 @@ export async function handleMockRequest<T>(
             return { isPublicMatch: true, slotsNeeded: needed };
           })()
         : {}),
+      // S2-F1: giữ lựa chọn đội để hiển thị lại ở checkout.
+      teamId: typeof payload.teamId === 'string' && payload.teamId ? payload.teamId : null,
     };
     MOCK_HOLDS.set(holdId, holdObj);
 
@@ -2895,6 +3007,134 @@ export async function handleMockRequest<T>(
     }
     if (row.readAt === null) row.readAt = new Date().toISOString();
     return { ...row } as T;
+  }
+
+  /* ===================== TEAMS mock (F1) ===================== */
+
+  const mockUserSummary = (userId: string) => {
+    const acc = accounts.find((a) => a.id === userId);
+    return {
+      id: userId,
+      fullName: acc?.fullName ?? 'Thành viên',
+      avatarUrl: null,
+      email: acc?.email ?? null,
+      phone: null,
+    };
+  };
+
+  // GET /teams/my-teams
+  if (method === 'GET' && rawPath0 === '/teams/my-teams') {
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    const memberships = MOCK_TEAM_MEMBERS.filter((m) => m.userId === account.id);
+    const result = memberships.map((m) => {
+      const team = MOCK_TEAMS.find((t) => t.id === m.teamId)!;
+      return {
+        membershipId: m.id,
+        role: m.role,
+        status: m.status,
+        joinedAt: m.joinedAt,
+        team: {
+          ...team,
+          captain: mockUserSummary(team.captainId),
+          memberCount: MOCK_TEAM_MEMBERS.filter(
+            (x) => x.teamId === team.id && x.status === 'ACTIVE',
+          ).length,
+        },
+      };
+    });
+    return result as unknown as T;
+  }
+
+  // POST /teams — tạo đội mới
+  if (method === 'POST' && rawPath0 === '/teams') {
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    const name = requireString(payload, 'name');
+    const newTeam: MockTeam = {
+      id: 'team-' + Date.now().toString(36),
+      name,
+      logoUrl:
+        typeof payload.logoUrl === 'string' && payload.logoUrl !== '' ? payload.logoUrl : null,
+      description:
+        typeof payload.description === 'string' && payload.description !== ''
+          ? payload.description
+          : null,
+      sportType: typeof payload.sportType === 'string' ? payload.sportType : 'PICKLEBALL',
+      captainId: account.id,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_TEAMS.push(newTeam);
+    MOCK_TEAM_MEMBERS.push({
+      id: 'tm-' + Date.now().toString(36),
+      teamId: newTeam.id,
+      userId: account.id,
+      role: 'CAPTAIN',
+      status: 'ACTIVE',
+      joinedAt: new Date().toISOString(),
+    });
+    return { ...newTeam, members: [], captain: mockUserSummary(account.id) } as T;
+  }
+
+  // GET /teams/:id
+  if (method === 'GET' && /^\/teams\/[^/]+$/.test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const team = MOCK_TEAMS.find((t) => t.id === id);
+    if (team === undefined) {
+      throw new ApiError(404, 'Không tìm thấy đội thể thao', 'TEAM_NOT_FOUND');
+    }
+    const members = MOCK_TEAM_MEMBERS.filter((m) => m.teamId === id);
+    return {
+      ...team,
+      captain: mockUserSummary(team.captainId),
+      members: members.map((m) => ({
+        ...m,
+        user: mockUserSummary(m.userId),
+      })),
+    } as T;
+  }
+
+  // DELETE /teams/:id/members/:userId
+  if (method === 'DELETE' && /^\/teams\/[^/]+\/members\/[^/]+$/.test(rawPath0)) {
+    const parts = rawPath0.split('/');
+    MOCK_TEAM_MEMBERS = MOCK_TEAM_MEMBERS.filter(
+      (m) => !(m.teamId === parts[2] && m.userId === parts[4]),
+    );
+    return { success: true, message: 'Đã xoá thành viên khỏi đội' } as T;
+  }
+
+  // GET /teams/:id/expenses
+  if (method === 'GET' && /^\/teams\/[^/]+\/expenses$/.test(rawPath0)) {
+    const teamId = rawPath0.split('/')[2];
+    const shares = MOCK_EXPENSES.filter((e) => e.teamId === teamId);
+    const withUsers = shares.map((s) => ({
+      ...s,
+      payer: mockUserSummary(s.payerId),
+      debtor: mockUserSummary(s.debtorId),
+    }));
+    const totalUnpaid = withUsers
+      .filter((s) => s.status === 'UNPAID')
+      .reduce((sum, s) => sum + s.amount, 0);
+    return {
+      totalUnpaid,
+      myOwed: Math.round(totalUnpaid / 2),
+      myReceivable: totalUnpaid - Math.round(totalUnpaid / 2),
+      shares: withUsers,
+    } as T;
+  }
+
+  // PATCH /teams/:id/expenses/:shareId/status
+  if (method === 'PATCH' && /^\/teams\/[^/]+\/expenses\/[^/]+\/status$/.test(rawPath0)) {
+    const shareId = rawPath0.split('/')[4];
+    const share = MOCK_EXPENSES.find((s) => s.id === shareId);
+    if (share === undefined)
+      throw new ApiError(404, 'Không tìm thấy khoản chia tiền', 'EXPENSE_NOT_FOUND');
+    share.status = payload.status === 'PAID' ? 'PAID' : 'UNPAID';
+    return { ...share } as T;
   }
 
   /* ===================== VOUCHER mock (F3) ===================== */

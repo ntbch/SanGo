@@ -28,6 +28,9 @@ import { MyCustomerBookingsPage } from '../features/booking/pages/my-bookings-pa
 import { PaymentResultPage } from '../features/booking/pages/payment-result-page';
 import { WalletPage } from '../features/wallet/pages/wallet-page';
 import { NotificationsPage } from '../features/notifications/pages/notifications-page';
+import { MyTeamsPage } from '../features/teams/pages/my-teams-page';
+import { CreateTeamPage } from '../features/teams/pages/create-team-page';
+import { TeamDetailPage } from '../features/teams/pages/team-detail-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
@@ -150,6 +153,10 @@ export function AppRoutes(): ReactElement {
           <Route path="wallet" element={<WalletPage />} />
           {/* F8 Trung tâm thông báo — mọi vai trò đăng nhập */}
           <Route path="notifications" element={<NotificationsPage />} />
+          {/* F1 Teams — đội nhóm & sổ quỹ chia tiền (mọi vai trò) */}
+          <Route path="teams" element={<MyTeamsPage />} />
+          <Route path="teams/new" element={<CreateTeamPage />} />
+          <Route path="teams/:teamId" element={<TeamDetailPage />} />
           <Route
             path="manage"
             element={

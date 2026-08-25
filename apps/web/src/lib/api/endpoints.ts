@@ -216,4 +216,31 @@ export const endpoints = {
     /** Đánh dấu TOÀN BỘ chưa đọc là đã đọc -> { updated }. */
     markAllRead: (): string => '/notifications/read-all',
   },
+
+  teams: {
+    /** Tạo đội mới (người tạo là CAPTAIN). */
+    create: (): string => '/teams',
+    /** Danh sách đội tôi tham gia (ACTIVE hoặc PENDING). */
+    myTeams: (): string => '/teams/my-teams',
+    /** Chi tiết đội + thành viên. */
+    detail: (id: string): string => '/teams/' + seg(id),
+    /** Cập nhật đội (chỉ CAPTAIN). */
+    update: (id: string): string => '/teams/' + seg(id),
+    /** Mời thành viên vào đội (PENDING invite, CAPTAIN). */
+    invite: (id: string): string => '/teams/' + seg(id) + '/invite',
+    /** Chấp nhận/từ chối lời mời. */
+    respondInvite: (id: string): string => '/teams/' + seg(id) + '/respond-invite',
+    /** Xoá thành viên (CAPTAIN xoá / member tự rời). */
+    removeMember: (id: string, userId: string): string =>
+      '/teams/' + seg(id) + '/members/' + seg(userId),
+    /** Xem quỹ chia tiền + tổng quan nợ. */
+    expenses: (id: string): string => '/teams/' + seg(id) + '/expenses',
+    /** Tạo khoản chia tiền thủ công. */
+    createExpense: (id: string): string => '/teams/' + seg(id) + '/expenses',
+    /** Chia đều tiền sân cho các thành viên. */
+    splitBooking: (id: string): string => '/teams/' + seg(id) + '/expenses/split-booking',
+    /** Cập nhật trạng thái khoản nợ (UNPAID <-> PAID). */
+    updateExpenseStatus: (id: string, shareId: string): string =>
+      '/teams/' + seg(id) + '/expenses/' + seg(shareId) + '/status',
+  },
 } as const;

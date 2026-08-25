@@ -134,4 +134,28 @@ describe('BookingCalendarPage', () => {
     expect(screen.queryByText('💡 Gợi ý cho bạn')).toBeNull();
     expect(screen.queryByTestId('ai-suggestion-chip')).toBeNull();
   });
+
+  it('S2-F1: chọn tư cách đội khi giữ chỗ và checkout hiển thị lại tên đội', async () => {
+    // Đăng nhập đội trưởng của Dragon Pickleball Club để danh sách đội không rỗng
+    useAuthStore.getState().setSession(
+      {
+        id: 'u-customer-01',
+        email: 'customer@courthub.vn',
+        role: UserRole.CUSTOMER,
+        fullName: 'Nguyễn Văn Bình',
+      },
+      'tok',
+    );
+    const user = userEvent.setup();
+    await loginAndSelectFirstSlot(user);
+
+    const teamSelect = screen.getByTestId('team-as-select') as HTMLSelectElement;
+    await user.selectOptions(teamSelect, 'team-01');
+
+    await user.click(screen.getByRole('button', { name: /Giữ chỗ & Thanh toán/ }));
+    await waitFor(() => {
+      expect(screen.getByText(/Đặt dưới tư cách:/)).toBeTruthy();
+      expect(screen.getAllByText(/Dragon Pickleball Club/).length).toBeGreaterThan(0);
+    });
+  });
 });

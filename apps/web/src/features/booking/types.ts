@@ -34,6 +34,8 @@ export interface CreateHoldPayload {
   isPublicMatch?: boolean;
   /** 1..10 — bắt buộc khi isPublicMatch (khớp CreateHoldSchema backend). */
   slotsNeeded?: number;
+  /** S2-F1: đặt dưới tư cách đội thể thao (id đội, tuỳ chọn). */
+  teamId?: string;
 }
 
 /** Phản hồi POST /bookings/holds (và /ai/hold) — khớp contract backend §6.1. */
@@ -65,6 +67,8 @@ export interface BookingHold {
   /** F3 voucher: snapshot giảm giá khi đã áp mã (null/undefined = chưa áp). */
   discountAmount?: number | null;
   finalAmount?: number | null;
+  /** S2-F1: hold được tạo tư cách đội nào (hiển thị ở checkout). */
+  teamId?: string | null;
 }
 
 export interface CheckoutPayload {
@@ -121,6 +125,8 @@ export interface CustomerBooking {
   isPublicMatch?: boolean;
   slotsNeeded?: number | null;
   matchFull?: boolean;
+  /** S2-F1: đơn đặt tư cách đội — dùng lọc lịch sử đặt sân của đội. */
+  teamId?: string | null;
 }
 
 export interface PaginatedCustomerBookings {

@@ -1,6 +1,14 @@
 import { useState, type ReactElement } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { CreditCard, Loader2, ShieldCheck, AlertCircle, TicketPercent, Trash2 } from 'lucide-react';
+import {
+  CreditCard,
+  Loader2,
+  ShieldCheck,
+  AlertCircle,
+  TicketPercent,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import {
   Card,
@@ -22,6 +30,7 @@ import {
   useDeleteBookingHold,
 } from '../queries';
 import type { ApplyVoucherResponse } from '../types';
+import { useMyTeams } from '../../teams/queries';
 
 export function CheckoutHoldPage(): ReactElement {
   const { holdId = '' } = useParams();
@@ -34,12 +43,18 @@ export function CheckoutHoldPage(): ReactElement {
 
   const [paymentType, setPaymentType] = useState<'DEPOSIT' | 'FULL'>('DEPOSIT');
   const [isExpired, setIsExpired] = useState(false);
+  // S2-F1: hold được tạo tư cách đội nào — chỉ hiển thị lại (chọn ở bước chọn giờ).
+  const myTeamsQuery = useMyTeams();
   // F3 voucher: ô nhập mã + thông tin áp thành công (giá đã snapshot vào hold).
   const [voucherCode, setVoucherCode] = useState('');
   const [appliedInfo, setAppliedInfo] = useState<ApplyVoucherResponse | undefined>(undefined);
   const applyVoucher = useApplyVoucher(holdId);
 
   const hold = holdQuery.data;
+  const holdTeam =
+    hold?.teamId != null
+      ? (myTeamsQuery.data ?? []).find((m) => m.team.id === hold.teamId)?.team
+      : undefined;
 
   // Giá ưu tiên snapshot sau giảm (finalAmount); chưa áp mã thì bằng subtotal.
   const baseAmount = hold ? (hold.finalAmount ?? appliedInfo?.finalAmount ?? hold.subtotal) : 0;
@@ -219,6 +234,17 @@ export function CheckoutHoldPage(): ReactElement {
                 </div>
               </label>
             </div>
+
+            {/* S2-F1: đơn đặt tư cách đội — chọn ở bước chọn giờ, chỉ hiển thị lại ở đây */}
+            {holdTeam ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2.5 text-xs">
+                <Users className="size-4 shrink-0 text-primary" aria-hidden />
+                <span>
+                  Đặt dưới tư cách: <strong className="font-semibold">{holdTeam.name}</strong>
+                  <span className="text-muted-foreground"> — sẽ vào lịch sử & sổ quỹ của đội.</span>
+                </span>
+              </div>
+            ) : null}
 
             {/* F3: Áp mã giảm giá vào hold — hiển thị ngay trên nút thanh toán */}
             <div className="space-y-2 rounded-lg border border-border/60 p-3">
