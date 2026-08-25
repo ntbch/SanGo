@@ -1,81 +1,65 @@
-import { vnToday } from '@courthub/shared';
+import { HANOI_DISTRICT_ALIASES, vnToday } from '@courthub/shared';
 import { Injectable } from '@nestjs/common';
 import type { SportTypeValue } from './dto/ai.dto';
 import type { NluEntities, NluProvider, NluResult } from './nlu-provider.interface';
 
-/** Từ khóa -> sportType (thứ tự quan trọng: khớp dài trước ngắn). */
 const SPORT_PATTERNS: Array<[RegExp, SportTypeValue]> = [
   [/pickle\s?ball|pickle/i, 'PICKLEBALL'],
   [
     /(bóng\s*đá|bong\s*da|football)[^.]*(sân\s*7|san\s*7|7\s*người|7\s*nguoi)|sân\s*7|san\s*7/i,
     'FOOTBALL7',
   ],
-  [/(bóng\s*đá|bong\s*da|football)/i, 'FOOTBALL5'], // mặc định bóng đá = sân 5
+  [/(bóng\s*đá|bong\s*da|football)/i, 'FOOTBALL5'],
   [/cầu\s*lông|cau\s*long|badminton/i, 'BADMINTON'],
   [/tennis/i, 'TENNIS'],
 ];
 
-/** Quận/huyện phổ biến HN + HCM (viết thường không dấu để match dễ). */
-const LOCATIONS = [
-  // Hà Nội
-  'cầu giấy',
-  'hoàn kiếm',
-  'hoan kiem',
-  'ba đình',
-  'ba dinh',
-  'đống đa',
-  'dong da',
-  'hai bà trưng',
-  'hai ba trung',
-  'thanh xuân',
-  'tây hồ',
-  'tay ho',
-  'long biên',
-  'long bien',
-  'nam từ liêm',
-  'nam tu liem',
-  'bắc từ liêm',
-  'bac tu liem',
-  'hà đông',
-  'ha dong',
-  // TP.HCM
-  'quận 1',
-  'quan 1',
-  'quận 2',
-  'quan 2',
-  'quận 3',
-  'quan 3',
-  'quận 4',
-  'quan 4',
-  'quận 5',
-  'quan 5',
-  'quận 6',
-  'quan 6',
-  'quận 7',
-  'quan 7',
-  'quận 8',
-  'quan 8',
-  'quận 10',
-  'quan 10',
-  'quận 11',
-  'quan 11',
-  'quận 12',
-  'quan 12',
-  'gò vấp',
-  'go vap',
-  'bình thanh',
-  'binh thanh',
-  'tân bình',
-  'tan binh',
-  'phú nhuận',
-  'phu nhuan',
-  'thủ đức',
-  'thu duc',
-  'bình tân',
-  'binh tan',
-];
+const HCM_LOCATIONS: Record<string, string> = {
+  'quan 1': 'quận 1',
+  'quận 1': 'quận 1',
+  'quan 2': 'quận 2',
+  'quận 2': 'quận 2',
+  'quan 3': 'quận 3',
+  'quận 3': 'quận 3',
+  'quan 4': 'quận 4',
+  'quận 4': 'quận 4',
+  'quan 5': 'quận 5',
+  'quận 5': 'quận 5',
+  'quan 6': 'quận 6',
+  'quận 6': 'quận 6',
+  'quan 7': 'quận 7',
+  'quận 7': 'quận 7',
+  'quan 8': 'quận 8',
+  'quận 8': 'quận 8',
+  'quan 10': 'quận 10',
+  'quận 10': 'quận 10',
+  'quan 11': 'quận 11',
+  'quận 11': 'quận 11',
+  'quan 12': 'quận 12',
+  'quận 12': 'quận 12',
+  'go vap': 'gò vấp',
+  'gò vấp': 'gò vấp',
+  'binh thanh': 'bình thạnh',
+  'bình thạnh': 'bình thạnh',
+  'bình thanh': 'bình thạnh',
+  'tan binh': 'tân bình',
+  'tân bình': 'tân bình',
+  'phu nhuan': 'phú nhuận',
+  'phú nhuận': 'phú nhuận',
+  'thu duc': 'thủ đức',
+  'thủ đức': 'thủ đức',
+  'binh tan': 'bình tân',
+  'bình tân': 'bình tân',
+};
 
-/** Ngày tương đối: hôm nay / mai / mốt (+ ngày kia). */
+const HANOI_ALIASES_SORTED = Object.entries(HANOI_DISTRICT_ALIASES).sort(
+  (a, b) => b[0].length - a[0].length,
+);
+
+const HCM_ALIASES_SORTED = Object.entries(HCM_LOCATIONS).sort(
+  (a, b) => b[0].length - a[0].length,
+);
+
 export function resolveRelativeDate(text: string, now: Date): string | undefined {
   const t = text.toLowerCase();
   const day = 86_400_000;
@@ -91,11 +75,9 @@ export function resolveRelativeDate(text: string, now: Date): string | undefined
   return undefined;
 }
 
-/** Intent: giữ chỗ/đặt > hỏi lịch/trống; còn lại fallback. */
 function detectIntent(text: string): NluResult['intent'] {
   const t = text.toLowerCase();
   if (
-    // Lưu ý: KHÔNG dùng \b sau từ có dấu tiếng Việt (không phải [A-Za-z0-9_]).
     /(gi[ữu][^.]{0,12}ch[ôỗo])|((đặt|dat)[^.]{0,10}(sân|san|giờ|gio))|(book\b)|(holds?\b)/.test(t)
   ) {
     return 'HOLD_REQUEST';
@@ -110,10 +92,6 @@ function detectIntent(text: string): NluResult['intent'] {
   return 'FALLBACK';
 }
 
-/**
- * NLU dựa trên luật (mặc định §3.12) — không tốn phí API, không gọi mạng.
- * Sau này GeminiNluAdapter cài cùng interface NluProvider để thay thế.
- */
 @Injectable()
 export class RuleBasedNluProvider implements NluProvider {
   async parse(text: string): Promise<NluResult> {
@@ -126,15 +104,30 @@ export class RuleBasedNluProvider implements NluProvider {
       }
     }
 
-    const lowerNoAccentFolded = text.toLowerCase();
-    for (const loc of LOCATIONS) {
-      if (lowerNoAccentFolded.includes(loc)) {
-        entities.location = loc;
+    const lower = text.toLowerCase();
+
+    for (const [alias, standard] of HANOI_ALIASES_SORTED) {
+      if (alias.length <= 4) {
+        const regex = new RegExp(`(^|\\s)${alias}($|\\s|[.,!?])`, 'i');
+        if (regex.test(lower)) {
+          entities.location = standard.toLowerCase();
+          break;
+        }
+      } else if (lower.includes(alias)) {
+        entities.location = standard.toLowerCase();
         break;
       }
     }
 
-    // "sân Saigon còn giờ nào?" -> query tên sân cụ thể (2-24 ký tự sau chữ sân).
+    if (!entities.location) {
+      for (const [alias, standard] of HCM_ALIASES_SORTED) {
+        if (lower.includes(alias)) {
+          entities.location = standard.toLowerCase();
+          break;
+        }
+      }
+    }
+
     const venueHintMatch = text.match(
       /(?:sân|san)\s+([a-zà-ỹ0-9][a-zà-ỹ0-9\s]{1,23}?)(?=\s+(còn|co|giờ|gio|lịch|lich|không|ko|$)|$)/i,
     );

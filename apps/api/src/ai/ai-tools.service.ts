@@ -39,7 +39,13 @@ export class AiToolsService {
       status: 'APPROVED' as const,
       ...(filter.sportType ? { courts: { some: { sportType: filter.sportType } } } : {}),
       ...(filter.location
-        ? { address: { contains: filter.location, mode: 'insensitive' as const } }
+        ? {
+            OR: [
+              { district: { contains: filter.location, mode: 'insensitive' as const } },
+              { address: { contains: filter.location, mode: 'insensitive' as const } },
+              { city: { contains: filter.location, mode: 'insensitive' as const } },
+            ],
+          }
         : {}),
       ...(filter.query ? { name: { contains: filter.query, mode: 'insensitive' as const } } : {}),
     };
