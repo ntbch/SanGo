@@ -7,7 +7,7 @@
 | # | Kiểm | Kết quả |
 |---|---|---|
 | A1 | `pnpm -r typecheck` | PASS — shared/api/web 0 lỗi |
-| A2 | `pnpm -r test` | PASS — API 26 suites / **183 tests**, Web 40/197, Shared 3/26. API ≥169 test cũ nguyên vẹn |
+| A2 | `pnpm -r test` | PASS — API 26 suites / **187 tests** (đo lại trên HEAD `33f203a`), Web 40/197, Shared 3/26. API ≥169 test cũ nguyên vẹn |
 | A3 | `pnpm lint` (eslint + prettier) | PASS sau khi format lại 14 file lệch style |
 | A4 | Migration S2-T0 | PASS — đúng 1 batch gộm `20260825213000_s2_foundation_teams_services_shares` (teams, team_members, expense_shares, venue_services, booking_add_ons + venues_lat_lng_idx); schema up-to-date; invariant ví per-user SUM(credit−debit)=balance khớp toàn bộ (tổng 1.470.000đ) |
 
@@ -48,6 +48,10 @@ Chạy: `cd apps/api && node smoke-sprint2.mjs` (cần API đang chạy port .en
 2. **14 file lệch prettier** (từ các commit FE/BE sprint 2) → `pnpm format`, formatting-only. Commit `a375a3e`.
 3. **Prisma client stale**: ts-jest compile lỗi `hold.teamId` TS2339 dù typecheck pass → `npx prisma generate` + clear cache → 26/26 suites xanh. (Khuyến nghị reviewer: thêm prisma generate vào postinstall.)
 4. Observations (không phải bug, đúng nghiệp vụ): login throttle 429 khi gọi dồn; 1 user/1 hold ACTIVE (HOLD_LIMIT); slot trùng bị chặn (SLOT_TAKEN); DB dev còn sót dữ liệu test integration (itwal-*/itflow-* users) — cân nhắn tách DB test nếu muốn sạch.
+
+## Delta verification sau khi biên bản lập xong
+- `fd8fb46` fix(web) addons-dialog error state: typecheck ✓ web 197 ✓ smoke chạy lại **lần 3 — 26/26 PASS**.
+- `33f203a` feat(ai) gemini adapter: format 2 file lệch prettier, typecheck ✓, API suite đo lại **187/187 PASS**, lint sạch.
 
 ## Tiêu chí F
 A1–A4 ✅ · B1/B2 chặn chắc chắn ✅ · C1–C3 không bug chặn ✅ · E trơn 2 lần liên tiếp ✅ → **mở cửa cho reviewer tiếp nhận (t22)**.
