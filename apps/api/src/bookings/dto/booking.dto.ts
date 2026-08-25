@@ -21,6 +21,8 @@ export const CreateHoldSchema = z
       .array(z.number().int().min(0).max(1439))
       .min(1, 'Chọn ít nhất một slot')
       .max(8, 'Tối đa 8 slot liền kề mỗi lần giữ'),
+    /// S2-F1: Đặt sân với tư cách đội thể thao.
+    teamId: z.string().uuid('teamId phải là UUID').optional(),
     /// Ghép trận mở (§3.11): chủ đơn chọn công khai "cần ghép X người".
     isPublicMatch: z.boolean().optional(),
     slotsNeeded: z

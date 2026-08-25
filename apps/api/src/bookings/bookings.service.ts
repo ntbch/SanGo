@@ -187,7 +187,7 @@ export class BookingsService {
    */
   async confirmFromHold(
     holdId: string,
-    opts: { txnRef: string; method?: PaymentMethod; amountPaid?: number; paidInFull?: boolean },
+    opts: { txnRef: string; method?: PaymentMethod; amountPaid?: number; paidInFull?: boolean; teamId?: string },
   ) {
     const booking = await this.prisma.$transaction(async (tx) => {
       const hold = await tx.bookingHold.findUnique({ where: { id: holdId } });
@@ -287,6 +287,7 @@ export class BookingsService {
             subtotal: hold.subtotal,
             depositAmount,
             status: BookingStatus.CONFIRMED,
+            teamId: opts.teamId || null,
             // Ghép trận mở (§3.11): đơn mới luôn chưa đủ người.
             ...(hold.isPublicMatch
               ? { isPublicMatch: true, slotsNeeded: hold.slotsNeeded, matchFull: false }
