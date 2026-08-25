@@ -27,6 +27,7 @@ import { CheckoutHoldPage } from '../features/booking/pages/checkout-hold-page';
 import { MyCustomerBookingsPage } from '../features/booking/pages/my-bookings-page';
 import { PaymentResultPage } from '../features/booking/pages/payment-result-page';
 import { WalletPage } from '../features/wallet/pages/wallet-page';
+import { NotificationsPage } from '../features/notifications/pages/notifications-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
@@ -145,6 +146,8 @@ export function AppRoutes(): ReactElement {
           <Route path="profile" element={<ProfilePage />} />
           {/* F6 Ví — mọi vai trò đăng nhập */}
           <Route path="wallet" element={<WalletPage />} />
+          {/* F8 Trung tâm thông báo — mọi vai trò đăng nhập */}
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route
             path="manage"
             element={

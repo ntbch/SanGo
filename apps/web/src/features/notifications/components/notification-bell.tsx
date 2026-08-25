@@ -6,25 +6,9 @@
  * - A11y: aria-label "Chuông thông báo", aria-expanded, đóng khi bấm ngoài
  *   (Radix DropdownMenu tự lo) + Escape.
  */
-import {
-  Bell,
-  CalendarCheck2,
-  CalendarX2,
-  CheckCheck,
-  CreditCard,
-  Loader2,
-  UserPlus,
-  UserMinus,
-  AlarmClock,
-  Store,
-  Wallet,
-  Trophy,
-  TicketPercent,
-  Users,
-  Wrench,
-} from 'lucide-react';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { NotificationType } from '@courthub/shared';
 
@@ -40,22 +24,8 @@ import { formatRelativeTime } from '../format';
 import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from '../queries';
 import type { AppNotification } from '../types';
 
-/** Icon + nhãn màu theo loại thông báo — đủ mọi giá trị NotificationType. */
-const TYPE_ICON: Record<NotificationType, { Icon: typeof Bell; className: string }> = {
-  [NotificationType.BOOKING_CONFIRMED]: { Icon: CalendarCheck2, className: 'text-emerald-500' },
-  [NotificationType.BOOKING_CANCELLED]: { Icon: CalendarX2, className: 'text-destructive' },
-  [NotificationType.PAYMENT_RECEIVED]: { Icon: CreditCard, className: 'text-primary' },
-  [NotificationType.NEW_BOOKING_OWNER]: { Icon: Store, className: 'text-sky-500' },
-  [NotificationType.MATCH_JOINED]: { Icon: UserPlus, className: 'text-violet-500' },
-  [NotificationType.MATCH_LEFT]: { Icon: UserMinus, className: 'text-amber-500' },
-  [NotificationType.REMINDER]: { Icon: AlarmClock, className: 'text-orange-500' },
-  // F8 wave-1 (roadmap v5): ví/voucher/dịch vụ/đội/giải đấu.
-  [NotificationType.WALLET]: { Icon: Wallet, className: 'text-emerald-500' },
-  [NotificationType.VOUCHER]: { Icon: TicketPercent, className: 'text-pink-500' },
-  [NotificationType.SERVICE]: { Icon: Wrench, className: 'text-sky-500' },
-  [NotificationType.TEAM]: { Icon: Users, className: 'text-violet-500' },
-  [NotificationType.TOURNAMENT]: { Icon: Trophy, className: 'text-amber-500' },
-};
+/** Icon + nhãn màu theo loại — bản đồ dùng chung đặt ở type-meta.tsx (F8). */
+import { NOTIFICATION_TYPE_META as TYPE_ICON } from '../type-meta';
 
 /** Một dòng thông báo trong dropdown — bấm để đọc + điều hướng. */
 function NotificationItem(options: { item: AppNotification }): ReactElement {
@@ -160,6 +130,14 @@ function NotificationPanel(): ReactElement {
           items.map((item) => <NotificationItem key={item.id} item={item} />)
         )}
       </div>
+
+      {/* F8: vào Trung tâm thông báo để lọc theo loại và xem hết hộp thư. */}
+      <Link
+        to="/dashboard/notifications"
+        className="border-t px-3 py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-accent"
+      >
+        Xem tất cả thông báo
+      </Link>
     </div>
   );
 }

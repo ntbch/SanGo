@@ -2844,14 +2844,12 @@ export async function handleMockRequest<T>(
      POST /notifications/read-all -> { updated }. */
 
   // GET /notifications?page= — hộp thư của user đăng nhập, mới nhất trước.
+  // Nhất quán các mock khác: không có phiên thì rơi về tài khoản demo đầu tiên.
   if (method === 'GET' && rawPath0 === '/notifications') {
-    if (sessionEmail === null) {
-      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
-    }
-    const account = accounts.find((a) => a.email === sessionEmail);
-    if (account === undefined) {
-      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
-    }
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : accounts.find((a) => a.email === sessionEmail) ?? accounts[0];
     const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
     const mine = MOCK_NOTIFICATIONS.filter((n) => n.userId === account.id).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -2869,13 +2867,10 @@ export async function handleMockRequest<T>(
 
   // POST /notifications/read-all — khai báo TRƯỚC ':id/read' để không bị nuốt.
   if (method === 'POST' && rawPath0 === '/notifications/read-all') {
-    if (sessionEmail === null) {
-      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
-    }
-    const account = accounts.find((a) => a.email === sessionEmail);
-    if (account === undefined) {
-      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
-    }
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : accounts.find((a) => a.email === sessionEmail) ?? accounts[0];
     let updated = 0;
     const now = new Date().toISOString();
     for (const n of MOCK_NOTIFICATIONS) {
@@ -2889,13 +2884,10 @@ export async function handleMockRequest<T>(
 
   // POST /notifications/:id/read — idempotent; 404 nếu không thuộc sở hữu.
   if (method === 'POST' && /^\/notifications\/[^/]+\/read$/.test(rawPath0)) {
-    if (sessionEmail === null) {
-      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
-    }
-    const account = accounts.find((a) => a.email === sessionEmail);
-    if (account === undefined) {
-      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
-    }
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : accounts.find((a) => a.email === sessionEmail) ?? accounts[0];
     const id = rawPath0.split('/')[2];
     const row = MOCK_NOTIFICATIONS.find((n) => n.id === id && n.userId === account.id);
     if (row === undefined) {

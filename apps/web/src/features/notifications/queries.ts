@@ -30,6 +30,19 @@ export function useNotifications(enabled: boolean) {
   });
 }
 
+/**
+ * Dữ liệu cho Trung tâm thông báo — tách queryKey khỏi chuông để poll 30s
+ * của chuông không ghi đè trạng thái phân trang/lọc ở trang trung tâm.
+ */
+export function useNotificationsCenter(page: number, enabled = true) {
+  return useQuery({
+    queryKey: ['notifications', 'center', page],
+    queryFn: () => fetchNotifications(page),
+    enabled,
+    staleTime: 15_000,
+  });
+}
+
 /** Đánh dấu một thông báo đã đọc; cập nhật cache thay vì invalidate để UI tức thời. */
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
