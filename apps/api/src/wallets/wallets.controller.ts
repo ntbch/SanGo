@@ -5,7 +5,12 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import type { AuthUser } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { ZodValidationPipe } from '../auth/zod-validation.pipe';
-import { TopupSchema, WalletMeQuerySchema, type TopupDto, type WalletMeQueryDto } from './dto/wallet.dto';
+import {
+  TopupSchema,
+  WalletMeQuerySchema,
+  type TopupDto,
+  type WalletMeQueryDto,
+} from './dto/wallet.dto';
 import { WalletsService } from './wallets.service';
 
 @ApiTags('wallet')
@@ -25,7 +30,12 @@ export class WalletsController {
       type: 'object',
       required: ['amount'],
       properties: {
-        amount: { type: 'integer', minimum: 10000, maximum: 50000000, description: 'Số tiền nạp (đồng)' },
+        amount: {
+          type: 'integer',
+          minimum: 10000,
+          maximum: 50000000,
+          description: 'Số tiền nạp (đồng)',
+        },
       },
     },
   })

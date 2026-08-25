@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .pnpm-store/
+.npm-cache/
 .tooling-cache/
 .agent-teams/
 stitch_pitch_booking_home/

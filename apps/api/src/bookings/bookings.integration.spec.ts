@@ -756,7 +756,12 @@ describe('Booking engine chống double-booking (integration)', () => {
       const res = (await bookings.bulkCancelByDate(
         { id: fx.ownerN2.id, role: 'OWNER' },
         { venueId: fx.venue.id, date: DATE },
-      )) as { policy: string; cancelledCount: number; refundedTotal: number; items: Array<{ code: string }> };
+      )) as {
+        policy: string;
+        cancelledCount: number;
+        refundedTotal: number;
+        items: Array<{ code: string }>;
+      };
 
       expect(res.policy).toBe('WEATHER');
       expect(res.cancelledCount).toBe(2);
@@ -782,7 +787,17 @@ describe('Booking engine chống double-booking (integration)', () => {
 
       // Ví nhận đủ: ledger CREDIT/REFUND refId=payment.id, balanceAfter khớp hàng ví
       const ledgers = await prisma.walletLedger.findMany({
-        where: { userId: { in: (await Promise.all([prisma.user.findUniqueOrThrow({ where: { id: fx.b1.customerId } }), prisma.user.findUniqueOrThrow({ where: { id: fx.b2.customerId } })])).map((u) => u.id) }, type: 'REFUND' },
+        where: {
+          userId: {
+            in: (
+              await Promise.all([
+                prisma.user.findUniqueOrThrow({ where: { id: fx.b1.customerId } }),
+                prisma.user.findUniqueOrThrow({ where: { id: fx.b2.customerId } }),
+              ])
+            ).map((u) => u.id),
+          },
+          type: 'REFUND',
+        },
       });
       expect(ledgers).toHaveLength(2);
       expect(ledgers.every((l) => l.direction === 'CREDIT' && l.refType === 'PAYMENT')).toBe(true);

@@ -9,6 +9,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/node_modules/**',
       '.pnpm-store/**',
+      '.npm-cache/**',
       '.tooling-cache/**',
       'pnpm-lock.yaml',
     ],

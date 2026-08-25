@@ -95,9 +95,9 @@ describe('Wallets service (integration)', () => {
   it('F6: callback thiếu/sai amount bị chặn (bài học S0)', async () => {
     if (!dbUp) return;
     const res = await wallets.createTopup(u1, { amount: 120_000 });
-    await expect(
-      wallets.handleMockCallback({ txnRef: res.txnRef }),
-    ).rejects.toMatchObject({ response: { code: 'WALLET_AMOUNT_MISMATCH' } });
+    await expect(wallets.handleMockCallback({ txnRef: res.txnRef })).rejects.toMatchObject({
+      response: { code: 'WALLET_AMOUNT_MISMATCH' },
+    });
     await expect(
       wallets.handleMockCallback({ txnRef: res.txnRef, amount: '999' }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -122,9 +122,21 @@ describe('Wallets service (integration)', () => {
 
   it('F6: hai giao dịch chi đồng thời -> đúng một thắng, ví không âm', async () => {
     if (!dbUp) return;
-    await wallets.credit({ userId: u3.id, amount: 100_000, type: 'TOPUP', refType: 'TOPUP', refId: `seed-${SUFFIX}` });
+    await wallets.credit({
+      userId: u3.id,
+      amount: 100_000,
+      type: 'TOPUP',
+      refType: 'TOPUP',
+      refId: `seed-${SUFFIX}`,
+    });
 
-    const entry = { userId: u3.id, amount: 80_000, type: 'PAYMENT' as const, refType: 'BOOKING', refId: `bk-${SUFFIX}` };
+    const entry = {
+      userId: u3.id,
+      amount: 80_000,
+      type: 'PAYMENT' as const,
+      refType: 'BOOKING',
+      refId: `bk-${SUFFIX}`,
+    };
     const results = await Promise.allSettled([wallets.debit(entry), wallets.debit(entry)]);
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
     const rejected = results.filter((r) => r.status === 'rejected');

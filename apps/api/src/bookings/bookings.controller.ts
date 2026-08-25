@@ -22,7 +22,7 @@ import {
   OwnerBookingsQuerySchema,
   SlotsQuerySchema,
   type BulkCancelDto,
-type CancelBookingDto,
+  type CancelBookingDto,
   type CheckInDto,
   type CreateHoldDto,
   type CreateReviewDto,
@@ -280,7 +280,10 @@ export class OwnerBookingsController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: '{policy: WEATHER, cancelledCount, refundedTotal, items[]}' })
+  @ApiResponse({
+    status: 201,
+    description: '{policy: WEATHER, cancelledCount, refundedTotal, items[]}',
+  })
   bulkCancel(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(BulkCancelSchema)) dto: BulkCancelDto,

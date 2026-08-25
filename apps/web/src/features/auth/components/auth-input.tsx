@@ -18,7 +18,7 @@ export function AuthInput({
         {icon}
       </span>
       <Input
-        className="h-12 rounded-lg border-input bg-background pl-10 focus-visible:border-primary"
+        className={`h-12 rounded-lg border-input bg-background pl-10 focus-visible:border-primary ${className ?? ''}`}
         {...props}
       />
     </div>
