@@ -81,6 +81,10 @@ describe('Booking engine chống double-booking (integration)', () => {
       });
       const ids = users.map((u) => u.id);
       await prisma.review.deleteMany({ where: { customer: { id: { in: ids } } } });
+      // F6: dữ liệu ví tham chiếu user (RESTRICT) — dọn trước khi xóa user
+      await prisma.walletLedger.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.walletBalance.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.walletTopup.deleteMany({ where: { userId: { in: ids } } });
       await prisma.payment.deleteMany({ where: { booking: { customerId: { in: ids } } } });
       await prisma.booking.deleteMany({ where: { customerId: { in: ids } } });
       await prisma.bookingHold.deleteMany({ where: { userId: { in: ids } } });
@@ -318,7 +322,8 @@ describe('Booking engine chống double-booking (integration)', () => {
       where: { type: PaymentType.REFUND, bookingId: { in: [far.id, mid.id] } },
     });
     expect(refunds).toHaveLength(2);
-    expect(refunds.every((p) => p.status === 'PENDING')).toBe(true);
+    // F6: refund được ghi ví ngay sau commit -> chứng từ chuyển PAID kèm paidAt
+    expect(refunds.every((p) => p.status === 'PAID' && p.paidAt !== null)).toBe(true);
 
     // Đơn đã hủy không hủy lần nữa
     await expect(bookings.cancelBooking(far.id, uA())).rejects.toMatchObject({
