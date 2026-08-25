@@ -17,6 +17,8 @@ export function PaymentResultPage(): ReactElement {
   const message = searchParams.get('message') || '';
 
   const isSuccess = status === 'SUCCESS' || status === '00';
+  // PA(chốt A): backend đính kèm type=ADD_ON trên luồng dịch vụ đi kèm.
+  const isAddOn = searchParams.get('type') === 'ADD_ON';
 
   return (
     <div className="mx-auto w-full max-w-xl">
@@ -39,11 +41,17 @@ export function PaymentResultPage(): ReactElement {
             isSuccess ? 'text-primary' : 'text-destructive'
           }`}
         >
-          {isSuccess ? 'Đặt sân thành công!' : 'Thanh toán không thành công'}
+          {isSuccess
+            ? isAddOn
+              ? 'Thanh toán dịch vụ thành công!'
+              : 'Đặt sân thành công!'
+            : 'Thanh toán không thành công'}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
           {isSuccess
-            ? 'Đơn đặt sân của bạn đã được xác nhận. Vui lòng lưu mã đơn để check-in tại sân.'
+            ? isAddOn
+              ? 'Dịch vụ đi kèm đã được ghi nhận vào đơn. Xem chi tiết trong mục Đơn của tôi.'
+              : 'Đơn đặt sân của bạn đã được xác nhận. Vui lòng lưu mã đơn để check-in tại sân.'
             : message || 'Giao dịch thanh toán chưa được hoàn tất hoặc đã bị huỷ.'}
         </p>
 
@@ -57,7 +65,7 @@ export function PaymentResultPage(): ReactElement {
           </div>
         ) : null}
 
-        {isSuccess ? (
+        {isSuccess && !isAddOn ? (
           <div className="mt-4 space-y-1.5 rounded-xl border border-primary/20 bg-accent/60 p-4 text-left text-xs leading-relaxed text-accent-foreground">
             <p className="flex items-center gap-1.5 font-semibold">
               <QrCode className="size-4" aria-hidden /> Hướng dẫn check-in

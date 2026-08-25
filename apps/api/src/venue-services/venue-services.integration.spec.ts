@@ -278,6 +278,8 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
       amount: String(co.amount),
     });
     expect(cbRes.redirectUrl).toContain('status=SUCCESS');
+    // PA(chốt A): redirect phải mang type để FE trang kết quả phân biệt ADD_ON.
+    expect(cbRes.redirectUrl).toContain('type=ADD_ON');
 
     // 7. Kiểm tra Payment record được tạo
     const payment = await prisma.payment.findUniqueOrThrow({
@@ -303,6 +305,7 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
       amount: String(co.amount),
     });
     expect(cbRetry.redirectUrl).toContain('status=SUCCESS');
+    expect(cbRetry.redirectUrl).toContain('type=ADD_ON'); // nhánh replay vẫn giữ type
     const paymentCount = await prisma.payment.count({ where: { txnRef: co.txnRef } });
     expect(paymentCount).toBe(1);
 

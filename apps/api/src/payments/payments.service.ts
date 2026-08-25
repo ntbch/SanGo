@@ -356,7 +356,7 @@ export class PaymentsService {
         await this.recordAddonPayment(booking.id, txnRef, expected, PaymentMethod.VNPAY);
       } catch (e) {
         if ((e as { code?: string }).code === 'P2002') {
-          return this.frontendRedirect('SUCCESS', { txnRef }); // replay song song trùng txnRef: idempotent
+          return this.frontendRedirect('SUCCESS', { txnRef, type: 'ADD_ON' }); // replay song song trùng txnRef: idempotent
         }
         throw e;
       }
@@ -371,7 +371,8 @@ export class PaymentsService {
         })
         .catch(() => undefined);
 
-      return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code });
+      // PA(chốt A): đính kèm type để FE trang kết quả phân biệt luồng ADD_ON.
+      return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code, type: 'ADD_ON' });
     }
 
     try {
@@ -410,7 +411,11 @@ export class PaymentsService {
     const { id, type } = parsed;
 
     if (await this.isAlreadyPaid(txnRef)) {
-      return this.frontendRedirect('SUCCESS', { txnRef });
+      // PA(chốt A): giữ type để FE phân biệt cả nhánh replay sớm theo txnRef.
+      return this.frontendRedirect('SUCCESS', {
+        txnRef,
+        ...(parsed.type === 'ADD_ON' ? { type: 'ADD_ON' } : {}),
+      });
     }
     const expected = await this.expectedAmountFor(id, type);
     // S0 fix: thiếu amount cũng bị chặn (trước đây undefined là bỏ qua đối chiếu).
@@ -438,7 +443,7 @@ export class PaymentsService {
         await this.recordAddonPayment(booking.id, txnRef, expected, PaymentMethod.MOCK);
       } catch (e) {
         if ((e as { code?: string }).code === 'P2002') {
-          return this.frontendRedirect('SUCCESS', { txnRef }); // replay song song trùng txnRef: idempotent
+          return this.frontendRedirect('SUCCESS', { txnRef, type: 'ADD_ON' }); // replay song song trùng txnRef: idempotent
         }
         throw e;
       }
@@ -453,7 +458,7 @@ export class PaymentsService {
         })
         .catch(() => undefined);
 
-      return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code });
+      return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code, type: 'ADD_ON' });
     }
 
     try {
