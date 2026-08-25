@@ -11,16 +11,12 @@ import { Skeleton } from '../components/ui/skeleton';
 import { useMyBookings } from '../features/booking/queries';
 import type { CustomerBooking } from '../features/booking/types';
 import { useAdminVenues } from '../features/admin/queries';
-import { fetchOwnerBookings } from '../features/owner/api';
+import { fetchMyVenues, fetchOwnerBookings } from '../features/owner/api';
 import { useMyVenues } from '../features/owner/queries';
-import { formatVnd, minutesToTime } from '../features/public/format';
+import { formatReviewDate, formatVnd, minutesToTime } from '../features/public/format';
 import { friendlyApiMessage } from '../lib/api/api-error';
 import { useAuthStore } from '../lib/auth/auth-store';
-import {
-  aggregateOwnerKpis,
-  countByVenueStatus,
-  pickNearestBooking,
-} from './dashboard-utils';
+import { aggregateOwnerKpis, countByVenueStatus, pickNearestBooking } from './dashboard-utils';
 
 /** Nhãn + màu badge theo trạng thái đơn của customer (đồng bộ trang Đơn của tôi). */
 const CUSTOMER_STATUS_META: Record<
@@ -53,12 +49,22 @@ function CustomerUpcomingCard(): ReactElement {
   const query = useMyBookings({ filter: 'upcoming', page: 1 });
 
   if (query.isPending) {
-    return <Skeleton data-testid="customer-upcoming-skeleton" className="h-56 w-full rounded-xl" />;
+    return (
+      <Skeleton
+        data-testid="customer-upcoming-skeleton"
+        role="status"
+        aria-label="Đang tải đơn sắp tới"
+        className="h-56 w-full rounded-xl"
+      />
+    );
   }
 
   if (query.isError) {
     return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      <p
+        role="alert"
+        className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+      >
         {friendlyApiMessage(query.error)}
       </p>
     );
@@ -107,7 +113,7 @@ function CustomerUpcomingCard(): ReactElement {
           </p>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Calendar className="size-4" /> {nearest.date}
+              <Calendar className="size-4" /> {formatReviewDate(nearest.date)}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="size-4" /> {minutesToTime(nearest.startMinute)} –{' '}
@@ -139,22 +145,43 @@ function CustomerUpcomingCard(): ReactElement {
  * contract venueId bắt buộc) → đơn hôm nay, doanh thu đã thu, tỷ lệ huỷ.
  */
 function OwnerKpiSection(): ReactElement {
-  const venuesQuery = useMyVenues(1);
-  const venues = venuesQuery.data?.items ?? [];
+  const firstPageQuery = useMyVenues(1);
+  // /venues/mine phân trang limit 20 — owner >20 sân phải fetch đủ các trang
+  // còn lại (theo total/pages) để KPI không bị thiếu.
+  const totalPages = firstPageQuery.data?.pages ?? 1;
+  const restPageQueries = useQueries({
+    queries: Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) => ({
+      queryKey: ['owner', 'venues', index + 2] as const,
+      queryFn: () => fetchMyVenues(index + 2),
+      enabled: firstPageQuery.isSuccess,
+      staleTime: 30_000,
+    })),
+  });
+  const venues = [
+    ...(firstPageQuery.data?.items ?? []),
+    ...restPageQueries.flatMap((q) => q.data?.items ?? []),
+  ];
+  const totalVenues = firstPageQuery.data?.total ?? venues.length;
 
   const bookingQueries = useQueries({
     queries: venues.map((venue) => ({
       queryKey: ['owner', 'bookings', venue.id] as const,
       queryFn: () => fetchOwnerBookings({ venueId: venue.id }),
-      enabled: venuesQuery.isSuccess,
+      enabled: firstPageQuery.isSuccess,
       staleTime: 30_000,
     })),
   });
 
-  if (venuesQuery.isPending || bookingQueries.some((q) => q.isPending)) {
+  if (
+    firstPageQuery.isPending ||
+    restPageQueries.some((q) => q.isPending) ||
+    bookingQueries.some((q) => q.isPending)
+  ) {
     return (
       <section
         data-testid="owner-kpi-skeleton"
+        role="status"
+        aria-label="Đang tải số liệu sân"
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {[0, 1, 2, 3].map((i) => (
@@ -164,10 +191,13 @@ function OwnerKpiSection(): ReactElement {
     );
   }
 
-  const firstError = bookingQueries.find((q) => q.error)?.error ?? venuesQuery.error;
+  const firstError =
+    bookingQueries.find((q) => q.error)?.error ??
+    firstPageQuery.error ??
+    restPageQueries.find((q) => q.error)?.error;
 
   const kpis = aggregateOwnerKpis(
-    venuesQuery.data?.total ?? venues.length,
+    totalVenues,
     bookingQueries.flatMap((q) => q.data?.items ?? []),
   );
 
@@ -187,7 +217,7 @@ function OwnerKpiSection(): ReactElement {
     {
       label: 'Doanh thu kỳ hiện tại',
       value: formatVnd(kpis.collectedRevenue),
-      hint: 'Đã thu của đơn không huỷ',
+      hint: 'Đã thu trong 30 ngày gần nhất',
       testId: 'kpi-owner-revenue',
     },
     {
@@ -201,7 +231,10 @@ function OwnerKpiSection(): ReactElement {
   return (
     <section className="space-y-3">
       {firstError ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+        >
           {friendlyApiMessage(firstError)}
         </p>
       ) : null}
@@ -242,7 +275,12 @@ function AdminApprovalSection(): ReactElement {
 
   if (query.isPending) {
     return (
-      <section data-testid="admin-pending-skeleton" className="grid gap-4 lg:grid-cols-4">
+      <section
+        data-testid="admin-pending-skeleton"
+        role="status"
+        aria-label="Đang tải số liệu kiểm duyệt"
+        className="grid gap-4 lg:grid-cols-4"
+      >
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-28 w-full rounded-xl" />
         ))}
@@ -252,7 +290,10 @@ function AdminApprovalSection(): ReactElement {
 
   if (query.isError) {
     return (
-      <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      <p
+        role="alert"
+        className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+      >
         {friendlyApiMessage(query.error)}
       </p>
     );
@@ -290,10 +331,7 @@ function AdminApprovalSection(): ReactElement {
           <Card key={row.key}>
             <CardHeader className="pb-2">
               <CardDescription>{row.label}</CardDescription>
-              <CardTitle
-                className="text-2xl"
-                data-testid={`admin-count-${row.key.toLowerCase()}`}
-              >
+              <CardTitle className="text-2xl" data-testid={`admin-count-${row.key.toLowerCase()}`}>
                 {counts[row.key]}
               </CardTitle>
             </CardHeader>
@@ -329,7 +367,12 @@ export function DashboardPage(): ReactElement {
       ) : user?.role === UserRole.ADMIN ? (
         <AdminApprovalSection />
       ) : (
-        <Skeleton data-testid="dashboard-role-skeleton" className="h-56 w-full rounded-xl" />
+        <Skeleton
+          data-testid="dashboard-role-skeleton"
+          role="status"
+          aria-label="Đang tải tổng quan"
+          className="h-56 w-full rounded-xl"
+        />
       )}
     </div>
   );
