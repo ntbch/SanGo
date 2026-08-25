@@ -2762,7 +2762,8 @@ export async function handleMockRequest<T>(
       const email = requireString(payload, 'email').trim().toLowerCase();
       const account = accounts.find((a) => a.email === email);
       if (account !== undefined) {
-        const token = 'reset-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        const token =
+          'reset-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
         MOCK_RESET_TOKENS.set(token, email);
         return {
           message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
