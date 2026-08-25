@@ -147,6 +147,10 @@ export function AddOnsDialog(options: {
               <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
+        ) : servicesQuery.isError ? (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {friendlyApiMessage(servicesQuery.error)}
+          </p>
         ) : services.length === 0 ? (
           <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
             Cụm sân này chưa mở bán dịch vụ nào.
