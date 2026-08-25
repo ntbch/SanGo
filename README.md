@@ -4,7 +4,7 @@
 
 CourtHub giải quyết trọn vẹn quy trình tìm kiếm sân, kiểm tra lịch trống theo thời gian thực, giữ chỗ tạm 10 phút, chống double-booking bằng Database Transaction & Row-level Locking, thanh toán cọc online qua VNPay Sandbox (kèm chế độ Mock fallback), check-in bằng mã đơn và đánh giá chất lượng sân.
 
-**Giai đoạn 2 (nâng cao & AI):** dashboard thống kê chủ sân (doanh thu/lượt đặt theo ngày, xếp hạng sân con — Chart.js), ghép trận mở (chủ đơn công khai "cần ghép X người", đủ người tự khoá), trợ lý đặt sân tiếng Việt bằng tool-use đọc DB thật (không bịa dữ liệu, cần đăng nhập để giữ chỗ) và gợi ý khung giờ cá nhân hoá bằng thống kê lịch sử đặt.
+**Giai đoạn 2 (nâng cao & AI):** dashboard thống kê chủ sân (doanh thu/lượt đặt theo ngày, xếp hạng sân con — Chart.js), ghép trận mở (chủ đơn công khai "cần ghép X người", đủ người tự khoá), trợ lý đặt sân tiếng Việt nâng cấp lên **LLM agent tool-use đa lượt** (mặc định Gemini 2.5 Flash qua REST — tự quyết định gọi `searchVenues`/`checkSlots`/`getSuggestedSlots` đọc DB thật, không bịa dữ liệu, cần đăng nhập để giữ chỗ; nhớ ngữ cảnh hội thoại giữa các tin nhắn) và gợi ý khung giờ cá nhân hoá bằng thống kê lịch sử đặt. Chưa cấu hình key (`LLM_PROVIDER=none`) thì trợ lý tự chạy NLU rule-based offline.
 
 ---
 
