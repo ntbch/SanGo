@@ -75,7 +75,8 @@ function systemPrompt(today: string): string {
   ].join('\n');
 }
 
-const EMPTY_FALLBACK_REPLY = 'Mình chưa hiểu ý bạn. Bạn thử: "cho mình sân pickleball ở Gò Vấp tối nay" nhé!';
+const EMPTY_FALLBACK_REPLY =
+  'Mình chưa hiểu ý bạn. Bạn thử: "cho mình sân pickleball ở Gò Vấp tối nay" nhé!';
 
 /**
  * Agent tool-use (spec 2026-08-26 §3.2): model tự quyết định gọi tool đọc DB thật,
@@ -96,7 +97,9 @@ export class AgentChatService implements ChatOrchestrator {
     const history = ctx?.history ?? [];
     const messages: LlmMessage[] = [
       { role: 'system', content: systemPrompt(today) },
-      ...history.slice(-MAX_HISTORY_TURNS).map((turn) => ({ role: turn.role, content: turn.content }) as LlmMessage),
+      ...history
+        .slice(-MAX_HISTORY_TURNS)
+        .map((turn) => ({ role: turn.role, content: turn.content }) as LlmMessage),
       { role: 'user', content: message },
     ];
     const data: AiChatResponse['data'] = {};
@@ -107,7 +110,11 @@ export class AgentChatService implements ChatOrchestrator {
         if (result.toolCalls.length === 0) {
           return this.finalize(result.text, data, toolsUsed, today);
         }
-        messages.push({ role: 'assistant', content: result.text ?? '', toolCalls: result.toolCalls });
+        messages.push({
+          role: 'assistant',
+          content: result.text ?? '',
+          toolCalls: result.toolCalls,
+        });
         for (const call of result.toolCalls) {
           const payload = await this.execTool(call, ctx, data, toolsUsed);
           messages.push({
@@ -120,7 +127,10 @@ export class AgentChatService implements ChatOrchestrator {
       }
       // Hết ngân sách vòng vẫn đòi gọi tool -> ép chốt bằng text, không tool.
       const forced = await this.llm.generate(
-        [...messages, { role: 'user', content: 'Hết lượt gọi tool. Dựa trên dữ liệu đã có, hãy trả lời ngay.' }],
+        [
+          ...messages,
+          { role: 'user', content: 'Hết lượt gọi tool. Dựa trên dữ liệu đã có, hãy trả lời ngay.' },
+        ],
         [],
       );
       return this.finalize(forced.text ?? '', data, toolsUsed, today);

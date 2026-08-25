@@ -25,11 +25,8 @@ import type { LlmClient } from './llm/llm-client.interface';
     {
       // Có LLM key -> agent tool-use; không thì rule-based nguyên trạng (spec §2).
       provide: 'ChatOrchestrator',
-      useFactory: (
-        llm: LlmClient | undefined,
-        tools: AiToolsService,
-        ruleBased: AiChatService,
-      ) => (llm !== undefined ? new AgentChatService(llm, tools, ruleBased) : ruleBased),
+      useFactory: (llm: LlmClient | undefined, tools: AiToolsService, ruleBased: AiChatService) =>
+        llm !== undefined ? new AgentChatService(llm, tools, ruleBased) : ruleBased,
       inject: ['LlmClient', AiToolsService, AiChatService],
     },
   ],

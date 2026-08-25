@@ -1,6 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { AgentChatService, AGENT_TOOL_NAMES } from './agent-chat.service';
-import type { LlmClient, LlmGenerateResult, LlmMessage, LlmToolDef } from './llm/llm-client.interface';
+import type {
+  LlmClient,
+  LlmGenerateResult,
+  LlmMessage,
+  LlmToolDef,
+} from './llm/llm-client.interface';
 
 /** LlmClient giả: trả tuần tự script hoặc lỗi; nhớ lại mọi lượt generate. */
 function fakeLlm(
@@ -31,7 +36,13 @@ const toolsStub = {
       address: '12 Lê Văn Việt',
       minPrice: 50_000,
       courts: [
-        { courtId: 'c1', name: 'Sân 1', sportType: 'PICKLEBALL', pricePerSlot: 50_000, slotMinutes: 90 },
+        {
+          courtId: 'c1',
+          name: 'Sân 1',
+          sportType: 'PICKLEBALL',
+          pricePerSlot: 50_000,
+          slotMinutes: 90,
+        },
       ],
     },
   ]),
@@ -78,8 +89,20 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
 
   it('(b) searchVenues -> checkSlots -> text: đủ toolsUsed + data thật, intent SEARCH_SLOTS', async () => {
     const llm = fakeLlm([
-      { toolCalls: [{ id: 'call_0', name: 'searchVenues', args: { location: 'Gò Vấp', sportType: 'PICKLEBALL' } }] },
-      { toolCalls: [{ id: 'call_1', name: 'checkSlots', args: { courtId: 'c1', date: '2026-08-26' } }] },
+      {
+        toolCalls: [
+          {
+            id: 'call_0',
+            name: 'searchVenues',
+            args: { location: 'Gò Vấp', sportType: 'PICKLEBALL' },
+          },
+        ],
+      },
+      {
+        toolCalls: [
+          { id: 'call_1', name: 'checkSlots', args: { courtId: 'c1', date: '2026-08-26' } },
+        ],
+      },
       { text: 'Sân Pickleball Saigon còn giờ 17:00–18:30 nhé.' },
     ]);
     const res = await makeAgent(llm).chat('sân pickleball Gò Vấp tối nay');
@@ -123,7 +146,11 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
   });
 
   it('(f) GUARDRAIL: chỉ expose đúng 3 tool đọc, không có createHold', () => {
-    expect([...AGENT_TOOL_NAMES].sort()).toEqual(['checkSlots', 'getSuggestedSlots', 'searchVenues']);
+    expect([...AGENT_TOOL_NAMES].sort()).toEqual([
+      'checkSlots',
+      'getSuggestedSlots',
+      'searchVenues',
+    ]);
     expect(AGENT_TOOL_NAMES).not.toContain('createHold');
   });
 
@@ -133,14 +160,19 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
       { text: 'Mình gợi ý khung 17:00 cho bạn.' },
     ]);
     const res = await makeAgent(llm).chat('gợi ý giờ đi', { user: { id: 'u9' }, history: [] });
-    expect(toolsStub.getSuggestedSlots).toHaveBeenCalledWith('c1', { date: expect.any(String), userId: 'u9' });
+    expect(toolsStub.getSuggestedSlots).toHaveBeenCalledWith('c1', {
+      date: expect.any(String),
+      userId: 'u9',
+    });
     expect(res.intent).toBe('HOLD_REQUEST');
     expect(res.data.suggestions?.[0]?.label).toBe('17:00–18:30');
   });
 });
 
 /** Fake luôn trả toolCall, riêng lượt tools=[] thì trả text (ép chốt). */
-function fakeLlmWithAlwaysToolThenText(): { llm: LlmClient & { calls: LlmMessage[][]; toolsSeen: LlmToolDef[][] } } {
+function fakeLlmWithAlwaysToolThenText(): {
+  llm: LlmClient & { calls: LlmMessage[][]; toolsSeen: LlmToolDef[][] };
+} {
   let rounds = 0;
   const calls: LlmMessage[][] = [];
   const toolsSeen: LlmToolDef[][] = [];
@@ -151,7 +183,8 @@ function fakeLlmWithAlwaysToolThenText(): { llm: LlmClient & { calls: LlmMessage
       calls.push(messages);
       toolsSeen.push(tools);
       rounds += 1;
-      if (tools.length === 0 || rounds > 10) return { text: 'Dựa trên dữ liệu hiện có...', toolCalls: [] };
+      if (tools.length === 0 || rounds > 10)
+        return { text: 'Dựa trên dữ liệu hiện có...', toolCalls: [] };
       return {
         text: null,
         toolCalls: [{ id: 'call_x' + rounds, name: 'searchVenues', args: {} }],
