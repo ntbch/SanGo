@@ -7,3 +7,6 @@ coverage/
 .pnpm-store/
 .tooling-cache/
 *.tsbuildinfo
+.tmp-screens/
+.codegraph/
+.agent-teams/
