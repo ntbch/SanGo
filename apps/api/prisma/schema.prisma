@@ -134,6 +134,10 @@ model User {
   passwordResetTokens PasswordResetToken[]
   notifications     Notification[]
   walletLedgers     WalletLedger[]
+  walletTopups      WalletTopup[]
+  walletBalance     WalletBalance?
+  vouchers          Voucher[]          @relation("VoucherOwner")
+  voucherRedemptions VoucherRedemption[]
 
   @@map("users")
 }
@@ -369,6 +373,88 @@ model WalletLedger {
   @@unique([refType, refId, type])
   @@index([userId, createdAt])
   @@map("wallet_ledgers")
+}
+
+/// F3 Voucher — mã giảm giá PERCENT, chỉ áp cho hold nằm trọn cửa sổ giờ thấp điểm.
+model Voucher {
+  id              String    @id @default(uuid()) @db.Uuid
+  /// Mã nhập tại checkout — UNIQUE để tra cứu chính xác một mã.
+  code            String    @unique
+  percentOff      Int
+  /// Cửa sổ khung giờ thấp điểm: [startMinute, endMinute) của hold phải nằm trong khoảng này.
+  validFromMinute Int
+  validToMinute   Int
+  /// Tổng số lần được dùng; vượt limit chặn bằng UPDATE ... WHERE usedCount < usageLimit (atomic).
+  usageLimit      Int
+  /// Tối đa mỗi user (v1: UNIQUE(voucherId, userId) siết về 1 — cột giữ cho v2 mở rộng).
+  perUserLimit    Int       @default(1)
+  usedCount       Int       @default(0)
+  active          Boolean   @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  /// Owner tạo và quản lý voucher cho venue của mình; áp mã phải khớp venue owner.
+  ownerId String @db.Uuid
+  owner   User   @relation("VoucherOwner", fields: [ownerId], references: [id])
+
+  redemptions VoucherRedemption[]
+
+  @@index([ownerId])
+  @@map("vouchers")
+}
+
+/// Lần dùng voucher của từng user — UNIQUE(voucherId, userId) chặn dùng lại khi retry/đồng thời.
+model VoucherRedemption {
+  id        String   @id @default(uuid()) @db.Uuid
+  voucherId String   @db.Uuid
+  userId    String   @db.Uuid
+  /// Hold đã tiêu mã (audit); không FK vì hold có thể bị cron dọn dẹp.
+  holdId   String? @db.Uuid
+  /// Số tiền được giảm đã snapshot vào hold lúc áp mã.
+  amountDiscounted Int
+  createdAt DateTime @default(now())
+
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([voucherId, userId])
+  @@index([userId])
+  @@map("voucher_redemptions")
+}
+
+/// Yêu cầu nạp tiền qua mock gateway (F6). KHÔNG dùng bảng Payment vì Payment.bookingId
+/// NOT NULL (topup không gắn booking) — txnRef UNIQUE đóng vai trò idempotency key,
+/// callback đối chiếu amount với bản ghi này trước khi ghi ledger.
+model WalletTopup {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  /// Số tiền yêu cầu nạp (đồng) — callback phải khớp đúng.
+  amount    Int
+  method    PaymentMethod @default(MOCK)
+  /// Giữ nguyên shape "<id>.TOPUP.<rand>" như Payment.txnRef (riêng namespace TOPUP).
+  txnRef    String        @unique
+  status    PaymentStatus @default(PENDING)
+  paidAt    DateTime?
+  rawPayload Json?
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("wallet_topups")
+}
+
+/// Hàng dư ví mỗi user (F6): cache đồng bộ trong CÙNG transaction với ledger,
+/// khoá FOR UPDATE để tính balanceAfter và chặn trừ âm; nguồn sự thật vẫn là wallet_ledgers
+/// (lệch số có thể dựng lại bằng SUM ledger theo direction).
+model WalletBalance {
+  userId    String   @id @db.Uuid
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("wallet_balances")
 }
 
 /// Mỗi đơn chỉ được đánh giá một lần (bookingId UNIQUE); người đánh giá là khách trong đơn COMPLETED.
