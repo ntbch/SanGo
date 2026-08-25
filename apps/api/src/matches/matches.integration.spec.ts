@@ -12,6 +12,7 @@ import { BookingsService } from '../bookings/bookings.service';
 import { NotifyService } from '../notifications/notify.service';
 import { ConsoleMailer } from '../notifications/mailer/console.mailer';
 import { MatchesService } from './matches.service';
+import { WalletsService } from '../wallets/wallets.service';
 
 const SUFFIX = Date.now().toString(36);
 
@@ -54,7 +55,11 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
     }
     // Service dùng nguyên PrismaClient thật; cast để bỏ qua lifecycle hooks của PrismaService.
     const notify = new NotifyService(prisma as unknown as PrismaService, new ConsoleMailer());
-    bookings = new BookingsService(prisma as unknown as PrismaService, notify);
+    bookings = new BookingsService(
+      prisma as unknown as PrismaService,
+      notify,
+      new WalletsService(prisma as unknown as PrismaService),
+    );
     matches = new MatchesService(prisma as unknown as PrismaService);
 
     const hash = await bcrypt.hash('IntegrationPass1!', 4);

@@ -12,6 +12,7 @@ import { NotifyService } from './notify.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { BookingsCronService } from '../bookings/bookings.cron.service';
+import { WalletsService } from '../wallets/wallets.service';
 
 const SUFFIX = Date.now().toString(36);
 const HOUR = 3_600_000;
@@ -42,7 +43,11 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
       return;
     }
     const notify = new NotifyService(prisma as unknown as PrismaService, new ConsoleMailer());
-    bookings = new BookingsService(prisma as unknown as PrismaService, notify);
+    bookings = new BookingsService(
+      prisma as unknown as PrismaService,
+      notify,
+      new WalletsService(prisma as unknown as PrismaService),
+    );
     cron = new BookingsCronService(bookings, prisma as unknown as PrismaService, notify);
 
     const hash = await bcrypt.hash('IntegrationPass1!', 4);

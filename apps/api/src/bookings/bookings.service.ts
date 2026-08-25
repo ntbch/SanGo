@@ -10,6 +10,7 @@ import { Prisma, BookingStatus, PaymentMethod, PaymentStatus, PaymentType } from
 import { NotificationType } from '@courthub/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotifyService } from '../notifications/notify.service';
+import { WalletsService } from '../wallets/wallets.service';
 import {
   bookingCancelledEmail,
   bookingConfirmedEmail,
@@ -32,6 +33,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notify: NotifyService,
+    private readonly wallets: WalletsService,
   ) {}
 
   /**
@@ -404,7 +406,7 @@ export class BookingsService {
     return this.refundQuote(booking);
   }
 
-  /** Hủy đơn — spec §6.2: CANCELLED + bản ghi Payment(REFUND) khi có số hoàn. */
+  /** Hủy đơn — spec §6.2: CANCELLED + Payment(REFUND) chứng từ + hoàn ví tức thì (F6). */
   async cancelBooking(bookingId: string, user: { id: string; role: string }, reason?: string) {
     const booking = await this.getBookingForCancel(bookingId, user);
     if (booking.status !== BookingStatus.CONFIRMED) {
@@ -445,6 +447,36 @@ export class BookingsService {
         refundPaymentId,
       };
     });
+
+    // F6: hoàn vào ví TỨC THÌ — ghi ledger SAU KHI COMMIT giao dịch chính (không
+    // kéo dài FOR UPDATE lock); Payment(REFUND) chỉ là chứng từ đối soát.
+    // UNIQUE(refType, refId, type) trên ledger chặn hoàn kép khi retry/crash.
+    if (result.refundPaymentId && result.refundAmount > 0) {
+      try {
+        await this.wallets.credit({
+          userId: result.booking.customerId,
+          amount: result.refundAmount,
+          type: 'REFUND',
+          refType: 'PAYMENT',
+          refId: result.refundPaymentId,
+        });
+        await this.prisma.payment.update({
+          where: { id: result.refundPaymentId },
+          data: { status: PaymentStatus.PAID, paidAt: new Date() },
+        });
+      } catch (e) {
+        if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
+          this.logger.warn(
+            `Đơn ${result.booking.id}: refund đã ghi ví trước đó (retry) — bỏ qua`,
+          );
+        } else {
+          // Không fail request vì hủy đơn đã commit; Payment(REFUND) giữ PENDING làm dấu đối soát/replay.
+          this.logger.error(
+            `Đơn ${result.booking.id}: hoàn ví thất bại — giữ Payment(REFUND) PENDING: ${(e as Error).message}`,
+          );
+        }
+      }
+    }
 
     // P2-B2: thông báo hủy SAU khi commit (thay log [DEV-ONLY] cũ).
     await this.notifyAfterCancel(result.booking.id, result.refundAmount, reason);
