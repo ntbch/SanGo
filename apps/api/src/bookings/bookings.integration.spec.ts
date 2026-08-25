@@ -98,6 +98,7 @@ describe('Booking engine chống double-booking (integration)', () => {
       await prisma.venue.deleteMany({ where: { id: { in: venueIds } } });
       await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
+    await cleanupN2().catch(() => undefined); // N2: dọn dữ liệu ví/sân của riêng bộ test này
     await prisma.$disconnect();
   });
 
@@ -639,4 +640,189 @@ describe('Booking engine chống double-booking (integration)', () => {
   function round50(x: number): number {
     return Math.round((x * 50) / 100 / 1000) * 1000;
   }
+
+  /** Fixture N2: owner/venue/court + 3 đơn trong cùng một ngày (2 CONFIRMED có tiền trả, 1 CHECKED_IN). */
+  /** Dọn toàn bộ dữ liệu của các lần chạy N2 trước (theo email itn2-) — FK-safe. */
+  const cleanupN2 = async () => {
+    const users = await prisma.user.findMany({
+      where: { email: { startsWith: 'itn2-' } },
+      select: { id: true },
+    });
+    const ids = users.map((u) => u.id);
+    if (ids.length === 0) return;
+    const bks = await prisma.booking.findMany({
+      where: { customerId: { in: ids } },
+      select: { id: true },
+    });
+    await prisma.walletLedger.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.walletBalance.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.walletTopup.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.review.deleteMany({ where: { customer: { id: { in: ids } } } });
+    await prisma.payment.deleteMany({ where: { bookingId: { in: bks.map((b) => b.id) } } });
+    await prisma.booking.deleteMany({ where: { id: { in: bks.map((b) => b.id) } } });
+    await prisma.court.deleteMany({ where: { venue: { ownerId: { in: ids } } } });
+    await prisma.venue.deleteMany({ where: { ownerId: { in: ids } } });
+    await prisma.user.deleteMany({ where: { id: { in: ids } } });
+  };
+  let n2seq = 90;
+  // Dải mã riêng ngẫu nhiên cao (5000-8999) để không đụng mã thật sinh từ BookingCodeSeq
+  const n2base = 5000 + Math.floor(Math.random() * 4000);
+  const setupN2 = async () => {
+    await cleanupN2();
+    const hash = await bcrypt.hash('IntegrationPass1!', 4);
+    const mk = (email: string, role: 'OWNER' | 'CUSTOMER') =>
+      prisma.user.create({
+        data: { email, passwordHash: hash, fullName: 'N2 User', role },
+      });
+    const [ownerN2, otherOwner, cust1, cust2] = await Promise.all([
+      mk(`itn2-owner-${SUFFIX}@courthub.vn`, 'OWNER'),
+      mk(`itn2-other-${SUFFIX}@courthub.vn`, 'OWNER'),
+      mk(`itn2-c1-${SUFFIX}@courthub.vn`, 'CUSTOMER'),
+      mk(`itn2-c2-${SUFFIX}@courthub.vn`, 'CUSTOMER'),
+    ]);
+    const venue = await prisma.venue.create({
+      data: {
+        name: 'Itest-N2 Venue ' + SUFFIX,
+        slug: 'itn2-' + SUFFIX,
+        address: 'Test St',
+        lat: 10,
+        lng: 106,
+        openMinute: 360,
+        closeMinute: 1320,
+        depositPercent: 50,
+        ownerId: ownerN2.id,
+        status: 'APPROVED',
+      },
+    });
+    const court = await prisma.court.create({
+      data: {
+        venueId: venue.id,
+        name: 'Itest-N2 Court',
+        sportType: SportType.FOOTBALL5,
+        slotMinutes: 60,
+        defaultPricePerSlot: 200_000,
+      },
+    });
+    const dateObj = new Date(DATE + 'T00:00:00.000Z');
+    const mkBooking = (
+      customerId: string,
+      startMinute: number,
+      status: 'CONFIRMED' | 'CHECKED_IN',
+    ) =>
+      prisma.booking.create({
+        data: {
+          code: `CH-${DATE.replaceAll('-', '')}-${String(n2base + n2seq++ - 90).padStart(4, '0')}`,
+          customerId,
+          courtId: court.id,
+          date: dateObj,
+          startMinute,
+          endMinute: startMinute + 60,
+          subtotal: 200_000,
+          depositAmount: 100_000,
+          status,
+        },
+      });
+    const b1 = await mkBooking(cust1.id, 600, 'CONFIRMED'); // cọc 100k đã trả
+    const b2 = await mkBooking(cust2.id, 660, 'CONFIRMED'); // trả FULL 300k
+    const b3 = await mkBooking(cust1.id, 720, 'CHECKED_IN'); // không được đụng
+    await prisma.payment.create({
+      data: {
+        bookingId: b1.id,
+        amount: 100_000,
+        type: 'DEPOSIT',
+        method: 'MOCK',
+        txnRef: `TXN-${SUFFIX}-n2-a`,
+        status: 'PAID',
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        bookingId: b2.id,
+        amount: 300_000,
+        type: 'FULL',
+        method: 'MOCK',
+        txnRef: `TXN-${SUFFIX}-n2-b`,
+        status: 'PAID',
+      },
+    });
+    return { ownerN2, otherOwner, cust1, cust2, venue, court, dateObj, b1, b2, b3 };
+  };
+
+  describe('N2: hủy hàng loạt ngày mưa — hoàn 100% vào ví (policy WEATHER)', () => {
+    it('hủy cả ngày: chỉ CONFIRMED bị hủy, hoàn đúng số đã thực trả, ledger REFUND ghi đủ', async () => {
+      if (!dbUp) return console.warn('[integration] skip');
+      const fx = await setupN2();
+
+      const res = (await bookings.bulkCancelByDate(
+        { id: fx.ownerN2.id, role: 'OWNER' },
+        { venueId: fx.venue.id, date: DATE },
+      )) as { policy: string; cancelledCount: number; refundedTotal: number; items: Array<{ code: string }> };
+
+      expect(res.policy).toBe('WEATHER');
+      expect(res.cancelledCount).toBe(2);
+      expect(res.refundedTotal).toBe(400_000); // 100% cọc b1 + FULL b2
+      expect(res.items).toHaveLength(2);
+
+      for (const id of [fx.b1.id, fx.b2.id]) {
+        const b = await prisma.booking.findUniqueOrThrow({ where: { id } });
+        expect(b.status).toBe('CANCELLED');
+        expect(b.cancelReason?.startsWith('[WEATHER]')).toBe(true);
+      }
+      // Đơn CHECKED_IN không bị đụng
+      expect((await prisma.booking.findUniqueOrThrow({ where: { id: fx.b3.id } })).status).toBe(
+        'CHECKED_IN',
+      );
+
+      // Chứng từ REFUND chuyển PAID kèm paidAt
+      const refunds = await prisma.payment.findMany({
+        where: { type: 'REFUND', bookingId: { in: [fx.b1.id, fx.b2.id] } },
+      });
+      expect(refunds).toHaveLength(2);
+      expect(refunds.every((p) => p.status === 'PAID' && p.paidAt !== null)).toBe(true);
+
+      // Ví nhận đủ: ledger CREDIT/REFUND refId=payment.id, balanceAfter khớp hàng ví
+      const ledgers = await prisma.walletLedger.findMany({
+        where: { userId: { in: (await Promise.all([prisma.user.findUniqueOrThrow({ where: { id: fx.b1.customerId } }), prisma.user.findUniqueOrThrow({ where: { id: fx.b2.customerId } })])).map((u) => u.id) }, type: 'REFUND' },
+      });
+      expect(ledgers).toHaveLength(2);
+      expect(ledgers.every((l) => l.direction === 'CREDIT' && l.refType === 'PAYMENT')).toBe(true);
+      const sumAfter = ledgers.reduce((s, l) => s + l.amount, 0);
+      expect(sumAfter).toBe(400_000);
+    });
+
+    it('replay bulk-cancel cùng ngày -> 0 đơn hủy thêm, không ghi thêm ledger (chống hoàn kép)', async () => {
+      if (!dbUp) return console.warn('[integration] skip');
+      const fx = await setupN2();
+      await bookings.bulkCancelByDate(
+        { id: fx.ownerN2.id, role: 'OWNER' },
+        { venueId: fx.venue.id, date: DATE },
+      );
+      const before = await prisma.walletLedger.count({
+        where: { userId: { in: [fx.cust1.id, fx.cust2.id] }, type: 'REFUND' },
+      });
+
+      const replay = (await bookings.bulkCancelByDate(
+        { id: fx.ownerN2.id, role: 'OWNER' },
+        { venueId: fx.venue.id, date: DATE },
+      )) as { cancelledCount: number; refundedTotal: number };
+      expect(replay.cancelledCount).toBe(0);
+      expect(replay.refundedTotal).toBe(0);
+      expect(
+        await prisma.walletLedger.count({
+          where: { userId: { in: [fx.cust1.id, fx.cust2.id] }, type: 'REFUND' },
+        }),
+      ).toBe(before);
+    });
+
+    it('owner khác cụm sân -> VENUE_FORBIDDEN', async () => {
+      if (!dbUp) return console.warn('[integration] skip');
+      const fx = await setupN2();
+      await expect(
+        bookings.bulkCancelByDate(
+          { id: fx.otherOwner.id, role: 'OWNER' },
+          { venueId: fx.venue.id, date: DATE },
+        ),
+      ).rejects.toMatchObject({ response: { code: 'VENUE_FORBIDDEN' } });
+    });
+  });
 });

@@ -45,6 +45,14 @@ export const CancelBookingSchema = z.object({
   reason: z.string().trim().max(300).optional(),
 });
 export type CancelBookingDto = z.infer<typeof CancelBookingSchema>;
+
+/** N2: hủy hàng loạt các đơn CONFIRMED của một ngày theo cụm sân — hoàn 100% vào ví. */
+export const BulkCancelSchema = z.object({
+  venueId: z.string().uuid('venueId phải là UUID'),
+  date: z.string().regex(DATE_RE, 'date phải là YYYY-MM-DD'),
+  reason: z.string().trim().max(300).optional(),
+});
+export type BulkCancelDto = z.infer<typeof BulkCancelSchema>;
 export const CreateReviewSchema = z.object({
   rating: z.number().int().min(1, 'Chấm từ 1 đến 5 sao').max(5, 'Chấm từ 1 đến 5 sao'),
   comment: z.string().trim().min(4, 'Nhận xét tối thiểu 4 ký tự').max(500),

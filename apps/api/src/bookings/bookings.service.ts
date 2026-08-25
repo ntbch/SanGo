@@ -17,6 +17,7 @@ import {
   paymentReceiptEmail,
 } from '../notifications/mail-templates';
 import {
+  BulkCancelDto,
   CreateHoldDto,
   CreateReviewDto,
   MyBookingsQueryDto,
@@ -481,6 +482,137 @@ export class BookingsService {
     // P2-B2: thông báo hủy SAU khi commit (thay log [DEV-ONLY] cũ).
     await this.notifyAfterCancel(result.booking.id, result.refundAmount, reason);
     return result;
+  }
+
+  /**
+   * N2 — Owner hủy hàng loạt các đơn CONFIRMED của MỘT ngày theo cụm sân (trời mưa).
+   * Policy 'WEATHER': hoàn 100% tiền ĐÃ THỰC TRẢ (PAID) vào ví — KHÔNG tái dụng tier
+   * >24h→100 / ≥12h→50 / else 0 của cancelBooking thường.
+   * Giao dịch hủy + chứng từ Payment(REFUND) trong MỘT tx; ghi ví + fan-out notify
+   * đều SAU COMMIT, best-effort, UNIQUE(refType, refId, type) chống hoàn kép khi replay.
+   */
+  async bulkCancelByDate(user: { id: string; role: string }, dto: BulkCancelDto) {
+    const venue = await this.prisma.venue.findUnique({
+      where: { id: dto.venueId },
+      select: { id: true, ownerId: true },
+    });
+    if (!venue) {
+      throw new NotFoundException({ message: 'Không tìm thấy cụm sân', code: 'VENUE_NOT_FOUND' });
+    }
+    if (user.role !== 'ADMIN' && venue.ownerId !== user.id) {
+      throw new ForbiddenException({
+        message: 'Bạn không phải chủ của cụm sân này',
+        code: 'VENUE_FORBIDDEN',
+      });
+    }
+
+    const date = new Date(dto.date + 'T00:00:00.000Z');
+    const targets = await this.prisma.booking.findMany({
+      where: { status: BookingStatus.CONFIRMED, date, court: { venueId: venue.id } },
+      include: { payments: true },
+      orderBy: [{ startMinute: 'asc' }],
+    });
+    if (targets.length === 0) {
+      return {
+        date: dto.date,
+        venueId: venue.id,
+        policy: 'WEATHER' as const,
+        cancelledCount: 0,
+        refundedTotal: 0,
+        items: [],
+      };
+    }
+
+    const reason = dto.reason ?? 'Hủy hàng loạt do thời tiết xấu';
+    const items = await this.prisma.$transaction(async (tx) => {
+      const out: Array<{
+        bookingId: string;
+        code: string;
+        customerId: string;
+        refundPaymentId?: string;
+        refundAmount: number;
+      }> = [];
+      for (const b of targets) {
+        // Tiền đã thực trả ròng = PAID(DEPOSIT|FULL) − PAID(REFUND) trước đó
+        const paidNet = b.payments
+          .filter((p) => p.status === PaymentStatus.PAID)
+          .reduce((s, p) => s + (p.type === PaymentType.REFUND ? -p.amount : p.amount), 0);
+        const refundAmount = Math.max(0, paidNet);
+
+        const updated = await tx.booking.update({
+          where: { id: b.id },
+          data: {
+            status: BookingStatus.CANCELLED,
+            cancelledAt: new Date(),
+            cancelReason: `[WEATHER] ${reason}`,
+          },
+        });
+        let refundPaymentId: string | undefined;
+        if (refundAmount > 0) {
+          const payment = await tx.payment.create({
+            data: {
+              bookingId: b.id,
+              amount: refundAmount,
+              type: PaymentType.REFUND,
+              method: PaymentMethod.MOCK,
+              txnRef: `RF-${b.code}`,
+              status: PaymentStatus.PENDING,
+            },
+          });
+          refundPaymentId = payment.id;
+        }
+        out.push({
+          bookingId: b.id,
+          code: updated.code,
+          customerId: updated.customerId,
+          refundPaymentId,
+          refundAmount,
+        });
+      }
+      return out;
+    });
+
+    // SAU COMMIT: hoàn 100% vào ví TỨC THÌ (best-effort per đơn, không fail request)
+    let refundedTotal = 0;
+    for (const it of items) {
+      if (!it.refundPaymentId || it.refundAmount <= 0) continue;
+      try {
+        await this.wallets.credit({
+          userId: it.customerId,
+          amount: it.refundAmount,
+          type: 'REFUND',
+          refType: 'PAYMENT',
+          refId: it.refundPaymentId,
+        });
+        await this.prisma.payment.update({
+          where: { id: it.refundPaymentId },
+          data: { status: PaymentStatus.PAID, paidAt: new Date() },
+        });
+        refundedTotal += it.refundAmount;
+      } catch (e) {
+        if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
+          this.logger.warn(`Đơn ${it.code}: refund đã ghi ví trước đó (replay) — bỏ qua`);
+          continue;
+        }
+        this.logger.error(
+          `Đơn ${it.code}: hoàn ví thất bại — giữ Payment(REFUND) PENDING để đối soát: ${(e as Error).message}`,
+        );
+      }
+    }
+
+    // Fan-out thông báo best-effort SAU COMMIT (notifyAfterCancel tự bắt lỗi nội bộ)
+    for (const it of items) {
+      await this.notifyAfterCancel(it.bookingId, it.refundAmount, `[WEATHER] ${reason}`);
+    }
+
+    return {
+      date: dto.date,
+      venueId: venue.id,
+      policy: 'WEATHER' as const,
+      cancelledCount: items.length,
+      refundedTotal,
+      items: items.map(({ bookingId: _b, customerId: _c, ...rest }) => rest),
+    };
   }
 
   /** Khách + chủ venue đều nhận BOOKING_CANCELLED; khách nhận thêm mail hủy đơn. */

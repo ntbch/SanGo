@@ -18,9 +18,11 @@ import {
   CreateHoldSchema,
   CreateReviewSchema,
   MyBookingsQuerySchema,
+  BulkCancelSchema,
   OwnerBookingsQuerySchema,
   SlotsQuerySchema,
-  type CancelBookingDto,
+  type BulkCancelDto,
+type CancelBookingDto,
   type CheckInDto,
   type CreateHoldDto,
   type CreateReviewDto,
@@ -260,5 +262,29 @@ export class OwnerBookingsController {
     @Query(new ZodValidationPipe(OwnerBookingsQuerySchema)) query: OwnerBookingsQueryDto,
   ) {
     return this.bookingsService.listOwnerBookings(user, query);
+  }
+
+  @Post('bookings/bulk-cancel')
+  @ApiOperation({
+    summary:
+      '[OWNER] N2 — Hủy hàng loạt đơn CONFIRMED của một ngày (trời mưa): hoàn 100% tiền đã trả VÀO VÍ, fan-out thông báo',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['venueId', 'date'],
+      properties: {
+        venueId: { type: 'string', format: 'uuid' },
+        date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+        reason: { type: 'string', maxLength: 300 },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: '{policy: WEATHER, cancelledCount, refundedTotal, items[]}' })
+  bulkCancel(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(BulkCancelSchema)) dto: BulkCancelDto,
+  ) {
+    return this.bookingsService.bulkCancelByDate(user, dto);
   }
 }
