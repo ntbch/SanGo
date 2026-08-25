@@ -141,7 +141,7 @@ export function LoginPage(): ReactElement {
               Đăng ký
             </Link>
             {'  '}·{'  '}
-            <Link to="/forgot-password" className="underline-offset-4 hover:underline">
+            <Link to="/quen-mat-khau" className="underline-offset-4 hover:underline">
               Quên mật khẩu?
             </Link>
           </p>

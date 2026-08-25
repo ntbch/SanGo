@@ -91,6 +91,8 @@ export const endpoints = {
     forgotPassword: (): string => '/auth/forgot-password',
     /** Đặt lại mật khẩu bằng token trong email (contract t4). */
     resetPassword: (): string => '/auth/reset-password',
+    /** Đổi mật khẩu khi đang đăng nhập — thu hồi mọi phiên cũ (P1-B1/F2). */
+    changePassword: (): string => '/auth/change-password',
     refresh: (): string => '/auth/refresh',
     logout: (): string => '/auth/logout',
   },
@@ -98,6 +100,8 @@ export const endpoints = {
   users: {
     /** Thông tin người dùng hiện tại — cần Bearer token. */
     me: (): string => '/users/me',
+    /** Cập nhật hồ sơ fullName/phone/avatarUrl (P1-F2) — cần Bearer token. */
+    updateMe: (): string => '/users/me',
   },
 
   venues: {

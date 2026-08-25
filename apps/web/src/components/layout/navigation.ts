@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   MapPinned,
   ShieldCheck,
+  UserRound,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ const ALL_ROLES: readonly UserRole[] = [UserRole.CUSTOMER, UserRole.OWNER, UserR
 export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: ALL_ROLES },
   { to: '/dashboard/my-bookings', label: 'Đơn của tôi', icon: CalendarDays, roles: ALL_ROLES },
+  { to: '/dashboard/profile', label: 'Hồ sơ', icon: UserRound, roles: ALL_ROLES },
   { to: '/matches', label: 'Ghép trận', icon: Users, roles: ALL_ROLES },
   { to: '/dashboard/manage', label: 'Quản lý sân', icon: MapPinned, roles: [UserRole.OWNER] },
   { to: '/dashboard/bookings', label: 'Đơn đặt', icon: CalendarDays, roles: [UserRole.OWNER] },

@@ -6,6 +6,8 @@ export interface AuthUser {
   email: string;
   fullName: string;
   phone?: string;
+  /** URL ảnh đại diện (P1-F2) — khớp SafeUser của API; vắng mặt = chưa có ảnh. */
+  avatarUrl?: string;
   role: UserRole;
 }
 

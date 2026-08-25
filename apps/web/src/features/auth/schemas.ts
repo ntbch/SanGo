@@ -8,7 +8,9 @@ import { z } from 'zod';
 import {
   forgotPasswordSchema,
   loginSchema,
+  passwordSchema,
   registerSchema as registerSchemaBase,
+  resetPasswordSchema,
   type ForgotPasswordDto,
   type LoginDto,
   type RegisterDto,
@@ -17,6 +19,32 @@ import {
 // Dùng lại nguyên xi từ shared:
 export { forgotPasswordSchema, loginSchema };
 export type { LoginDto, ForgotPasswordDto };
+
+/** Form đặt lại mật khẩu = DTO API + confirm (UI-only). */
+export const resetPasswordFormSchema = z
+  .object({
+    token: resetPasswordSchema.shape.token,
+    newPassword: passwordSchema,
+    confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu'),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: 'Mật khẩu nhập lại không khớp.',
+    path: ['confirmPassword'],
+  });
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
+
+/** Form đổi mật khẩu (đã đăng nhập) = DTO API + confirm (UI-only). */
+export const changePasswordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
+    newPassword: passwordSchema,
+    confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu'),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: 'Mật khẩu nhập lại không khớp.',
+    path: ['confirmPassword'],
+  });
+export type ChangePasswordFormValues = z.infer<typeof changePasswordFormSchema>;
 
 /**
  * Form đăng ký = DTO API + confirmPassword (UI-only). Phone rỗng được tiền xử

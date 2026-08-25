@@ -1,12 +1,24 @@
 /** Lớp gọi API cho tính năng xác thực (đặc tả §3.1). */
+import { type ResetPasswordDto } from '@courthub/shared';
 import { endpoints } from '../../lib/api/endpoints';
 import { apiFetch } from '../../lib/api/client';
 import { type AuthResponse } from '../../lib/api/types';
 import { useAuthStore } from '../../lib/auth/auth-store';
-import { type ForgotPasswordDto, type LoginDto, type RegisterFormValues } from './schemas';
+import {
+  type ChangePasswordFormValues,
+  type ForgotPasswordDto,
+  type LoginDto,
+  type RegisterFormValues,
+} from './schemas';
 
 export interface MessageResponse {
   message: string;
+}
+
+/** Phản hồi quên mật khẩu — mock/dev có thể kèm link đặt lại để demo. */
+export interface ForgotPasswordResponse extends MessageResponse {
+  /** Chỉ có ở mock mode: link /dat-lai-mat-khau?token=... để mở thẳng form. */
+  devResetLink?: string;
 }
 
 export function login(values: LoginDto): Promise<AuthResponse> {
@@ -25,10 +37,26 @@ export function register(values: RegisterFormValues): Promise<AuthResponse> {
   });
 }
 
-export function forgotPassword(values: ForgotPasswordDto): Promise<MessageResponse> {
-  return apiFetch<MessageResponse>(endpoints.auth.forgotPassword(), {
+export function forgotPassword(values: ForgotPasswordDto): Promise<ForgotPasswordResponse> {
+  return apiFetch<ForgotPasswordResponse>(endpoints.auth.forgotPassword(), {
     method: 'POST',
     body: { email: values.email.trim().toLowerCase() },
+  });
+}
+
+/** Đặt lại mật khẩu bằng token từ email — API trả 204 không body. */
+export async function requestResetPassword(values: ResetPasswordDto): Promise<void> {
+  await apiFetch<undefined>(endpoints.auth.resetPassword(), {
+    method: 'POST',
+    body: { token: values.token, newPassword: values.newPassword },
+  });
+}
+
+/** Đổi mật khẩu khi đang đăng nhập — API trả 204 và thu hồi mọi phiên cũ. */
+export async function changePassword(values: ChangePasswordFormValues): Promise<void> {
+  await apiFetch<undefined>(endpoints.auth.changePassword(), {
+    method: 'POST',
+    body: { currentPassword: values.currentPassword, newPassword: values.newPassword },
   });
 }
 

@@ -44,6 +44,9 @@ const accounts: MockAccount[] = [
 /** Phiên đăng nhập hiện tại của mock — mô phỏng refresh cookie phía server. */
 let sessionEmail: string | null = null;
 
+/** Token đặt lại mật khẩu đang chờ dùng (P1-F2) — token -> email, TTL giả lập 30 phút. */
+const MOCK_RESET_TOKENS = new Map<string, string>();
+
 /** Số tin nhắn AI đã gửi trong phiên — demo throttle 20 tin/h (§3.12). */
 let MOCK_AI_CALLS = 0;
 
@@ -51,6 +54,10 @@ let MOCK_AI_CALLS = 0;
 export function resetMockSession(): void {
   sessionEmail = null;
   MOCK_AI_CALLS = 0;
+  // Token quên mật khẩu cũng phải reset để cách ly giữa các case (P1-F2).
+  for (const token of Array.from(MOCK_RESET_TOKENS.keys())) {
+    MOCK_RESET_TOKENS.delete(token);
+  }
   // Holds cũng phải reset để các case slot-state không nhiễm nhau (t11).
   for (const holdId of Array.from(MOCK_HOLDS.keys())) {
     MOCK_HOLDS.delete(holdId);
@@ -63,6 +70,9 @@ function toAuthUser(account: MockAccount): AuthUser {
     email: account.email,
     fullName: account.fullName,
     ...(account.phone !== undefined ? { phone: account.phone } : {}),
+    ...(account.avatarUrl !== undefined && account.avatarUrl !== ''
+      ? { avatarUrl: account.avatarUrl }
+      : {}),
     role: account.role,
   };
 }
@@ -2747,9 +2757,94 @@ export async function handleMockRequest<T>(
 
     case 'POST /auth/forgot-password': {
       // Mock luôn trả thành công để không lộ email nào tồn tại (giống backend thật).
+      // Khác backend: mock mode trả luôn devResetLink khi email tồn tại để demo
+      // mở thẳng form đặt lại (P1-F2) thay vì đọc header X-Dev-Reset-Token.
+      const email = requireString(payload, 'email').trim().toLowerCase();
+      const account = accounts.find((a) => a.email === email);
+      if (account !== undefined) {
+        const token = 'reset-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        MOCK_RESET_TOKENS.set(token, email);
+        return {
+          message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
+          devResetLink: '/dat-lai-mat-khau?token=' + token,
+        } as T;
+      }
       return {
         message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
       } as T;
+    }
+
+    case 'POST /auth/reset-password': {
+      // 204 không body; token sai/hết hạn -> RESET_TOKEN_INVALID như backend.
+      const token = requireString(payload, 'token');
+      const newPassword = requireString(payload, 'newPassword');
+      const email = MOCK_RESET_TOKENS.get(token);
+      if (email === undefined || newPassword.length < 8) {
+        throw new ApiError(
+          400,
+          'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+          'RESET_TOKEN_INVALID',
+        );
+      }
+      const account = accounts.find((a) => a.email === email);
+      if (account === undefined) {
+        throw new ApiError(
+          400,
+          'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+          'RESET_TOKEN_INVALID',
+        );
+      }
+      account.password = newPassword;
+      MOCK_RESET_TOKENS.delete(token); // one-time như backend (RESET_TOKEN_STALE lần sau)
+      sessionEmail = null; // thu hồi mọi phiên cũ
+      return undefined as T;
+    }
+
+    case 'POST /auth/change-password': {
+      // Bearer bắt buộc — mock nhận diện qua phiên đăng nhập hiện tại.
+      if (sessionEmail === null) {
+        throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+      }
+      const account = accounts.find((a) => a.email === sessionEmail);
+      if (account === undefined) {
+        throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+      }
+      const currentPassword = requireString(payload, 'currentPassword');
+      const newPassword = requireString(payload, 'newPassword');
+      if (account.password !== currentPassword) {
+        throw new ApiError(400, 'Mật khẩu hiện tại không đúng', 'CURRENT_PASSWORD_WRONG');
+      }
+      if (newPassword.length < 8) {
+        throw new ApiError(400, 'Mật khẩu tối thiểu 8 ký tự', 'VALIDATION_ERROR');
+      }
+      account.password = newPassword;
+      sessionEmail = null; // backend thu hồi mọi phiên + xoá cookie refresh
+      return undefined as T;
+    }
+
+    case 'PATCH /users/me': {
+      if (sessionEmail === null) {
+        throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+      }
+      const account = accounts.find((a) => a.email === sessionEmail);
+      if (account === undefined) {
+        throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+      }
+      if (typeof payload.fullName === 'string' && payload.fullName.trim() !== '') {
+        account.fullName = payload.fullName.trim();
+      }
+      // phone/avatarUrl nhận null hoặc '' để xoá trắng (khớp UpdateProfileSchema).
+      if (payload.phone === null || payload.phone === '') {
+        delete account.phone;
+      } else if (typeof payload.phone === 'string') {
+        account.phone = payload.phone.trim();
+      }
+      if (payload.avatarUrl === null || payload.avatarUrl === '') {
+        delete account.avatarUrl;
+      } else if (typeof payload.avatarUrl === 'string') {
+        account.avatarUrl = payload.avatarUrl.trim();
+      }
+      return { user: toAuthUser(account) } as T;
     }
 
     case 'POST /auth/refresh': {

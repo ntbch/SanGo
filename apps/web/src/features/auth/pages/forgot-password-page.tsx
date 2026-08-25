@@ -27,6 +27,8 @@ import { forgotPasswordSchema, type ForgotPasswordDto } from '../schemas';
 
 export function ForgotPasswordPage(): ReactElement {
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // Mock mode: server trả kèm link đặt lại để demo không cần đọc console.
+  const [devResetLink, setDevResetLink] = useState<string | null>(null);
 
   const form = useForm<ForgotPasswordDto>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -35,10 +37,12 @@ export function ForgotPasswordPage(): ReactElement {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await forgotPassword(values);
+      const response = await forgotPassword(values);
+      setDevResetLink(response.devResetLink ?? null);
       setSentTo(values.email.trim().toLowerCase());
     } catch {
       // Không tiết lộ email có tồn tại hay không — luôn hiện thông báo chung.
+      setDevResetLink(null);
       setSentTo(values.email.trim().toLowerCase());
     }
   });
@@ -95,6 +99,18 @@ export function ForgotPasswordPage(): ReactElement {
                 Nếu <span className="font-mono">{sentTo}</span> tồn tại trong hệ thống, bạn sẽ nhận
                 được email đặt lại mật khẩu trong ít phút. Kiểm tra cả mục thư rác nhé.
               </p>
+              {/* Mock/dev mode: mở thẳng form đặt lại mà không cần đọc console API. */}
+              {devResetLink !== null ? (
+                <p className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-2 text-xs text-muted-foreground">
+                  Chế độ demo — link đặt lại mật khẩu:{' '}
+                  <Link
+                    to={devResetLink}
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Đặt lại mật khẩu ngay →
+                  </Link>
+                </p>
+              ) : null}
               <Button variant="outline" size="sm" onClick={() => setSentTo(null)}>
                 Gửi lại cho email khác
               </Button>
