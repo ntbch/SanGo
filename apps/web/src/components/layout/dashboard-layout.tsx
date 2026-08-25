@@ -8,6 +8,7 @@ import { logout } from '../../features/auth/api';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { navItemsForRole } from './navigation';
 import { NotificationBell } from '../../features/notifications/components/notification-bell';
+import { WalletBalanceBadge } from '../../features/wallet/components/wallet-balance-badge';
 import { ThemeToggle } from '../theme/theme-toggle';
 import { Badge, type BadgeProps } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -151,6 +152,7 @@ export function DashboardLayout(): ReactElement {
               {APP_NAME}
             </Link>
             <div className="ml-auto flex items-center gap-1">
+              <WalletBalanceBadge />
               <NotificationBell />
               <ThemeToggle />
               <UserMenu compact />

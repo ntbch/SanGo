@@ -26,6 +26,7 @@ import { BookingCalendarPage } from '../features/booking/pages/booking-calendar-
 import { CheckoutHoldPage } from '../features/booking/pages/checkout-hold-page';
 import { MyCustomerBookingsPage } from '../features/booking/pages/my-bookings-page';
 import { PaymentResultPage } from '../features/booking/pages/payment-result-page';
+import { WalletPage } from '../features/wallet/pages/wallet-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
@@ -141,6 +142,8 @@ export function AppRoutes(): ReactElement {
           <Route path="my-bookings" element={<MyCustomerBookingsPage />} />
           {/* Hồ sơ cá nhân — mọi vai trò (P1-F2) */}
           <Route path="profile" element={<ProfilePage />} />
+          {/* F6 Ví — mọi vai trò đăng nhập */}
+          <Route path="wallet" element={<WalletPage />} />
           <Route
             path="manage"
             element={
@@ -173,6 +176,18 @@ export function AppRoutes(): ReactElement {
               </ProtectedRoute>
             }
           />
+        </Route>
+
+        {/* F6: /vi/wallet — đích redirect từ mock gateway nạp ví (wallets.service.redirect) */}
+        <Route
+          path="/vi/wallet"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<WalletPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

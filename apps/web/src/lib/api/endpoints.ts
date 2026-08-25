@@ -152,6 +152,13 @@ export const endpoints = {
     mockCallback: (txnRef: string): string => '/payments/mock/callback' + qs({ txnRef }),
   },
 
+  wallet: {
+    /** Ví của tôi — số dư + lịch sử ledger phân trang (F6). */
+    me: (query: { page?: number; pageSize?: number } = {}): string => '/wallet/me' + qs(query),
+    /** Nạp tiền qua cổng mock — trả txnRef + paymentUrl (F6). */
+    topup: (): string => '/wallet/topup',
+  },
+
   uploads: {
     /** Trả chữ ký để client PUT thẳng lên Cloudinary. */
     sign: (): string => '/uploads/sign',

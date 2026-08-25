@@ -64,6 +64,9 @@ export function resetMockSession(): void {
   }
   // Hộp thư thông báo dựng lại từ seed — badge/mark-read cách ly giữa test (P2-F1).
   MOCK_NOTIFICATIONS = seedNotifications();
+  // Ví mock dựng lại từ seed — số dư/ledger cách ly giữa các test (F6).
+  MOCK_WALLET_BALANCES.clear();
+  MOCK_WALLET_LEDGER.length = 0;
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -2015,6 +2018,71 @@ interface MockHoldStore {
 
 const MOCK_HOLDS = new Map<string, MockHoldStore>();
 
+/* ===================== WALLET mock (F6) =====================
+   Contract backend wallets.controller:
+   POST /wallet/topup -> {txnRef, amount, mode:'mock', paymentUrl}
+   GET /wallet/me -> {balance, page, pageSize, total, items[]}.
+   Mock ghi thẳng ledger + cập nhật số dư ngay lúc topup (callback luôn SUCCESS). */
+
+interface MockLedgerEntry {
+  id: string;
+  userId: string;
+  direction: 'CREDIT' | 'DEBIT';
+  type: 'TOPUP' | 'PAYMENT' | 'REFUND' | 'CASHBACK';
+  amount: number;
+  refType: string;
+  refId: string;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+/** Số dư theo userId — vai trò "wallet_balances" phía backend. */
+const MOCK_WALLET_BALANCES = new Map<string, number>();
+/** Ledger append-only giả lập — truy vấn luôn sort mới nhất trước. */
+const MOCK_WALLET_LEDGER: MockLedgerEntry[] = [];
+
+/** Seed demo: user có sẵn một lần nạp 300.000₫ để trang Ví không trống trơn. */
+function mockWalletSeed(userId: string): void {
+  if (MOCK_WALLET_BALANCES.has(userId)) return;
+  MOCK_WALLET_BALANCES.set(userId, 300000);
+  MOCK_WALLET_LEDGER.push({
+    id: 'wl-seed-' + userId,
+    userId,
+    direction: 'CREDIT',
+    type: 'TOPUP',
+    amount: 300000,
+    refType: 'TOPUP',
+    refId: 'seed-topup-' + userId,
+    balanceAfter: 300000,
+    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+  });
+}
+
+/** Áp một biến động vào ví mock (CREDIT cộng / DEBIT trừ) rồi ghi ledger. */
+function mockWalletApply(
+  userId: string,
+  direction: MockLedgerEntry['direction'],
+  type: MockLedgerEntry['type'],
+  amount: number,
+  refType: string,
+  refId: string,
+): void {
+  const current = MOCK_WALLET_BALANCES.get(userId) ?? 0;
+  const balanceAfter = direction === 'CREDIT' ? current + amount : current - amount;
+  MOCK_WALLET_BALANCES.set(userId, balanceAfter);
+  MOCK_WALLET_LEDGER.push({
+    id: 'wl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    userId,
+    direction,
+    type,
+    amount,
+    refType,
+    refId,
+    balanceAfter,
+    createdAt: new Date().toISOString(),
+  });
+}
+
 interface MockCustomerBookingItem {
   id: string;
   code: string;
@@ -2769,6 +2837,56 @@ export async function handleMockRequest<T>(
     }
     if (row.readAt === null) row.readAt = new Date().toISOString();
     return { ...row } as T;
+  }
+
+  /* ===================== WALLET mock (F6) ===================== */
+
+  // GET /wallet/me — số dư + lịch sử phân trang của user đăng nhập.
+  // Nhất quán /bookings/me: mock không có phiên thì rơi về tài khoản demo đầu.
+  if (method === 'GET' && rawPath0 === '/wallet/me') {
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    mockWalletSeed(account.id);
+    const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(search0.get('pageSize') ?? '10') || 10));
+    const mine = MOCK_WALLET_LEDGER.filter((e) => e.userId === account.id).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    return {
+      balance: MOCK_WALLET_BALANCES.get(account.id) ?? 0,
+      page,
+      pageSize,
+      total: mine.length,
+      items: mine.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
+    } as T;
+  }
+
+  // POST /wallet/topup — mock ghi ngay ledger; paymentUrl là path trong-app
+  // như payments mock để window.location điều hướng nội bộ không rời SPA.
+  if (method === 'POST' && rawPath0 === '/wallet/topup') {
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    const amount = Number(payload.amount);
+    if (!Number.isInteger(amount) || amount < 10000 || amount > 50000000) {
+      throw new ApiError(
+        400,
+        'Số tiền nạp không hợp lệ (10.000₫ – 50.000.000₫).',
+        'WALLET_BAD_AMOUNT',
+      );
+    }
+    mockWalletSeed(account.id);
+    const txnRef = 'TOPUP-' + Date.now().toString(36);
+    mockWalletApply(account.id, 'CREDIT', 'TOPUP', amount, 'TOPUP', txnRef);
+    return {
+      txnRef,
+      amount,
+      mode: 'mock',
+      paymentUrl: '/vi/wallet?status=SUCCESS&txnRef=' + encodeURIComponent(txnRef),
+    } as T;
   }
 
   // Admin: hàng chờ duyệt.
