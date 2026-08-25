@@ -7,6 +7,7 @@ import { cn } from '../../lib/utils';
 import { logout } from '../../features/auth/api';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { navItemsForRole } from './navigation';
+import { NotificationBell } from '../../features/notifications/components/notification-bell';
 import { ThemeToggle } from '../theme/theme-toggle';
 import { Badge, type BadgeProps } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -130,7 +131,10 @@ export function DashboardLayout(): ReactElement {
           <UserMenu />
           <div className="mt-2 flex items-center justify-between px-2 pb-1">
             <Badge variant={roleMeta.variant}>{roleMeta.label}</Badge>
-            <ThemeToggle />
+            <span className="flex items-center gap-1">
+              <NotificationBell />
+              <ThemeToggle />
+            </span>
           </div>
         </div>
       </aside>
@@ -145,6 +149,7 @@ export function DashboardLayout(): ReactElement {
               {APP_NAME}
             </Link>
             <div className="flex items-center gap-1">
+              <NotificationBell />
               <ThemeToggle />
               <UserMenu compact />
             </div>

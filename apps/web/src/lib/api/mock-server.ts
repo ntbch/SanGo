@@ -3,7 +3,7 @@
  * Mô phỏng đúng hợp đồng REST của module auth (đặc tả §3.1) và shape lỗi
  * thống nhất { statusCode, message, code } để UI chạy đứng yên không lỗi.
  */
-import { calculateHaversineDistanceKm, UserRole } from '@courthub/shared';
+import { calculateHaversineDistanceKm, NotificationType, UserRole } from '@courthub/shared';
 
 import { ApiError } from './api-error';
 import { type AuthUser } from './types';
@@ -62,6 +62,8 @@ export function resetMockSession(): void {
   for (const holdId of Array.from(MOCK_HOLDS.keys())) {
     MOCK_HOLDS.delete(holdId);
   }
+  // Hộp thư thông báo dựng lại từ seed — badge/mark-read cách ly giữa test (P2-F1).
+  MOCK_NOTIFICATIONS = seedNotifications();
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -1730,6 +1732,115 @@ interface MockAnalyticsPayload {
 /** Cache theo 'venueId:days' để nhiều lần gọi trong phiên nhất quán. */
 const MOCK_ANALYTICS = new Map<string, MockAnalyticsPayload>();
 
+/* ------------------------------------------------------------------ */
+/* Thông báo in-app (P2-F1): hộp thư theo user, mới nhất trước.        */
+/* ------------------------------------------------------------------ */
+
+interface MockNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Dữ liệu mẫu đa loại cho demo chuông thông báo — gắn theo tài khoản mock
+ * (customer/owner/admin đều có hộp thư riêng). createdAt tính lùi từ "bây giờ"
+ * để badge + thời gian tương đối luôn sống động khi demo.
+ */
+function seedNotifications(): MockNotification[] {
+  const minutesAgo = (m: number): string => new Date(Date.now() - m * 60_000).toISOString();
+  return [
+    {
+      id: 'n-cus-01',
+      userId: 'u-customer-01',
+      type: NotificationType.BOOKING_CONFIRMED,
+      title: 'Đặt sân thành công',
+      body: 'Đơn CH-2026 của bạn tại Sân Pickleball Saigon đã được xác nhận.',
+      link: '/dashboard/my-bookings',
+      readAt: null,
+      createdAt: minutesAgo(3),
+    },
+    {
+      id: 'n-cus-02',
+      userId: 'u-customer-01',
+      type: NotificationType.PAYMENT_RECEIVED,
+      title: 'Thanh toán thành công',
+      body: 'Bạn đã thanh toán 36.000₫ cho đơn giữ chỗ tại Sân Pickleball Saigon.',
+      link: '/dashboard/my-bookings',
+      readAt: null,
+      createdAt: minutesAgo(65),
+    },
+    {
+      id: 'n-cus-03',
+      userId: 'u-customer-01',
+      type: NotificationType.REMINDER,
+      title: 'Nhắc lịch: trận đấu sau 2 giờ',
+      body: 'Bạn có trận đấu lúc 18:00 hôm nay tại Cụm Cầu lông Thủ Đức — đừng quên!',
+      link: '/dashboard/my-bookings',
+      readAt: null,
+      createdAt: minutesAgo(60 * 5),
+    },
+    {
+      id: 'n-cus-04',
+      userId: 'u-customer-01',
+      type: NotificationType.MATCH_JOINED,
+      title: 'Có người tham gia trận ghép',
+      body: 'Minh T. vừa tham gia đơn ghép của bạn — còn trống 2 slot.',
+      link: '/dashboard/my-bookings',
+      readAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
+      createdAt: minutesAgo(60 * 26),
+    },
+    {
+      id: 'n-cus-05',
+      userId: 'u-customer-01',
+      type: NotificationType.BOOKING_CANCELLED,
+      title: 'Đơn đặt đã bị huỷ',
+      body: 'Đơn CH-2025 tại Tennis Bình Thạnh đã được huỷ, tiền cọc sẽ hoàn trong 3-5 ngày.',
+      link: '/dashboard/my-bookings',
+      readAt: new Date(Date.now() - 50 * 3600_000).toISOString(),
+      createdAt: minutesAgo(60 * 50),
+    },
+    {
+      id: 'n-own-01',
+      userId: 'u-owner-01',
+      type: NotificationType.NEW_BOOKING_OWNER,
+      title: 'Có đơn đặt mới',
+      body: 'Sân A1 (Cụm Cầu lông Thủ Đức) vừa có đơn mới từ Hoàng N.',
+      link: '/dashboard/bookings',
+      readAt: null,
+      createdAt: minutesAgo(12),
+    },
+    {
+      id: 'n-own-02',
+      userId: 'u-owner-01',
+      type: NotificationType.PAYMENT_RECEIVED,
+      title: 'Khách đã thanh toán cọc',
+      body: 'Đơn CH-2024 — khách đã chuyển cọc 30% qua VNPAY.',
+      link: '/dashboard/bookings',
+      readAt: null,
+      createdAt: minutesAgo(95),
+    },
+    {
+      id: 'n-adm-01',
+      userId: 'u-admin-01',
+      type: NotificationType.NEW_BOOKING_OWNER,
+      title: 'Sân mới chờ duyệt',
+      body: 'Cụm sân "Tennis Bình Thạnh" đang chờ quản trị duyệt.',
+      link: '/dashboard/admin',
+      readAt: null,
+      createdAt: minutesAgo(30),
+    },
+  ];
+}
+
+/** Hộp thư mock theo phiên — resetMockSession() dựng lại để cách ly giữa test. */
+let MOCK_NOTIFICATIONS: MockNotification[] = seedNotifications();
+
 function buildMockAnalytics(venueId: string, days: number): MockAnalyticsPayload | null {
   const venue = MOCK_VENUES.find((item) => item.id === venueId);
   if (venue === undefined) return null;
@@ -2591,6 +2702,73 @@ export async function handleMockRequest<T>(
     if (row === undefined) throw new ApiError(404, 'Không tìm thấy đơn', 'BOOKING_NOT_FOUND');
     row.status = 'CANCELLED';
     return { ok: true } as T;
+  }
+
+  /* ===================== NOTIFICATIONS mock (P2-F1) =====================
+     Contract backend t1: GET /notifications (page, pageSize 10, unreadCount),
+     POST /notifications/:id/read (idempotent, 404 nếu không thuộc sở hữu),
+     POST /notifications/read-all -> { updated }. */
+
+  // GET /notifications?page= — hộp thư của user đăng nhập, mới nhất trước.
+  if (method === 'GET' && rawPath0 === '/notifications') {
+    if (sessionEmail === null) {
+      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+    }
+    const account = accounts.find((a) => a.email === sessionEmail);
+    if (account === undefined) {
+      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+    }
+    const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
+    const mine = MOCK_NOTIFICATIONS.filter((n) => n.userId === account.id).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    const pageSize = 10; // NOTIFICATIONS_PAGE_SIZE của backend
+    const start = (page - 1) * pageSize;
+    return {
+      items: mine.slice(start, start + pageSize),
+      page,
+      pageSize,
+      total: mine.length,
+      unreadCount: mine.filter((n) => n.readAt === null).length,
+    } as T;
+  }
+
+  // POST /notifications/read-all — khai báo TRƯỚC ':id/read' để không bị nuốt.
+  if (method === 'POST' && rawPath0 === '/notifications/read-all') {
+    if (sessionEmail === null) {
+      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+    }
+    const account = accounts.find((a) => a.email === sessionEmail);
+    if (account === undefined) {
+      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+    }
+    let updated = 0;
+    const now = new Date().toISOString();
+    for (const n of MOCK_NOTIFICATIONS) {
+      if (n.userId === account.id && n.readAt === null) {
+        n.readAt = now;
+        updated += 1;
+      }
+    }
+    return { updated } as T;
+  }
+
+  // POST /notifications/:id/read — idempotent; 404 nếu không thuộc sở hữu.
+  if (method === 'POST' && /^\/notifications\/[^/]+\/read$/.test(rawPath0)) {
+    if (sessionEmail === null) {
+      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+    }
+    const account = accounts.find((a) => a.email === sessionEmail);
+    if (account === undefined) {
+      throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.', 'SESSION_EXPIRED');
+    }
+    const id = rawPath0.split('/')[2];
+    const row = MOCK_NOTIFICATIONS.find((n) => n.id === id && n.userId === account.id);
+    if (row === undefined) {
+      throw new ApiError(404, 'Không tìm thấy thông báo', 'NOTIFICATION_NOT_FOUND');
+    }
+    if (row.readAt === null) row.readAt = new Date().toISOString();
+    return { ...row } as T;
   }
 
   // Admin: hàng chờ duyệt.

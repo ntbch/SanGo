@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
 import { APP_NAME } from '@courthub/shared';
+import { NotificationBell } from '../../features/notifications/components/notification-bell';
 import { ThemeToggle } from '../theme/theme-toggle';
 import { Button } from '../ui/button';
 import { useAuthStore } from '../../lib/auth/auth-store';
@@ -34,6 +35,7 @@ export function PublicLayout(): ReactElement {
             </Link>
           </nav>
           <div className="flex items-center gap-2">
+            {user ? <NotificationBell /> : null}
             <ThemeToggle />
             {user ? (
               <Button asChild>

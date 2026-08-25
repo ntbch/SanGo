@@ -184,4 +184,13 @@ export const endpoints = {
     /** Thống kê cụm sân (§3.10) — venueId bắt buộc, days 1..90 (backend mặc định 30). */
     analytics: (query: OwnerAnalyticsQuery): string => '/owner/analytics' + qs(query),
   },
+
+  notifications: {
+    /** Hộp thư của tôi — mới nhất trước, kèm unreadCount (contract t1). */
+    list: (query: { page?: number } = {}): string => '/notifications' + qs(query),
+    /** Đánh dấu MỘT thông báo đã đọc (idempotent). */
+    markRead: (id: string): string => '/notifications/' + seg(id) + '/read',
+    /** Đánh dấu TOÀN BỘ chưa đọc là đã đọc -> { updated }. */
+    markAllRead: (): string => '/notifications/read-all',
+  },
 } as const;
