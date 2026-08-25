@@ -11,7 +11,10 @@ async function bootstrap(): Promise<void> {
 
   // Quy ước REST /api/v1 — đặc tả §4
   app.setGlobalPrefix('api/v1');
-  app.enableCors();
+  // QA-T4-P2-02: web fetch credentials:'include' -> ACAO:* bị browser chặn khi
+  // Vite port khác API (dev cross-origin). origin:true reflect request origin,
+  // credentials:true cho phép cookie refresh token qua CORS.
+  app.enableCors({ origin: true, credentials: true });
 
   // Swagger là nguồn sự thật của contract API — đặc tả §4 (/api/docs)
   const config = new DocumentBuilder()
