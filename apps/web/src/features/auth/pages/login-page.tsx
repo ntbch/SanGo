@@ -52,18 +52,20 @@ export function LoginPage(): ReactElement {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const { accessToken, user } = await login(values);
-      setSession(user, accessToken);
-      toast({
-        title: 'Đăng nhập thành công',
-        description: 'Chào mừng trở lại, ' + user.fullName + '!',
-      });
       // P1-F1: ?next=<đường hiện tại> từ hành động khách cần tài khoản (Giữ chỗ/
       // Tham gia trận/AI giữ chỗ); fallback state.from của ProtectedRoute rồi /dashboard.
       const target =
         safeInternalTarget(searchParams.get('next')) ??
         safeInternalTarget((location.state as { from?: string } | null)?.from ?? null) ??
         '/dashboard';
+      // QA-T4-01: điều hướng TRƯỚC khi setSession — nếu setSession trước,
+      // GuestRoute thấy user!=null sẽ <Navigate to=/dashboard> ghi đè đích next.
       navigate(target, { replace: true });
+      setSession(user, accessToken);
+      toast({
+        title: 'Đăng nhập thành công',
+        description: 'Chào mừng trở lại, ' + user.fullName + '!',
+      });
     } catch (error) {
       toast({
         variant: 'destructive',

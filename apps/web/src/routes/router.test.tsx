@@ -179,4 +179,33 @@ describe('guest browsing công khai (P1-F1)', () => {
       expect(screen.getByTestId('route-loc').textContent).toBe('/dashboard');
     });
   });
+
+  it('QA-T4-01 hồi quy: login với ?next=deep-link trang giữ chỗ → về đúng trang book (không rơi /dashboard)', async () => {
+    const user = userEvent.setup();
+    const nextPath = '/venues/san-pickleball-saigon/book';
+    renderApp({
+      route: '/login?next=' + encodeURIComponent(nextPath),
+      ui: (
+        <>
+          <AppRoutes />
+          <RouteProbe />
+        </>
+      ),
+    });
+    await user.type(screen.getByLabelText('Email'), 'customer@courthub.vn');
+    await user.type(screen.getByLabelText('Mật khẩu'), 'Courthub@2026');
+    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    // Không bị GuestRoute ghi đè về /dashboard.
+    expect(await screen.findByTestId('route-loc')).toBeTruthy();
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('route-loc').textContent).toBe(nextPath);
+        expect(screen.getByTestId('route-loc').textContent).not.toBe('/dashboard');
+      },
+      { timeout: 3000 },
+    );
+    // Trang đích thực sự render được lịch chọn giờ.
+    expect(await screen.findByText('Chọn giờ đặt sân')).toBeTruthy();
+  });
 });
