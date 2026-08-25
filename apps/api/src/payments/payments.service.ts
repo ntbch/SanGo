@@ -85,7 +85,36 @@ export class PaymentsService {
   async createCheckout(user: { id: string }, dto: { holdId: string; type: CheckoutType }) {
     await this.bookings.getHold(dto.holdId, { ...user, role: 'CUSTOMER' }); // chỉ chủ hold được checkout
     const { hold, amount } = await this.quoteHold(dto.holdId, dto.type);
-    void hold;
+
+    // MAJOR-1 fix: re-validate voucher quota + per-user limit TRƯỚC KHI phát URL thanh toán.
+    // Nếu voucher đã hết lượt toàn cục hoặc khách đã dùng hết lượt ở đơn khác trong thời gian
+    // giữ hold -> chặn ngay tại checkout, không để khách thanh toán rồi mới fail ở callback.
+    if (hold.voucherId && hold.discountAmount != null) {
+      const voucher = await this.prisma.voucher.findUnique({ where: { id: hold.voucherId } });
+      if (voucher) {
+        if (!voucher.active || (voucher.expiresAt && voucher.expiresAt <= new Date())) {
+          throw new ConflictException({
+            message: 'Mã giảm giá đã hết hạn hoặc tạm dừng',
+            code: 'VOUCHER_EXPIRED',
+          });
+        }
+        if (voucher.usedCount >= voucher.usageLimit) {
+          throw new ConflictException({
+            message: 'Mã giảm giá đã hết lượt sử dụng',
+            code: 'VOUCHER_EXHAUSTED',
+          });
+        }
+        const usedByUser = await this.prisma.voucherRedemption.count({
+          where: { voucherId: voucher.id, userId: user.id },
+        });
+        if (usedByUser >= voucher.perUserLimit) {
+          throw new ConflictException({
+            message: 'Bạn đã dùng hết lượt cho mã này',
+            code: 'VOUCHER_USER_LIMIT',
+          });
+        }
+      }
+    }
 
     const txnRef = makeTxnRef(dto.holdId, dto.type);
     const mode = PaymentsService.resolveMode();

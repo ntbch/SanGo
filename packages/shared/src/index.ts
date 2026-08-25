@@ -102,6 +102,31 @@ export enum PaymentStatus {
   REFUNDED = 'REFUNDED',
 }
 
+/** Vai trò thành viên đội (S2-F1) — trùng khớp TeamMemberRole trong Prisma. */
+export enum TeamMemberRole {
+  CAPTAIN = 'CAPTAIN',
+  MEMBER = 'MEMBER',
+}
+
+/** Trạng thái thành viên đội (S2-F1) — trùng khớp TeamMemberStatus trong Prisma. */
+export enum TeamMemberStatus {
+  ACTIVE = 'ACTIVE',
+  PENDING = 'PENDING',
+}
+
+/** Trạng thái khoản chia tiền đội (S2-F1) — trùng khớp ExpenseShareStatus trong Prisma. */
+export enum ExpenseShareStatus {
+  UNPAID = 'UNPAID',
+  PAID = 'PAID',
+}
+
+/** Loại dịch vụ đi kèm (S2-F4) — trùng khớp VenueServiceType trong Prisma. */
+export enum VenueServiceType {
+  BEVERAGE = 'BEVERAGE',
+  EQUIPMENT = 'EQUIPMENT',
+  OTHER = 'OTHER',
+}
+
 /* ------------------------------------------------------------------ */
 /* Hằng số nghiệp vụ cơ bản                                            */
 /* ------------------------------------------------------------------ */

@@ -346,4 +346,78 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
     });
     expect(redemption.amountDiscounted).toBe(50_000);
   });
+
+  it('MAJOR-1: voucher hết quota trước khi checkout -> chặn tại checkout() với VOUCHER_EXHAUSTED', async () => {
+    if (!dbUp) return;
+    const owner = await prisma.user.findFirstOrThrow({
+      where: { email: { contains: 'itpay-owner' } },
+    });
+    const date = new Date(Date.now() + 8 * 86_400_000).toISOString().slice(0, 10);
+    const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+    const v = await prisma.voucher.create({
+      data: {
+        code: `ITPAYMAJOR1-EX-${SUFFIX}`,
+        percentOff: 20,
+        dayOfWeek: dow,
+        validFromMinute: 540,
+        validToMinute: 960,
+        usageLimit: 1,
+        perUserLimit: 1,
+        ownerId: owner.id,
+      },
+    });
+    await prisma.bookingHold.updateMany({
+      where: { userId: cust.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold({ id: cust.id }, { courtId, date, slots: [840] })) as {
+      holdId: string;
+    };
+    await vouchers.applyToHold({ id: cust.id }, { holdId: hold.holdId, code: v.code });
+
+    // Giả lập voucher bị dùng hết bởi người khác trước khi user bấm checkout
+    await prisma.voucher.update({ where: { id: v.id }, data: { usedCount: 1 } });
+
+    await expect(
+      payments.createCheckout({ id: cust.id }, { holdId: hold.holdId, type: 'DEPOSIT' }),
+    ).rejects.toMatchObject({ response: { code: 'VOUCHER_EXHAUSTED' } });
+  });
+
+  it('MAJOR-1: user đã dùng hết lượt voucher ở đơn khác -> chặn tại checkout() với VOUCHER_USER_LIMIT', async () => {
+    if (!dbUp) return;
+    const owner = await prisma.user.findFirstOrThrow({
+      where: { email: { contains: 'itpay-owner' } },
+    });
+    const date = new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10);
+    const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+    const v = await prisma.voucher.create({
+      data: {
+        code: `ITPAYMAJOR1-USR-${SUFFIX}`,
+        percentOff: 10,
+        dayOfWeek: dow,
+        validFromMinute: 540,
+        validToMinute: 960,
+        usageLimit: 10,
+        perUserLimit: 1,
+        ownerId: owner.id,
+      },
+    });
+    await prisma.bookingHold.updateMany({
+      where: { userId: cust.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold({ id: cust.id }, { courtId, date, slots: [840] })) as {
+      holdId: string;
+    };
+    await vouchers.applyToHold({ id: cust.id }, { holdId: hold.holdId, code: v.code });
+
+    // Giả lập user đã hoàn tất 1 đơn khác dùng mã này (đã có bản ghi redemption)
+    await prisma.voucherRedemption.create({
+      data: { voucherId: v.id, userId: cust.id, amountDiscounted: 20_000 },
+    });
+
+    await expect(
+      payments.createCheckout({ id: cust.id }, { holdId: hold.holdId, type: 'DEPOSIT' }),
+    ).rejects.toMatchObject({ response: { code: 'VOUCHER_USER_LIMIT' } });
+  });
 });
