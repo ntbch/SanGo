@@ -189,6 +189,17 @@ export function AppRoutes(): ReactElement {
         >
           <Route index element={<WalletPage />} />
         </Route>
+        {/* F6: alias /wallet — một số luồng gateway trả về path ngắn hơn */}
+        <Route
+          path="/wallet"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<WalletPage />} />
+        </Route>
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

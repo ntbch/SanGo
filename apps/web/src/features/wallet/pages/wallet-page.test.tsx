@@ -41,6 +41,14 @@ describe('WalletPage', () => {
     });
   });
 
+  it('toast thất bại khi quay lại với status=FAIL (/wallet)', async () => {
+    renderApp({ route: '/wallet?status=FAIL&txnRef=TOPUP-x' });
+    await waitFor(() => {
+      expect(screen.getByText(/Nạp tiền thất bại/)).toBeTruthy();
+      expect(screen.getByText('Số dư ví')).toBeTruthy();
+    });
+  });
+
   it('chặn số tiền nạp dưới mức tối thiểu trong dialog', async () => {
     const user = userEvent.setup();
     renderApp({ route: '/dashboard/wallet' });

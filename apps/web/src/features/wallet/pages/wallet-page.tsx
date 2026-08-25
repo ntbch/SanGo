@@ -147,13 +147,22 @@ export function WalletPage(): ReactElement {
   const { data, isLoading } = useMyWallet(page, PAGE_SIZE);
   const topup = useWalletTopup();
 
-  // Quay lại từ cổng mock với status=SUCCESS -> xác nhận + làm mới số dư.
+  // Quay lại từ cổng mock (?status=...) -> toast kết quả + làm mới số dư.
+  // wallets.service.redirect trả SUCCESS | FAIL; FAILED là biến thể của luồng payments.
   useEffect(() => {
-    if (searchParams.get('status') === 'SUCCESS') {
+    const status = searchParams.get('status');
+    if (status !== 'SUCCESS' && status !== 'FAIL' && status !== 'FAILED') return;
+    if (status === 'SUCCESS') {
       toast({ title: 'Nạp tiền thành công', description: 'Số dư ví đã được cập nhật.' });
       void queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      setSearchParams({}, { replace: true });
+    } else {
+      toast({
+        title: 'Nạp tiền thất bại',
+        description: 'Giao dịch nạp ví chưa hoàn tất. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
     }
+    setSearchParams({}, { replace: true });
   }, [searchParams, queryClient, setSearchParams]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
