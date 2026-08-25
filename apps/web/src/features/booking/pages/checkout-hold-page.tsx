@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { CreditCard, Loader2, ShieldCheck, AlertCircle, Trash2 } from 'lucide-react';
+import { CreditCard, Loader2, ShieldCheck, AlertCircle, TicketPercent, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import {
   Card,
@@ -9,12 +9,19 @@ import {
   CardTitle,
   CardDescription,
 } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
 import { formatVnd, minutesToTime } from '../../public/format';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { CountdownTimer } from '../components/countdown-timer';
-import { useBookingHold, useCheckoutPayment, useDeleteBookingHold } from '../queries';
+import {
+  useApplyVoucher,
+  useBookingHold,
+  useCheckoutPayment,
+  useDeleteBookingHold,
+} from '../queries';
+import type { ApplyVoucherResponse } from '../types';
 
 export function CheckoutHoldPage(): ReactElement {
   const { holdId = '' } = useParams();
@@ -27,12 +34,21 @@ export function CheckoutHoldPage(): ReactElement {
 
   const [paymentType, setPaymentType] = useState<'DEPOSIT' | 'FULL'>('DEPOSIT');
   const [isExpired, setIsExpired] = useState(false);
+  // F3 voucher: ô nhập mã + thông tin áp thành công (giá đã snapshot vào hold).
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedInfo, setAppliedInfo] = useState<ApplyVoucherResponse | undefined>(undefined);
+  const applyVoucher = useApplyVoucher(holdId);
 
   const hold = holdQuery.data;
 
-  const depositAmount = hold ? Math.round((hold.subtotal * hold.depositPercent) / 100) : 0;
-  const payAmount = paymentType === 'DEPOSIT' ? depositAmount : (hold?.subtotal ?? 0);
-  const remainingAmount = (hold?.subtotal ?? 0) - depositAmount;
+  // Giá ưu tiên snapshot sau giảm (finalAmount); chưa áp mã thì bằng subtotal.
+  const baseAmount = hold ? (hold.finalAmount ?? appliedInfo?.finalAmount ?? hold.subtotal) : 0;
+  const discountAmount = hold?.discountAmount ?? appliedInfo?.discountAmount ?? 0;
+  const hasDiscount = discountAmount > 0;
+  const appliedCode = appliedInfo?.code;
+  const depositAmount = Math.round((baseAmount * (hold?.depositPercent ?? 30)) / 100);
+  const payAmount = paymentType === 'DEPOSIT' ? depositAmount : baseAmount;
+  const remainingAmount = baseAmount - depositAmount;
 
   const handlePay = async () => {
     if (!hold || isExpired) return;
@@ -145,6 +161,12 @@ export function CheckoutHoldPage(): ReactElement {
                 <span className="text-muted-foreground">Tổng tiền sân:</span>
                 <span className="font-semibold">{formatVnd(hold.subtotal)}</span>
               </div>
+              {hasDiscount ? (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>Giảm giá{appliedCode ? ' (' + appliedCode + ')' : ''}:</span>
+                  <span className="font-semibold">−{formatVnd(discountAmount)}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Mức cọc yêu cầu ({hold.depositPercent}%):</span>
                 <span>{formatVnd(depositAmount)}</span>
@@ -190,12 +212,76 @@ export function CheckoutHoldPage(): ReactElement {
                 />
                 <div className="text-xs flex-1">
                   <div className="font-semibold text-sm">Thanh toán toàn bộ (100%)</div>
-                  <div className="text-primary font-bold">{formatVnd(hold.subtotal)}</div>
+                  <div className="text-primary font-bold">{formatVnd(baseAmount)}</div>
                   <div className="text-muted-foreground text-[11px]">
                     Không cần thanh toán thêm tại sân
                   </div>
                 </div>
               </label>
+            </div>
+
+            {/* F3: Áp mã giảm giá vào hold — hiển thị ngay trên nút thanh toán */}
+            <div className="space-y-2 rounded-lg border border-border/60 p-3">
+              {hasDiscount ? (
+                <div className="flex items-start gap-2 text-xs">
+                  <TicketPercent className="mt-0.5 size-4 text-primary" aria-hidden />
+                  <div>
+                    <p className="font-semibold">Đã áp mã {appliedCode ?? ''}</p>
+                    <p className="text-muted-foreground">
+                      Giảm {formatVnd(discountAmount)} — cần trả {formatVnd(baseAmount)}.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <label htmlFor="voucher-code" className="text-xs font-semibold">
+                    Mã giảm giá
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="voucher-code"
+                      value={voucherCode}
+                      onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
+                      placeholder="VD: MUA50"
+                      disabled={isExpired || applyVoucher.isPending}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 font-semibold"
+                      disabled={!voucherCode.trim() || isExpired || applyVoucher.isPending}
+                      onClick={() =>
+                        applyVoucher.mutate(voucherCode.trim(), {
+                          onSuccess: (res) => {
+                            setAppliedInfo(res);
+                            toast({
+                              title: 'Áp mã thành công',
+                              description:
+                                'Giảm ' +
+                                formatVnd(res.discountAmount) +
+                                ' — cần trả ' +
+                                formatVnd(res.finalAmount) +
+                                '.',
+                            });
+                          },
+                          onError: (err) =>
+                            toast({
+                              variant: 'destructive',
+                              title: 'Không áp dụng được mã',
+                              description: friendlyApiMessage(err),
+                            }),
+                        })
+                      }
+                    >
+                      Áp dụng
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Mã áp cho khung giờ thấp điểm của sân này.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">

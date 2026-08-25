@@ -30,6 +30,7 @@ import { WalletPage } from '../features/wallet/pages/wallet-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
+import { OwnerVouchersPage } from '../features/owner/pages/owner-vouchers-page';
 import { useAuthStore } from '../lib/auth/auth-store';
 
 import { DashboardPage } from '../pages/dashboard-page';
@@ -165,6 +166,15 @@ export function AppRoutes(): ReactElement {
             element={
               <ProtectedRoute roles={[UserRole.OWNER]}>
                 <StatisticsPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* F3 Voucher — quản lý mã giảm của chủ sân */}
+          <Route
+            path="vouchers"
+            element={
+              <ProtectedRoute roles={[UserRole.OWNER]}>
+                <OwnerVouchersPage />
               </ProtectedRoute>
             }
           />

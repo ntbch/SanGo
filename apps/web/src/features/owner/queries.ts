@@ -7,11 +7,16 @@ import type {
   OwnerVenue,
   Paginated,
   PricingRule,
+  VoucherFormPayload,
+  VoucherUpdatePayload,
 } from './types';
 
 import {
   cancelBookingAsOwner,
+  createOwnerVoucher,
+  deleteOwnerVoucher,
   fetchOwnerAnalytics,
+  fetchOwnerVouchers,
   checkInByCode,
   createCourt,
   createVenue,
@@ -24,6 +29,7 @@ import {
   removeCourt,
   savePricingRules,
   updateCourt,
+  updateOwnerVoucher,
   updateVenue,
   type CourtFormPayload,
   type OwnerBookingsFilters,
@@ -164,5 +170,42 @@ export function useCancelBookingAsOwner() {
   return useMutation({
     mutationFn: (bookingId: string) => cancelBookingAsOwner(bookingId),
     onSuccess: () => invalidate([]),
+  });
+}
+
+/* ===================== F3: Voucher ===================== */
+
+/** Danh sách voucher của owner — kèm số lượt đã dùng. */
+export function useOwnerVouchers() {
+  return useQuery({ queryKey: ['owner', 'vouchers'], queryFn: () => fetchOwnerVouchers() });
+}
+
+export function useCreateOwnerVoucher() {
+  const qc = useQueryClient();
+  return useMutation<{ id: string; code: string }, Error, VoucherFormPayload>({
+    mutationFn: (payload) => createOwnerVoucher(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['owner', 'vouchers'] });
+    },
+  });
+}
+
+export function useUpdateOwnerVoucher() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; patch: VoucherUpdatePayload }>({
+    mutationFn: ({ id, patch }) => updateOwnerVoucher(id, patch),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['owner', 'vouchers'] });
+    },
+  });
+}
+
+export function useDeleteOwnerVoucher() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => deleteOwnerVoucher(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['owner', 'vouchers'] });
+    },
   });
 }

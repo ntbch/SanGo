@@ -43,4 +43,22 @@ describe('CheckoutHoldPage', () => {
     await user.click(fullRadio);
     expect(fullRadio.checked).toBe(true);
   });
+
+  it('áp mã giảm giá và cập nhật giá cần trả ngay trước nút thanh toán', async () => {
+    const user = userEvent.setup();
+    renderApp({ route: '/thanh-toan/checkout/h-demo1' });
+    await waitFor(() => {
+      expect(screen.getByText('Thông tin đơn đặt sân')).toBeTruthy();
+    });
+
+    await user.type(screen.getByLabelText('Mã giảm giá'), 'SALE10');
+    await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Đã áp mã SALE10/)).toBeTruthy();
+      expect(screen.getByText(/Giảm giá \(SALE10\)/)).toBeTruthy();
+      expect(screen.getByText('−24.000₫')).toBeTruthy();
+      expect(screen.queryByLabelText('Mã giảm giá')).toBeNull();
+    });
+  });
 });

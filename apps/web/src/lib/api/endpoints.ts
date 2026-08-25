@@ -164,6 +164,19 @@ export const endpoints = {
     sign: (): string => '/uploads/sign',
   },
 
+  vouchers: {
+    /** [OWNER] Danh sách voucher của mình kèm số lượt đã dùng (F3). */
+    mine: (): string => '/owner/vouchers',
+    /** [OWNER] Tạo voucher mới (F3). */
+    create: (): string => '/owner/vouchers',
+    /** [OWNER] Cập nhật một phần (percentOff/cửa sổ/limit/active). */
+    update: (id: string): string => '/owner/vouchers/' + seg(id),
+    /** [OWNER] Xoá voucher (F3). */
+    remove: (id: string): string => '/owner/vouchers/' + seg(id),
+    /** Khách áp mã vào hold của mình — snapshot giá NGAY LÚC ÁP MÃ (F3). */
+    applyToHold: (holdId: string): string => '/holds/' + seg(holdId) + '/voucher',
+  },
+
   admin: {
     venues: (query: AdminVenuesQuery = {}): string => '/admin/venues' + qs(query),
     venue: (id: string): string => '/admin/venues/' + seg(id),

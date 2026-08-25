@@ -6,8 +6,11 @@ import type {
   OwnerAnalyticsResponse,
   OwnerBooking,
   OwnerVenue,
+  OwnerVoucher,
   Paginated,
   PricingRule,
+  VoucherFormPayload,
+  VoucherUpdatePayload,
 } from './types';
 
 /** Payload tạo/sửa venue — khớp CreateVenueSchema của backend. */
@@ -116,4 +119,29 @@ export function markNoShow(bookingId: string): Promise<OwnerBooking> {
 /** Huỷ hộ khách — dùng chung DELETE /bookings/:id của contract. */
 export function cancelBookingAsOwner(bookingId: string): Promise<void> {
   return apiFetch<void>(endpoints.bookings.cancel(bookingId), { method: 'DELETE' });
+}
+
+/** [OWNER] Danh sách voucher của mình kèm số lượt đã dùng (F3). */
+export function fetchOwnerVouchers(): Promise<OwnerVoucher[]> {
+  return apiFetch<OwnerVoucher[]>(endpoints.vouchers.mine());
+}
+
+/** [OWNER] Tạo voucher — trả {id, code}. */
+export function createOwnerVoucher(
+  payload: VoucherFormPayload,
+): Promise<{ id: string; code: string }> {
+  return apiFetch<{ id: string; code: string }>(endpoints.vouchers.create(), {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+/** [OWNER] Cập nhật một phần voucher (percentOff/cửa sổ/limit/active). */
+export function updateOwnerVoucher(id: string, patch: VoucherUpdatePayload): Promise<void> {
+  return apiFetch<void>(endpoints.vouchers.update(id), { method: 'PATCH', body: patch });
+}
+
+/** [OWNER] Xoá voucher. */
+export function deleteOwnerVoucher(id: string): Promise<void> {
+  return apiFetch<void>(endpoints.vouchers.remove(id), { method: 'DELETE' });
 }

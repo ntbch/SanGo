@@ -1,6 +1,7 @@
 import { apiFetch } from '../../lib/api/client';
 import { endpoints, type MyBookingsQuery } from '../../lib/api/endpoints';
 import type {
+  ApplyVoucherResponse,
   BookingHold,
   CheckoutPayload,
   CheckoutResponse,
@@ -76,5 +77,13 @@ export function submitBookingReview(
   return apiFetch<void>(endpoints.bookings.review(bookingId), {
     method: 'POST',
     body: { rating, comment },
+  });
+}
+
+/** Áp mã giảm giá vào hold — trả giá sau giảm đã snapshot (F3). */
+export function applyVoucherToHold(holdId: string, code: string): Promise<ApplyVoucherResponse> {
+  return apiFetch<ApplyVoucherResponse>(endpoints.vouchers.applyToHold(holdId), {
+    method: 'POST',
+    body: { code },
   });
 }

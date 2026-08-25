@@ -101,3 +101,37 @@ export interface OwnerBooking {
   status: OwnerBookingStatus;
   amountPaid: number;
 }
+
+/** F3: một dòng voucher của owner (kèm số lượt đã dùng từ _count). */
+export interface OwnerVoucher {
+  id: string;
+  code: string;
+  percentOff: number;
+  /** Thứ áp dụng (0=CN..6=Thứ 7) — khớp getUTCDay() của ngày chơi. */
+  dayOfWeek: number;
+  validFromMinute: number;
+  validToMinute: number;
+  usageLimit: number;
+  perUserLimit: number;
+  expiresAt: string | null;
+  active: boolean;
+  createdAt: string;
+  _count?: { redemptions: number };
+}
+
+/** Payload tạo voucher — khớp CreateVoucherSchema của backend. */
+export interface VoucherFormPayload {
+  code: string;
+  percentOff: number;
+  dayOfWeek: number;
+  validFromMinute: number;
+  validToMinute: number;
+  usageLimit: number;
+  perUserLimit: number;
+  expiresAt?: string;
+}
+
+/** PATCH /owner/vouchers/:id — cập nhật một phần; code không cho đổi. */
+export type VoucherUpdatePayload = Partial<Omit<VoucherFormPayload, 'code'>> & {
+  active?: boolean;
+};

@@ -67,6 +67,8 @@ export function resetMockSession(): void {
   // Ví mock dựng lại từ seed — số dư/ledger cách ly giữa các test (F6).
   MOCK_WALLET_BALANCES.clear();
   MOCK_WALLET_LEDGER.length = 0;
+  // Voucher dựng lại từ seed — danh sách/quota cách ly giữa các test (F3).
+  resetMockVouchers();
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -2014,6 +2016,9 @@ interface MockHoldStore {
   /** Ghép trận mở (§3.11) — giữ lựa chọn để hiển thị lại ở checkout. */
   isPublicMatch?: boolean;
   slotsNeeded?: number | null;
+  /** F3 voucher: snapshot giảm giá (null/undefined = chưa áp). */
+  discountAmount?: number | null;
+  finalAmount?: number | null;
 }
 
 const MOCK_HOLDS = new Map<string, MockHoldStore>();
@@ -2081,6 +2086,65 @@ function mockWalletApply(
     balanceAfter,
     createdAt: new Date().toISOString(),
   });
+}
+
+/* ===================== VOUCHER mock (F3) =====================
+   Contract backend: /owner/vouchers (OWNER CRUD) và /holds/:id/voucher (áp mã).
+   Mock bỏ kiểm cửa sổ giờ/ngày — chỉ minh hoạ luồng giá snapshot cho UI/demo. */
+
+interface MockVoucher {
+  id: string;
+  code: string;
+  percentOff: number;
+  dayOfWeek: number;
+  validFromMinute: number;
+  validToMinute: number;
+  usageLimit: number;
+  perUserLimit: number;
+  expiresAt: string | null;
+  active: boolean;
+  ownerId: string;
+  createdAt: string;
+  _count: { redemptions: number };
+}
+
+/** Seed demo: hai mã đang chạy để trang quản lý không trống trơn. */
+let MOCK_VOUCHERS: MockVoucher[] = [
+  {
+    id: 'vc-1',
+    code: 'MUA50',
+    percentOff: 50,
+    dayOfWeek: 3,
+    validFromMinute: 840,
+    validToMinute: 1080,
+    usageLimit: 100,
+    perUserLimit: 1,
+    expiresAt: null,
+    active: true,
+    ownerId: 'u-owner-01',
+    createdAt: '2026-08-20T02:00:00.000Z',
+    _count: { redemptions: 3 },
+  },
+  {
+    id: 'vc-2',
+    code: 'SALE10',
+    percentOff: 10,
+    dayOfWeek: 5,
+    validFromMinute: 600,
+    validToMinute: 1440,
+    usageLimit: 200,
+    perUserLimit: 2,
+    expiresAt: '2026-12-31T00:00:00.000Z',
+    active: true,
+    ownerId: 'u-owner-01',
+    createdAt: '2026-08-22T02:00:00.000Z',
+    _count: { redemptions: 12 },
+  },
+];
+
+function resetMockVouchers(): void {
+  MOCK_VOUCHERS = MOCK_VOUCHERS.filter((v) => v.id === 'vc-1' || v.id === 'vc-2');
+  for (const v of MOCK_VOUCHERS) v._count = { redemptions: v.id === 'vc-1' ? 3 : 12 };
 }
 
 interface MockCustomerBookingItem {
@@ -2432,6 +2496,8 @@ export async function handleMockRequest<T>(
         subtotal: 240000,
         depositPercent: 30,
         expiresAt: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
+        discountAmount: null,
+        finalAmount: null,
       } as T;
     }
     return hold as T;
@@ -2837,6 +2903,123 @@ export async function handleMockRequest<T>(
     }
     if (row.readAt === null) row.readAt = new Date().toISOString();
     return { ...row } as T;
+  }
+
+  /* ===================== VOUCHER mock (F3) ===================== */
+
+  // GET /owner/vouchers — danh sách mã của owner (demo: một owner duy nhất).
+  if (method === 'GET' && rawPath0 === '/owner/vouchers') {
+    return [...MOCK_VOUCHERS].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    ) as T;
+  }
+
+  // POST /owner/vouchers — tạo mã mới.
+  if (method === 'POST' && rawPath0 === '/owner/vouchers') {
+    const code = requireString(payload, 'code');
+    if (!/^[A-Za-z0-9_-]{3,40}$/.test(code)) {
+      throw new ApiError(400, 'Mã chỉ gồm chữ/số/gạch và dài 3–40 ký tự.', 'VOUCHER_BAD_CODE');
+    }
+    const owner = accounts.find((a) => a.role === UserRole.OWNER) ?? accounts[0];
+    const voucher: MockVoucher = {
+      id: 'vc-' + Date.now().toString(36),
+      code,
+      percentOff: Number(payload.percentOff) || 10,
+      dayOfWeek: Number(payload.dayOfWeek ?? 3),
+      validFromMinute: Number(payload.validFromMinute ?? 840),
+      validToMinute: Number(payload.validToMinute ?? 1080),
+      usageLimit: Number(payload.usageLimit ?? 100),
+      perUserLimit: Number(payload.perUserLimit ?? 1),
+      expiresAt: typeof payload.expiresAt === 'string' ? payload.expiresAt : null,
+      active: true,
+      ownerId: owner.id,
+      createdAt: new Date().toISOString(),
+      _count: { redemptions: 0 },
+    };
+    MOCK_VOUCHERS.push(voucher);
+    return { id: voucher.id, code: voucher.code } as T;
+  }
+
+  // PATCH /owner/vouchers/:id — cập nhật một phần (active, limit, cửa sổ...).
+  if (method === 'PATCH' && /^\/owner\/vouchers\/[^/]+$/.test(rawPath0)) {
+    const id = rawPath0.split('/')[3];
+    const voucher = MOCK_VOUCHERS.find((v) => v.id === id);
+    if (voucher === undefined) {
+      throw new ApiError(404, 'Không tìm thấy voucher', 'VOUCHER_NOT_FOUND');
+    }
+    for (const key of [
+      'percentOff',
+      'dayOfWeek',
+      'validFromMinute',
+      'validToMinute',
+      'usageLimit',
+      'perUserLimit',
+    ] as const) {
+      if (payload[key] !== undefined) voucher[key] = Number(payload[key]);
+    }
+    if (payload.expiresAt !== undefined) voucher.expiresAt = payload.expiresAt as string | null;
+    if (payload.active !== undefined) voucher.active = Boolean(payload.active);
+    return { ok: true } as T;
+  }
+
+  // DELETE /owner/vouchers/:id
+  if (method === 'DELETE' && /^\/owner\/vouchers\/[^/]+$/.test(rawPath0)) {
+    const id = rawPath0.split('/')[3];
+    MOCK_VOUCHERS = MOCK_VOUCHERS.filter((v) => v.id !== id);
+    return { ok: true } as T;
+  }
+
+  // POST /holds/:id/voucher — áp mã vào hold, snapshot giá NGAY LÚC ÁP MÃ.
+  if (method === 'POST' && /^\/holds\/[^/]+\/voucher$/.test(rawPath0)) {
+    const holdId = rawPath0.split('/')[3];
+    const code = requireString(payload, 'code');
+    let hold = MOCK_HOLDS.get(holdId);
+    if (hold === undefined) {
+      // Materialise hold demo (khớp fallback GET) để giá snapshot persist qua refetch.
+      hold = {
+        id: holdId,
+        courtId: 'c-1',
+        courtName: 'Sân 1',
+        venueName: 'Sân Pickleball Saigon',
+        date: '2026-08-28',
+        slots: [{ startMinute: 1080, endMinute: 1200 }],
+        subtotal: 240000,
+        depositPercent: 30,
+        expiresAt: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
+        discountAmount: null,
+        finalAmount: null,
+      };
+      MOCK_HOLDS.set(holdId, hold);
+    }
+    if (hold.discountAmount !== null && hold.discountAmount !== undefined) {
+      throw new ApiError(409, 'Hold này đã áp voucher rồi', 'VOUCHER_ALREADY_APPLIED');
+    }
+    const voucher = MOCK_VOUCHERS.find(
+      (v) =>
+        v.code === code &&
+        v.active &&
+        (v.expiresAt === null || new Date(v.expiresAt).getTime() > Date.now()),
+    );
+    if (voucher === undefined) {
+      // Nhất quán BE: không phân biệt mã lạ với mã hết hạn/bị tắt để không dò mã.
+      throw new ApiError(404, 'Mã không khả dụng', 'VOUCHER_NOT_FOUND');
+    }
+    const discountAmount = Math.min(
+      Math.round((hold.subtotal * voucher.percentOff) / 100),
+      hold.subtotal,
+    );
+    const finalAmount = hold.subtotal - discountAmount;
+    hold.discountAmount = discountAmount;
+    hold.finalAmount = finalAmount;
+    voucher._count.redemptions += 1;
+    return {
+      holdId: hold.id,
+      code: voucher.code,
+      percentOff: voucher.percentOff,
+      subtotal: hold.subtotal,
+      discountAmount,
+      finalAmount,
+    } as T;
   }
 
   /* ===================== WALLET mock (F6) ===================== */

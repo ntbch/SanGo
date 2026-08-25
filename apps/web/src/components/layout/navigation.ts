@@ -8,6 +8,7 @@ import {
   UserRound,
   Users,
   Wallet,
+  TicketPercent,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard/manage', label: 'Quản lý sân', icon: MapPinned, roles: [UserRole.OWNER] },
   { to: '/dashboard/bookings', label: 'Đơn đặt', icon: CalendarDays, roles: [UserRole.OWNER] },
   { to: '/dashboard/statistics', label: 'Thống kê', icon: BarChart3, roles: [UserRole.OWNER] },
+  { to: '/dashboard/vouchers', label: 'Voucher', icon: TicketPercent, roles: [UserRole.OWNER] },
   {
     to: '/dashboard/admin',
     label: 'Quản trị hệ thống',

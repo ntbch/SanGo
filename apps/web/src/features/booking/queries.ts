@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { MyBookingsQuery } from '../../lib/api/endpoints';
 import {
+  applyVoucherToHold,
   cancelCustomerBooking,
   checkoutPayment,
   createBookingHold,
@@ -12,6 +13,7 @@ import {
   submitBookingReview,
 } from './api';
 import type {
+  ApplyVoucherResponse,
   BookingHold,
   CheckoutPayload,
   CheckoutResponse,
@@ -100,6 +102,17 @@ export function useSubmitBookingReview() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['my-bookings'] });
       void qc.invalidateQueries({ queryKey: ['public'] });
+    },
+  });
+}
+
+/** Áp mã giảm giá vào hold — làm mới hold để giá hiển thị ngay (F3). */
+export function useApplyVoucher(holdId: string) {
+  const qc = useQueryClient();
+  return useMutation<ApplyVoucherResponse, Error, string>({
+    mutationFn: (code) => applyVoucherToHold(holdId, code),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['booking-hold', holdId] });
     },
   });
 }

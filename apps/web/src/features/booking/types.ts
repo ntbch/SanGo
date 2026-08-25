@@ -62,6 +62,9 @@ export interface BookingHold {
   /** Ghép trận mở: hold đang công khai tìm người ghép. */
   isPublicMatch?: boolean;
   slotsNeeded?: number | null;
+  /** F3 voucher: snapshot giảm giá khi đã áp mã (null/undefined = chưa áp). */
+  discountAmount?: number | null;
+  finalAmount?: number | null;
 }
 
 export interface CheckoutPayload {
@@ -84,6 +87,16 @@ export interface RefundPreview {
   amountPaid: number;
   hoursUntilMatch: number;
   policyDescription?: string;
+}
+
+/** POST /holds/:id/voucher — áp mã thành công, giá đã snapshot vào hold (F3). */
+export interface ApplyVoucherResponse {
+  holdId: string;
+  code: string;
+  percentOff: number;
+  subtotal: number;
+  discountAmount: number;
+  finalAmount: number;
 }
 
 export interface CustomerBooking {
