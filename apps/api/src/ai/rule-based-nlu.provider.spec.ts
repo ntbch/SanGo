@@ -137,7 +137,15 @@ describe('RuleBasedNluProvider (AI-1 & GEO-4 & GEO-FIX1)', () => {
   });
 
   it('QA t8: dateHint theo múi giờ VN — 20:00 UTC ngày 24/8 (= 03:00 ICT 25/8) là "hôm nay" = 2026-08-25', async () => {
-    expect((await nlu.parse('cho mình sân cầu long hôm nay')).entities.dateHint).toBe('2026-08-25');
-    expect((await nlu.parse('dat san 5 mai')).entities.dateHint).toBe('2026-08-26');
+    // Giả lập đồng hồ để test deterministic theo ngày thật (tránh fail khi trôi ngày).
+    jest.useFakeTimers({ now: new Date('2026-08-24T20:00:00.000Z') });
+    try {
+      expect((await nlu.parse('cho mình sân cầu long hôm nay')).entities.dateHint).toBe(
+        '2026-08-25',
+      );
+      expect((await nlu.parse('dat san 5 mai')).entities.dateHint).toBe('2026-08-26');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
