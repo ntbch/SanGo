@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { VouchersController } from './vouchers.controller';
 import { VouchersService } from './vouchers.service';
 
@@ -9,7 +10,10 @@ import { VouchersService } from './vouchers.service';
  * (chờ t4 N2 của be-core hoàn tất để tránh conflict file dùng chung).
  */
 @Module({
-  imports: [AuthModule], // JwtAuthGuard cho controller (cùng pattern PaymentsModule)
+  imports: [
+    AuthModule, // JwtAuthGuard cho controller (cùng pattern PaymentsModule)
+    NotificationsModule, // NotifyService phát thông báo VOUCHER sau khi áp mã
+  ],
   controllers: [VouchersController],
   providers: [VouchersService],
 })

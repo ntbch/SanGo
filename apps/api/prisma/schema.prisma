@@ -109,6 +109,12 @@ enum NotificationType {
   MATCH_JOINED
   MATCH_LEFT
   REMINDER
+  // F8 wave-1 (roadmap v5) — additive, không đổi giá trị cũ.
+  WALLET
+  VOUCHER
+  SERVICE
+  TEAM
+  TOURNAMENT
 }
 
 // ---------------------------------------------------------------- models

@@ -27,6 +27,12 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  @Get('unread-count')
+  @ApiOperation({ summary: 'Số thông báo chưa đọc của tôi — badge cho Trung tâm thông báo (F8)' })
+  unreadCount(@CurrentUser() user: AuthUser) {
+    return this.notificationsService.unreadCount(user.id);
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Hộp thư thông báo của tôi — mới nhất trước, kèm unreadCount',

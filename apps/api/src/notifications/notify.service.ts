@@ -125,4 +125,33 @@ export class NotifyService {
       this.logger.warn(`Gửi mail thất bại (bỏ qua): ${(e as Error).message}`);
     }
   }
+
+  /**
+   * F8 wave-1: phát MỘT loại thông báo cho NHIỀU user (N2 hủy hàng loạt ngày mưa,
+   * F7 mở giải...). Best-effort per người nhận: một user lỗi không chặn những user
+   * còn lại; trả về số thông báo tạo thành công để caller log/đối soát.
+   * LUÔN gọi SAU khi transaction nghiệp vụ commit (cùng nguyên tắc với dispatch).
+   */
+  async dispatchBroadcast(
+    userIds: string[],
+    payload: {
+      type: NotificationType;
+      title: string;
+      body: string;
+      link?: string;
+    },
+  ): Promise<{ created: number; skipped: number }> {
+    let created = 0;
+    let skipped = 0;
+    for (const userId of [...new Set(userIds)]) {
+      try {
+        await this.dispatch({ userId, ...payload });
+        created++;
+      } catch (e) {
+        skipped++;
+        this.logger.warn(`Broadcast tới user ${userId} thất bại (bỏ qua): ${(e as Error).message}`);
+      }
+    }
+    return { created, skipped };
+  }
 }

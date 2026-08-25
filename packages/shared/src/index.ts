@@ -137,6 +137,12 @@ export enum NotificationType {
   MATCH_JOINED = 'MATCH_JOINED',
   MATCH_LEFT = 'MATCH_LEFT',
   REMINDER = 'REMINDER',
+  /// F8 wave-1 (roadmap v5): nhóm ví/voucher/dịch vụ/đội/giải đấu.
+  WALLET = 'WALLET',
+  VOUCHER = 'VOUCHER',
+  SERVICE = 'SERVICE',
+  TEAM = 'TEAM',
+  TOURNAMENT = 'TOURNAMENT',
 }
 
 export * from './schemas';

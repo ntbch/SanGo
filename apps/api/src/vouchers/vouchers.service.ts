@@ -5,8 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
+import { NotificationType } from '@courthub/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { roundVnd } from '../bookings/pricing.util';
+import { NotifyService } from '../notifications/notify.service';
 import type { ApplyVoucherDto, CreateVoucherDto, SetVoucherStatusDto } from './dto/voucher.dto';
 
 /**
@@ -20,7 +22,10 @@ import type { ApplyVoucherDto, CreateVoucherDto, SetVoucherStatusDto } from './d
  */
 @Injectable()
 export class VouchersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notify: NotifyService,
+  ) {}
 
   async createVoucher(
     owner: Pick<User, 'id'>,
@@ -175,6 +180,17 @@ export class VouchersService {
       }
       throw e;
     }
+
+    // F8 wave-1: thông báo VOUCHER — gọi SAU khi transaction áp mã đã commit.
+    await this.notify
+      .dispatch({
+        userId: user.id,
+        type: NotificationType.VOUCHER,
+        title: 'Áp dụng mã giảm giá thành công',
+        body: `Mã ${voucher.code} giảm ${discountAmount.toLocaleString('vi-VN')}đ. Giá cần thanh toán còn ${finalAmount.toLocaleString('vi-VN')}đ.`,
+        link: '/dat-san',
+      })
+      .catch(() => undefined); // best-effort: lỗi thông báo không chặn kết quả áp mã
 
     return {
       holdId: hold.id,

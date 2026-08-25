@@ -74,4 +74,10 @@ export class NotificationsService {
     });
     return { updated: result.count };
   }
+
+  /** F8 wave-1: đếm nhánh chưa đọc cho badge — nhẹ hơn GET /notifications (không nạp items). */
+  async unreadCount(userId: string): Promise<{ count: number }> {
+    const count = await this.prisma.notification.count({ where: { userId, readAt: null } });
+    return { count };
+  }
 }
