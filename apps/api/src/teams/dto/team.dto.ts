@@ -33,12 +33,16 @@ export type CreateExpenseShareDto = z.infer<typeof CreateExpenseShareSchema>;
 
 export const SplitBookingExpenseSchema = z.object({
   bookingId: z.string().uuid('bookingId phải là UUID'),
-  memberIds: z.array(z.string().uuid('memberId phải là UUID')).min(1, 'Chọn ít nhất 1 thành viên để chia tiền'),
+  memberIds: z
+    .array(z.string().uuid('memberId phải là UUID'))
+    .min(1, 'Chọn ít nhất 1 thành viên để chia tiền'),
   note: z.string().trim().max(200).optional(),
 });
 export type SplitBookingExpenseDto = z.infer<typeof SplitBookingExpenseSchema>;
 
 export const UpdateExpenseShareStatusSchema = z.object({
-  status: z.enum(['UNPAID', 'PAID'], { errorMap: () => ({ message: 'status chỉ nhận UNPAID hoặc PAID' }) }),
+  status: z.enum(['UNPAID', 'PAID'], {
+    errorMap: () => ({ message: 'status chỉ nhận UNPAID hoặc PAID' }),
+  }),
 });
 export type UpdateExpenseShareStatusDto = z.infer<typeof UpdateExpenseShareStatusSchema>;

@@ -82,9 +82,17 @@ export class VenuesController {
     description: 'Tọa độ bounding box: minLat,minLng,maxLat,maxLng (ví dụ: 10.7,106.6,10.8,106.7)',
     example: '10.7,106.6,10.8,106.7',
   })
-  @ApiQuery({ name: 'sportType', required: false, enum: ['FOOTBALL5', 'FOOTBALL7', 'PICKLEBALL', 'BADMINTON', 'TENNIS'] })
+  @ApiQuery({
+    name: 'sportType',
+    required: false,
+    enum: ['FOOTBALL5', 'FOOTBALL7', 'PICKLEBALL', 'BADMINTON', 'TENNIS'],
+  })
   @ApiQuery({ name: 'q', required: false, description: 'Tìm theo tên sân' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Số lượng tối đa (mặc định 50, tối đa 100)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Số lượng tối đa (mặc định 50, tối đa 100)',
+  })
   @ApiResponse({ status: 200, description: '{items[], total, bounds}' })
   map(@Query(new ZodValidationPipe(VenueMapQuerySchema)) query: VenueMapQueryDto) {
     return this.venuesService.listMap(query);

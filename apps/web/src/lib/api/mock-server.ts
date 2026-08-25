@@ -2271,11 +2271,46 @@ interface MockVenueService {
 
 /** Seed demo: nước uống + đồ thuê cho hai cụm sân, có một món đang tắt bán. */
 let MOCK_VENUE_SERVICES: MockVenueService[] = [
-  { id: 'svc-1', venueId: 'v-1', name: 'Nước suối 500ml', price: 10000, type: 'BEVERAGE', isAvailable: true },
-  { id: 'svc-2', venueId: 'v-1', name: 'Thuê vợt Pickleball', price: 50000, type: 'EQUIPMENT', isAvailable: true },
-  { id: 'svc-3', venueId: 'v-1', name: 'Nước tăng lực', price: 20000, type: 'BEVERAGE', isAvailable: false },
-  { id: 'svc-4', venueId: 'v-2', name: 'Quả cầu lông (hộp)', price: 25000, type: 'EQUIPMENT', isAvailable: true },
-  { id: 'svc-5', venueId: 'v-2', name: 'Thuê giày cầu lông', price: 30000, type: 'EQUIPMENT', isAvailable: true },
+  {
+    id: 'svc-1',
+    venueId: 'v-1',
+    name: 'Nước suối 500ml',
+    price: 10000,
+    type: 'BEVERAGE',
+    isAvailable: true,
+  },
+  {
+    id: 'svc-2',
+    venueId: 'v-1',
+    name: 'Thuê vợt Pickleball',
+    price: 50000,
+    type: 'EQUIPMENT',
+    isAvailable: true,
+  },
+  {
+    id: 'svc-3',
+    venueId: 'v-1',
+    name: 'Nước tăng lực',
+    price: 20000,
+    type: 'BEVERAGE',
+    isAvailable: false,
+  },
+  {
+    id: 'svc-4',
+    venueId: 'v-2',
+    name: 'Quả cầu lông (hộp)',
+    price: 25000,
+    type: 'EQUIPMENT',
+    isAvailable: true,
+  },
+  {
+    id: 'svc-5',
+    venueId: 'v-2',
+    name: 'Thuê giày cầu lông',
+    price: 30000,
+    type: 'EQUIPMENT',
+    isAvailable: true,
+  },
 ];
 
 const SEED_SERVICE_IDS = ['svc-1', 'svc-2', 'svc-3', 'svc-4', 'svc-5'];
@@ -3312,7 +3347,11 @@ export async function handleMockRequest<T>(
     const name = requireString(payload, 'name');
     const price = Number(payload.price);
     if (!Number.isInteger(price) || price < 1000 || price > 10_000_000) {
-      throw new ApiError(400, 'Giá dịch vụ phải nguyên trong khoảng 1.000đ–10.000.000đ', 'SERVICE_BAD_PRICE');
+      throw new ApiError(
+        400,
+        'Giá dịch vụ phải nguyên trong khoảng 1.000đ–10.000.000đ',
+        'SERVICE_BAD_PRICE',
+      );
     }
     const created: MockVenueService = {
       id: 'svc-' + Date.now().toString(36),
@@ -3332,9 +3371,7 @@ export async function handleMockRequest<T>(
     /^\/owner\/venues\/[^/]+\/services\/[^/]+$/.test(rawPath0)
   ) {
     const parts = rawPath0.split('/');
-    const service = MOCK_VENUE_SERVICES.find(
-      (s) => s.id === parts[5] && s.venueId === parts[3],
-    );
+    const service = MOCK_VENUE_SERVICES.find((s) => s.id === parts[5] && s.venueId === parts[3]);
     if (service === undefined) {
       throw new ApiError(404, 'Không tìm thấy dịch vụ', 'SERVICE_NOT_FOUND');
     }
@@ -3365,7 +3402,11 @@ export async function handleMockRequest<T>(
     }
     if (method === 'POST') {
       if (booking.status !== 'CONFIRMED' && booking.status !== 'CHECKED_IN') {
-        throw new ApiError(409, 'Chỉ có thể thêm dịch vụ cho đơn đã xác nhận', 'BOOKING_NOT_CONFIRMED');
+        throw new ApiError(
+          409,
+          'Chỉ có thể thêm dịch vụ cho đơn đã xác nhận',
+          'BOOKING_NOT_CONFIRMED',
+        );
       }
       const items = Array.isArray(payload.items) ? payload.items : [];
       for (const item of items) {
@@ -3392,7 +3433,9 @@ export async function handleMockRequest<T>(
     }
     const rows = MOCK_BOOKING_ADDONS.filter((a) => a.bookingId === bookingId);
     const totalCost = rows.reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
-    const paidAmount = rows.filter((a) => a.paid).reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
+    const paidAmount = rows
+      .filter((a) => a.paid)
+      .reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
     return {
       bookingId,
       items: rows.map((a) => ({

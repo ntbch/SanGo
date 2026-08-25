@@ -180,10 +180,7 @@ export function updateVenueService(
 }
 
 /** [OWNER] Xoá dịch vụ; backend tự chuyển sang 'tắt bán' nếu đã phát sinh đơn. */
-export function deleteVenueService(
-  venueId: string,
-  id: string,
-): Promise<DeleteServiceResponse> {
+export function deleteVenueService(venueId: string, id: string): Promise<DeleteServiceResponse> {
   return apiFetch<DeleteServiceResponse>(endpoints.services.item(venueId, id), {
     method: 'DELETE',
   });

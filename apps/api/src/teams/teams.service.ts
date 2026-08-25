@@ -51,10 +51,14 @@ export class TeamsService {
     const team = await this.prisma.team.findUnique({
       where: { id: teamId },
       include: {
-        captain: { select: { id: true, fullName: true, avatarUrl: true, email: true, phone: true } },
+        captain: {
+          select: { id: true, fullName: true, avatarUrl: true, email: true, phone: true },
+        },
         members: {
           include: {
-            user: { select: { id: true, fullName: true, avatarUrl: true, email: true, phone: true } },
+            user: {
+              select: { id: true, fullName: true, avatarUrl: true, email: true, phone: true },
+            },
           },
           orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
         },
@@ -62,7 +66,10 @@ export class TeamsService {
     });
 
     if (!team) {
-      throw new NotFoundException({ message: 'Không tìm thấy đội thể thao', code: 'TEAM_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy đội thể thao',
+        code: 'TEAM_NOT_FOUND',
+      });
     }
 
     return team;
@@ -99,7 +106,10 @@ export class TeamsService {
   async updateTeam(teamId: string, user: { id: string }, dto: UpdateTeamDto) {
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
     if (!team) {
-      throw new NotFoundException({ message: 'Không tìm thấy đội thể thao', code: 'TEAM_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy đội thể thao',
+        code: 'TEAM_NOT_FOUND',
+      });
     }
     if (team.captainId !== user.id) {
       throw new ForbiddenException({
@@ -123,7 +133,10 @@ export class TeamsService {
   async inviteMember(teamId: string, user: { id: string }, dto: InviteMemberDto) {
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
     if (!team) {
-      throw new NotFoundException({ message: 'Không tìm thấy đội thể thao', code: 'TEAM_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy đội thể thao',
+        code: 'TEAM_NOT_FOUND',
+      });
     }
     if (team.captainId !== user.id) {
       throw new ForbiddenException({
@@ -184,7 +197,10 @@ export class TeamsService {
   async removeMember(teamId: string, memberUserId: string, user: { id: string }) {
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
     if (!team) {
-      throw new NotFoundException({ message: 'Không tìm thấy đội thể thao', code: 'TEAM_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy đội thể thao',
+        code: 'TEAM_NOT_FOUND',
+      });
     }
 
     const isSelf = user.id === memberUserId;
@@ -208,7 +224,10 @@ export class TeamsService {
       where: { teamId_userId: { teamId, userId: memberUserId } },
     });
     if (!member) {
-      throw new NotFoundException({ message: 'Thành viên không tồn tại trong đội', code: 'MEMBER_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Thành viên không tồn tại trong đội',
+        code: 'MEMBER_NOT_FOUND',
+      });
     }
 
     await this.prisma.teamMember.delete({ where: { id: member.id } });
@@ -263,13 +282,19 @@ export class TeamsService {
       include: { payments: true },
     });
     if (!booking) {
-      throw new NotFoundException({ message: 'Không tìm thấy đơn đặt sân', code: 'BOOKING_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy đơn đặt sân',
+        code: 'BOOKING_NOT_FOUND',
+      });
     }
 
     // Người chia tiền phải là người đặt sân (customerId) hoặc captain của đội
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
     if (!team) {
-      throw new NotFoundException({ message: 'Không tìm thấy đội thể thao', code: 'TEAM_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy đội thể thao',
+        code: 'TEAM_NOT_FOUND',
+      });
     }
 
     if (booking.customerId !== user.id && team.captainId !== user.id) {
@@ -287,7 +312,10 @@ export class TeamsService {
     const totalToSplit = paidAmount > 0 ? paidAmount : booking.subtotal;
     const count = dto.memberIds.length;
     if (count === 0) {
-      throw new BadRequestException({ message: 'Danh sách thành viên chia tiền không được rỗng', code: 'EMPTY_MEMBERS' });
+      throw new BadRequestException({
+        message: 'Danh sách thành viên chia tiền không được rỗng',
+        code: 'EMPTY_MEMBERS',
+      });
     }
 
     const sharePerPerson = Math.floor(totalToSplit / count);
@@ -377,7 +405,10 @@ export class TeamsService {
       include: { team: true },
     });
     if (!share || share.teamId !== teamId) {
-      throw new NotFoundException({ message: 'Không tìm thấy khoản chia tiền', code: 'EXPENSE_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy khoản chia tiền',
+        code: 'EXPENSE_NOT_FOUND',
+      });
     }
 
     const isPayer = share.payerId === user.id;

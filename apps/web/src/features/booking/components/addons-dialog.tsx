@@ -132,8 +132,7 @@ export function AddOnsDialog(options: {
             </ul>
             {unpaidAmount > 0 ? (
               <p className="border-t pt-1 font-semibold text-primary">
-                Chưa thanh toán:{' '}
-                <span className="font-score">{formatVnd(unpaidAmount)}</span>
+                Chưa thanh toán: <span className="font-score">{formatVnd(unpaidAmount)}</span>
               </p>
             ) : (
               <p className="border-t pt-1 text-muted-foreground">Đã thanh toán đủ dịch vụ.</p>

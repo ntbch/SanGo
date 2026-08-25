@@ -58,7 +58,6 @@ describe('VenueServicesPage', () => {
       expect(screen.getByText('Nước suối 500ml')).toBeTruthy();
     });
 
-
     await user.click(screen.getByRole('button', { name: 'Thêm dịch vụ' }));
     await user.type(screen.getByLabelText('Tên dịch vụ'), 'Trà đá chanh');
     await user.click(screen.getByRole('button', { name: 'Thêm vào menu' }));

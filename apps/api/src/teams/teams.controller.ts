@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/guards/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -82,7 +73,9 @@ export class TeamsController {
   }
 
   @Post(':id/respond-invite')
-  @ApiOperation({ summary: '[S2-F1] Chấp nhận (accept=true) hoặc từ chối (accept=false) lời mời vào đội' })
+  @ApiOperation({
+    summary: '[S2-F1] Chấp nhận (accept=true) hoặc từ chối (accept=false) lời mời vào đội',
+  })
   respondInvite(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
@@ -130,7 +123,9 @@ export class TeamsController {
   }
 
   @Patch(':id/expenses/:shareId/status')
-  @ApiOperation({ summary: '[S2-F1] Cập nhật trạng thái thanh toán khoản nợ (UNPAID -> PAID, chỉ payer/captain)' })
+  @ApiOperation({
+    summary: '[S2-F1] Cập nhật trạng thái thanh toán khoản nợ (UNPAID -> PAID, chỉ payer/captain)',
+  })
   updateExpenseStatus(
     @Param('id') id: string,
     @Param('shareId') shareId: string,

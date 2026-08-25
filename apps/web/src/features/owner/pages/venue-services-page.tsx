@@ -56,7 +56,12 @@ function ServiceFormDialog(options: {
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: editing
-      ? { name: editing.name, price: editing.price, type: editing.type, isAvailable: editing.isAvailable }
+      ? {
+          name: editing.name,
+          price: editing.price,
+          type: editing.type,
+          isAvailable: editing.isAvailable,
+        }
       : { name: '', price: 10000, type: 'BEVERAGE', isAvailable: true },
   });
 

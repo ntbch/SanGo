@@ -64,12 +64,17 @@ describe('Teams & ExpenseShare service (integration)', () => {
         select: { id: true },
       });
       const ids = users.map((u) => u.id);
-      await prisma.expenseShare.deleteMany({ where: { OR: [{ payerId: { in: ids } }, { debtorId: { in: ids } }] } });
+      await prisma.expenseShare.deleteMany({
+        where: { OR: [{ payerId: { in: ids } }, { debtorId: { in: ids } }] },
+      });
       await prisma.teamMember.deleteMany({ where: { userId: { in: ids } } });
       await prisma.payment.deleteMany({ where: { booking: { customerId: { in: ids } } } });
       await prisma.booking.deleteMany({ where: { customerId: { in: ids } } });
       await prisma.team.deleteMany({ where: { captainId: { in: ids } } });
-      const venues = await prisma.venue.findMany({ where: { ownerId: { in: ids } }, select: { id: true } });
+      const venues = await prisma.venue.findMany({
+        where: { ownerId: { in: ids } },
+        select: { id: true },
+      });
       const vIds = venues.map((v) => v.id);
       await prisma.court.deleteMany({ where: { venueId: { in: vIds } } });
       await prisma.venue.deleteMany({ where: { id: { in: vIds } } });
@@ -107,7 +112,10 @@ describe('Teams & ExpenseShare service (integration)', () => {
     ).rejects.toMatchObject({ response: { code: 'TEAM_FORBIDDEN' } });
 
     // Captain mời member1
-    const invite = await teams.inviteMember(createdTeamId, captain, { userId: member1.id, role: 'MEMBER' });
+    const invite = await teams.inviteMember(createdTeamId, captain, {
+      userId: member1.id,
+      role: 'MEMBER',
+    });
     expect(invite.status).toBe('PENDING');
     expect(invite.userId).toBe(member1.id);
 
@@ -211,7 +219,9 @@ describe('Teams & ExpenseShare service (integration)', () => {
     ).rejects.toMatchObject({ response: { code: 'EXPENSE_FORBIDDEN' } });
 
     // Captain (payer) xác nhận member1 đã trả tiền
-    const updated = await teams.updateExpenseShareStatus(createdTeamId, shareM1!.id, captain, { status: 'PAID' });
+    const updated = await teams.updateExpenseShareStatus(createdTeamId, shareM1!.id, captain, {
+      status: 'PAID',
+    });
     expect(updated.status).toBe('PAID');
 
     const summaryAfter = await teams.getTeamExpenses(createdTeamId, captain);

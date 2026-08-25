@@ -71,10 +71,10 @@ export const VenueMapQuerySchema = z
       bounds: { minLat, minLng, maxLat, maxLng },
     };
   })
-  .refine(
-    (d) => d.bounds.minLat <= d.bounds.maxLat && d.bounds.minLng <= d.bounds.maxLng,
-    { message: 'Tọa độ bbox không hợp lệ: minLat <= maxLat và minLng <= maxLng', path: ['bbox'] },
-  );
+  .refine((d) => d.bounds.minLat <= d.bounds.maxLat && d.bounds.minLng <= d.bounds.maxLng, {
+    message: 'Tọa độ bbox không hợp lệ: minLat <= maxLat và minLng <= maxLng',
+    path: ['bbox'],
+  });
 export type VenueMapQueryDto = z.infer<typeof VenueMapQuerySchema>;
 
 export const OwnerVenueListQuerySchema = z.object({

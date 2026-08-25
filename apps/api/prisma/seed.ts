@@ -1460,12 +1460,20 @@ async function main() {
 
   console.log('🧃 F4: Tạo menu dịch vụ đi kèm cho các cụm sân của owner...');
   const venueOfCourt = async (court: { id: string }): Promise<string> => {
-    const row = await prisma.court.findUnique({ where: { id: court.id }, select: { venueId: true } });
+    const row = await prisma.court.findUnique({
+      where: { id: court.id },
+      select: { venueId: true },
+    });
     return row?.venueId ?? '';
   };
   const fbVenueId = await venueOfCourt(football5A);
   const bdVenueId = await venueOfCourt(badminton1);
-  const svcSpecs: Array<{ venueId: string; name: string; price: number; type: 'BEVERAGE' | 'EQUIPMENT' | 'OTHER' }> = [
+  const svcSpecs: Array<{
+    venueId: string;
+    name: string;
+    price: number;
+    type: 'BEVERAGE' | 'EQUIPMENT' | 'OTHER';
+  }> = [
     { venueId: fbVenueId, name: 'Nước suối Aquafina 500ml', price: 10_000, type: 'BEVERAGE' },
     { venueId: fbVenueId, name: 'Nước tăng lực Redbull 250ml', price: 20_000, type: 'BEVERAGE' },
     { venueId: bdVenueId, name: 'Thuê bóng chuyền (trận)', price: 30_000, type: 'EQUIPMENT' },
@@ -1501,9 +1509,15 @@ async function main() {
     `🌧️  Ngày mưa N2: ${rainyBookings.length + 1} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
   );
   console.log('💰 Ví F6: customer & customer2 mỗi ví 500.000đ');
-  console.log('👥 F1 Teams: FC CourtHub (captain customer) + Pickleball Saigon Club (captain customer2)');
-  console.log(`💸 ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC CourtHub`);
-  console.log(`🧃 F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`);
+  console.log(
+    '👥 F1 Teams: FC CourtHub (captain customer) + Pickleball Saigon Club (captain customer2)',
+  );
+  console.log(
+    `💸 ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC CourtHub`,
+  );
+  console.log(
+    `🧃 F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`,
+  );
   console.log('------------------------------------------------------------');
   console.log(
     `Tổng cộng: ${venueSpecs.length} venue (${venueSpecs.length - 1} Hà Nội phủ 12 quận, 1 TP.HCM), ${createdCourts.length} court.`,

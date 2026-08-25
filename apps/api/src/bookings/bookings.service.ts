@@ -203,7 +203,13 @@ export class BookingsService {
    */
   async confirmFromHold(
     holdId: string,
-    opts: { txnRef: string; method?: PaymentMethod; amountPaid?: number; paidInFull?: boolean; teamId?: string },
+    opts: {
+      txnRef: string;
+      method?: PaymentMethod;
+      amountPaid?: number;
+      paidInFull?: boolean;
+      teamId?: string;
+    },
   ) {
     const booking = await this.prisma.$transaction(async (tx) => {
       const hold = await tx.bookingHold.findUnique({ where: { id: holdId } });
