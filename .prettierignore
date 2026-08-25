@@ -4,6 +4,7 @@ coverage/
 .pnpm-store/
 .tooling-cache/
 .agent-teams/
+stitch_pitch_booking_home/
 pnpm-lock.yaml
 *.md
 .env.example
