@@ -71,7 +71,8 @@ export class VenuesController {
 
   @Get()
   @ApiOperation({
-    summary: '[Public] Tìm kiếm sân: chỉ hiện APPROVED, lọc sportType + tìm tên + phân trang',
+    summary:
+      '[Public] Tìm kiếm sân: chỉ hiện APPROVED, lọc quận/thành phố, GPS cự ly, bán kính, sportType + tìm tên + phân trang',
   })
   @ApiQuery(venueListQueryDocs as never)
   list(@Query(new ZodValidationPipe(VenueListQuerySchema)) query: VenueListQueryDto) {

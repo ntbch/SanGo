@@ -42,8 +42,20 @@ describe('VenuesService (Unit Tests)', () => {
       openMinute: 360,
       closeMinute: 1320,
       courts: [
-        { id: 'c1', name: 'Sân 1', sportType: SportType.PICKLEBALL, slotMinutes: 60, defaultPricePerSlot: 150000 },
-        { id: 'c2', name: 'Sân 2', sportType: SportType.PICKLEBALL, slotMinutes: 60, defaultPricePerSlot: 200000 },
+        {
+          id: 'c1',
+          name: 'Sân 1',
+          sportType: SportType.PICKLEBALL,
+          slotMinutes: 60,
+          defaultPricePerSlot: 150000,
+        },
+        {
+          id: 'c2',
+          name: 'Sân 2',
+          sportType: SportType.PICKLEBALL,
+          slotMinutes: 60,
+          defaultPricePerSlot: 200000,
+        },
       ],
     },
     {
@@ -61,7 +73,13 @@ describe('VenuesService (Unit Tests)', () => {
       openMinute: 360,
       closeMinute: 1320,
       courts: [
-        { id: 'c3', name: 'Sân VIP', sportType: SportType.TENNIS, slotMinutes: 60, defaultPricePerSlot: 300000 },
+        {
+          id: 'c3',
+          name: 'Sân VIP',
+          sportType: SportType.TENNIS,
+          slotMinutes: 60,
+          defaultPricePerSlot: 300000,
+        },
       ],
     },
     {
@@ -79,7 +97,13 @@ describe('VenuesService (Unit Tests)', () => {
       openMinute: 360,
       closeMinute: 1320,
       courts: [
-        { id: 'c4', name: 'Sân F7', sportType: SportType.FOOTBALL7, slotMinutes: 90, defaultPricePerSlot: 100000 },
+        {
+          id: 'c4',
+          name: 'Sân F7',
+          sportType: SportType.FOOTBALL7,
+          slotMinutes: 90,
+          defaultPricePerSlot: 100000,
+        },
       ],
     },
   ];
@@ -106,10 +130,7 @@ describe('VenuesService (Unit Tests)', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        VenuesService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [VenuesService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get<VenuesService>(VenuesService);
@@ -134,7 +155,12 @@ describe('VenuesService (Unit Tests)', () => {
     it('áp dụng bộ lọc city và district vào Prisma where query', async () => {
       prisma.venue.findMany.mockResolvedValue([mockVenues[0]]);
 
-      const result = await service.listPublic({ city: 'Hà Nội', district: 'Cầu Giấy', page: 1, limit: 12 });
+      const result = await service.listPublic({
+        city: 'Hà Nội',
+        district: 'Cầu Giấy',
+        page: 1,
+        limit: 12,
+      });
 
       expect(prisma.venue.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -193,8 +219,8 @@ describe('VenuesService (Unit Tests)', () => {
       prisma.venue.findMany.mockResolvedValue(mockVenues);
 
       const result = await service.listPublic({
-        userLat: 21.0240,
-        userLng: 105.8570,
+        userLat: 21.024,
+        userLng: 105.857,
         sortBy: 'distance',
         page: 1,
         limit: 10,
@@ -226,9 +252,9 @@ describe('VenuesService (Unit Tests)', () => {
         limit: 10,
       });
 
-      expect(result.items[0].id).toBe('venue-2'); // 300k
-      expect(result.items[1].id).toBe('venue-1'); // 200k
-      expect(result.items[2].id).toBe('venue-3'); // 100k
+      expect(result.items[0].id).toBe('venue-2'); // min 300k
+      expect(result.items[1].id).toBe('venue-1'); // min 150k
+      expect(result.items[2].id).toBe('venue-3'); // min 100k
     });
 
     it('phân trang chính xác khi dữ liệu nhiều trang', async () => {
@@ -257,9 +283,7 @@ describe('VenuesService (Unit Tests)', () => {
     it('ném NotFoundException khi không tìm thấy sân hoặc chưa APPROVED', async () => {
       prisma.venue.findFirst.mockResolvedValue(null);
 
-      await expect(service.getPublicByIdOrSlug('unknown-slug')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getPublicByIdOrSlug('unknown-slug')).rejects.toThrow(NotFoundException);
     });
   });
 

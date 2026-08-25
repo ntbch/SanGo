@@ -1,6 +1,6 @@
 import { RuleBasedNluProvider, resolveRelativeDate } from './rule-based-nlu.provider';
 
-describe('RuleBasedNluProvider (AI-1 & GEO-4)', () => {
+describe('RuleBasedNluProvider (AI-1 & GEO-4 & GEO-FIX1)', () => {
   const nlu = new RuleBasedNluProvider();
   const now = new Date('2026-08-25T10:00:00.000Z'); // Thứ 3
 
@@ -37,13 +37,16 @@ describe('RuleBasedNluProvider (AI-1 & GEO-4)', () => {
     // 1. Ba Đình
     expect((await nlu.parse('tìm sân ở ba đình')).entities.location).toBe('ba đình');
     expect((await nlu.parse('đặt sân bóng ba dinh ngày mai')).entities.location).toBe('ba đình');
+    expect((await nlu.parse('sân bd tối nay')).entities.location).toBe('ba đình');
 
     // 2. Cầu Giấy
     expect((await nlu.parse('sân pickleball cau giay')).entities.location).toBe('cầu giấy');
+    expect((await nlu.parse('sân cg')).entities.location).toBe('cầu giấy');
 
     // 3. Đống Đa
     expect((await nlu.parse('sân bóng đống đa tối nay')).entities.location).toBe('đống đa');
     expect((await nlu.parse('san tennis dong da')).entities.location).toBe('đống đa');
+    expect((await nlu.parse('san dd')).entities.location).toBe('đống đa');
 
     // 4. Hai Bà Trưng
     expect((await nlu.parse('sân cầu lông ở hai bà trưng')).entities.location).toBe('hai bà trưng');
@@ -52,36 +55,70 @@ describe('RuleBasedNluProvider (AI-1 & GEO-4)', () => {
     // 5. Hoàn Kiếm
     expect((await nlu.parse('tìm sân bóng hoàn kiếm')).entities.location).toBe('hoàn kiếm');
     expect((await nlu.parse('quan hoan kiem con san khong')).entities.location).toBe('hoàn kiếm');
+    expect((await nlu.parse('sân ở phố cổ')).entities.location).toBe('hoàn kiếm');
+    expect((await nlu.parse('sân gần bờ hồ')).entities.location).toBe('hoàn kiếm');
+    expect((await nlu.parse('san pho co')).entities.location).toBe('hoàn kiếm');
+    expect((await nlu.parse('san bo ho')).entities.location).toBe('hoàn kiếm');
 
     // 6. Thanh Xuân
     expect((await nlu.parse('sân bóng thanh xuân')).entities.location).toBe('thanh xuân');
     expect((await nlu.parse('san thanh xuan')).entities.location).toBe('thanh xuân');
+    expect((await nlu.parse('san tx')).entities.location).toBe('thanh xuân');
 
     // 7. Tây Hồ
     expect((await nlu.parse('sân tennis tây hồ')).entities.location).toBe('tây hồ');
     expect((await nlu.parse('san tay ho toi nay')).entities.location).toBe('tây hồ');
+    expect((await nlu.parse('sân ở hồ tây')).entities.location).toBe('tây hồ');
+    expect((await nlu.parse('sân khu quảng an')).entities.location).toBe('tây hồ');
+    expect((await nlu.parse('san ho tay')).entities.location).toBe('tây hồ');
+    expect((await nlu.parse('san quang an')).entities.location).toBe('tây hồ');
 
     // 8. Hoàng Mai
     expect((await nlu.parse('cho mình sân cầu lông ở hoàng mai')).entities.location).toBe('hoàng mai');
     expect((await nlu.parse('san pickleball hoang mai')).entities.location).toBe('hoàng mai');
+    expect((await nlu.parse('san hm')).entities.location).toBe('hoàng mai');
 
     // 9. Long Biên
     expect((await nlu.parse('tìm sân ở long biên')).entities.location).toBe('long biên');
     expect((await nlu.parse('san long bien')).entities.location).toBe('long biên');
+    expect((await nlu.parse('san lb')).entities.location).toBe('long biên');
 
     // 10. Hà Đông
     expect((await nlu.parse('sân bóng hà đông tối nay')).entities.location).toBe('hà đông');
     expect((await nlu.parse('san ha dong mai')).entities.location).toBe('hà đông');
+    expect((await nlu.parse('san hd')).entities.location).toBe('hà đông');
 
     // 11. Nam Từ Liêm
     expect((await nlu.parse('tìm sân pickleball ở nam từ liêm')).entities.location).toBe('nam từ liêm');
     expect((await nlu.parse('san bong nam tu liem')).entities.location).toBe('nam từ liêm');
     expect((await nlu.parse('san pickleball ntl')).entities.location).toBe('nam từ liêm');
+    expect((await nlu.parse('sân bóng mỹ đình')).entities.location).toBe('nam từ liêm');
+    expect((await nlu.parse('sân tennis mễ trì')).entities.location).toBe('nam từ liêm');
+    expect((await nlu.parse('san my dinh')).entities.location).toBe('nam từ liêm');
+    expect((await nlu.parse('san me tri')).entities.location).toBe('nam từ liêm');
 
     // 12. Bắc Từ Liêm
     expect((await nlu.parse('sân tennis bắc từ liêm')).entities.location).toBe('bắc từ liêm');
     expect((await nlu.parse('san bac tu liem')).entities.location).toBe('bắc từ liêm');
     expect((await nlu.parse('san bong btl')).entities.location).toBe('bắc từ liêm');
+    expect((await nlu.parse('sân cầu lông xuân đỉnh')).entities.location).toBe('bắc từ liêm');
+    expect((await nlu.parse('sân bóng cổ nhuế')).entities.location).toBe('bắc từ liêm');
+    expect((await nlu.parse('san xuan dinh')).entities.location).toBe('bắc từ liêm');
+    expect((await nlu.parse('san co nhue')).entities.location).toBe('bắc từ liêm');
+  });
+
+  it('GEO-FIX1: word boundary tránh lỗi nhận diện sai từ ghép/substring', async () => {
+    // 'đông người' không được nhận diện thành 'Hà Đông'
+    const res = await nlu.parse('sân trong nhà đông người');
+    expect(res.entities.location).toBeUndefined();
+  });
+
+  it('GEO-FIX1: EC-07 ưu tiên alias xuất hiện sớm nhất trong câu', async () => {
+    const firstCg = await nlu.parse('tìm sân ở cầu giấy gần đống đa');
+    expect(firstCg.entities.location).toBe('cầu giấy');
+
+    const firstDd = await nlu.parse('tìm sân ở đống đa gần cầu giấy');
+    expect(firstDd.entities.location).toBe('đống đa');
   });
 
   it('phân loại intent: hỏi lịch -> SEARCH_SLOTS, muốn giữ -> HOLD_REQUEST, chào -> FALLBACK', async () => {

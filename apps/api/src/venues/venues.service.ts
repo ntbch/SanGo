@@ -82,15 +82,19 @@ export class VenuesService {
       items.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     } else if (query.sortBy === 'price_asc') {
       items.sort((a, b) => {
-        const minA = a.courts.length > 0 ? Math.min(...a.courts.map((c) => c.defaultPricePerSlot)) : Infinity;
-        const minB = b.courts.length > 0 ? Math.min(...b.courts.map((c) => c.defaultPricePerSlot)) : Infinity;
+        const minA =
+          a.courts.length > 0 ? Math.min(...a.courts.map((c) => c.defaultPricePerSlot)) : Infinity;
+        const minB =
+          b.courts.length > 0 ? Math.min(...b.courts.map((c) => c.defaultPricePerSlot)) : Infinity;
         return minA - minB;
       });
     } else if (query.sortBy === 'price_desc') {
       items.sort((a, b) => {
-        const maxA = a.courts.length > 0 ? Math.max(...a.courts.map((c) => c.defaultPricePerSlot)) : -Infinity;
-        const maxB = b.courts.length > 0 ? Math.max(...b.courts.map((c) => c.defaultPricePerSlot)) : -Infinity;
-        return maxB - maxA;
+        const minA =
+          a.courts.length > 0 ? Math.min(...a.courts.map((c) => c.defaultPricePerSlot)) : -Infinity;
+        const minB =
+          b.courts.length > 0 ? Math.min(...b.courts.map((c) => c.defaultPricePerSlot)) : -Infinity;
+        return minB - minA;
       });
     }
 

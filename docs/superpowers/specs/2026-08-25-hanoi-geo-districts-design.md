@@ -45,7 +45,7 @@ model Venue {
 ```
 
 ### 2.2. Dữ liệu thực tế 24 cụm sân tại 12 Quận Hà Nội (`prisma/seed.ts` & `mock-data.ts`)
-Được cập nhật đầy đủ 24 cụm sân dịch vụ thực tế (mỗi quận 2 sân, riêng Cầu Giấy 3 sân):
+Được cập nhật đầy đủ 24 cụm sân dịch vụ thực tế (12 quận nội thành Hà Nội, mỗi quận 2 sân):
 - Tọa độ Lat/Lng chuẩn xác từ Google Maps.
 - Phân bổ đủ 4 bộ môn: PICKLEBALL, FOOTBALL5, FOOTBALL7, BADMINTON, TENNIS.
 - Giờ mở cửa thực tế (05:00/06:00 - 22:00/23:00) và bảng giá minh bạch.

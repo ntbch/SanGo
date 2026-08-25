@@ -290,4 +290,45 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
     expect(mineA.items.every((v) => v.ownerId === ownerA.id)).toBe(true);
     expect(mineA.items.some((v) => v.id === venueA.id)).toBe(true);
   });
+
+  describe('GEO & District Integration (DB thật)', () => {
+    it('GEO-DB-1: lọc danh sách sân theo district cụ thể', async () => {
+      if (!dbUp) return;
+      const res = await venues.listPublic({ city: 'Hà Nội', district: 'Cầu Giấy', page: 1, limit: 10 });
+      expect(res.total).toBeGreaterThanOrEqual(1);
+      expect(res.items.every((v) => v.district === 'Cầu Giấy')).toBe(true);
+      expect(res.items.every((v) => v.city === 'Hà Nội')).toBe(true);
+    });
+
+    it('GEO-DB-2: lọc sân theo GPS và bán kính radiusKm', async () => {
+      if (!dbUp) return;
+      // Tọa độ trung tâm Cầu Giấy (21.0362, 105.7906), tìm trong bán kính 4km
+      const res = await venues.listPublic({
+        userLat: 21.0362,
+        userLng: 105.7906,
+        radiusKm: 4,
+        page: 1,
+        limit: 20,
+      });
+      expect(res.total).toBeGreaterThanOrEqual(1);
+      expect(res.items.every((v) => v.distanceKm !== null && v.distanceKm <= 4)).toBe(true);
+    });
+
+    it('GEO-DB-3: sắp xếp sân theo cự ly gần nhất (sortBy=distance)', async () => {
+      if (!dbUp) return;
+      // Tọa độ gần Hoàn Kiếm (21.0285, 105.8542)
+      const res = await venues.listPublic({
+        userLat: 21.0285,
+        userLng: 105.8542,
+        sortBy: 'distance',
+        page: 1,
+        limit: 10,
+      });
+      expect(res.items.length).toBeGreaterThanOrEqual(2);
+      for (let i = 0; i < res.items.length - 1; i++) {
+        expect(res.items[i].distanceKm!).toBeLessThanOrEqual(res.items[i + 1].distanceKm!);
+      }
+    });
+  });
+
 });

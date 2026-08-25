@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import type { SportTypeValue } from './dto/ai.dto';
 import type { NluEntities, NluProvider, NluResult } from './nlu-provider.interface';
 
+/** Từ khóa -> sportType (thứ tự quan trọng: khớp dài trước ngắn). */
 const SPORT_PATTERNS: Array<[RegExp, SportTypeValue]> = [
   [/pickle\s?ball|pickle/i, 'PICKLEBALL'],
   [
@@ -52,13 +53,27 @@ const HCM_LOCATIONS: Record<string, string> = {
   'bình tân': 'bình tân',
 };
 
-const HANOI_ALIASES_SORTED = Object.entries(HANOI_DISTRICT_ALIASES).sort(
-  (a, b) => b[0].length - a[0].length,
-);
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-const HCM_ALIASES_SORTED = Object.entries(HCM_LOCATIONS).sort(
-  (a, b) => b[0].length - a[0].length,
-);
+interface LocationMatch {
+  index: number;
+  length: number;
+  district: string;
+}
+
+/** Danh mục alias toàn bộ (Hà Nội + HCM) */
+const ALL_LOCATION_ALIASES: Array<{ alias: string; standard: string }> = [
+  ...Object.entries(HANOI_DISTRICT_ALIASES).map(([alias, standard]) => ({
+    alias,
+    standard: standard.toLowerCase(),
+  })),
+  ...Object.entries(HCM_LOCATIONS).map(([alias, standard]) => ({
+    alias,
+    standard: standard.toLowerCase(),
+  })),
+];
 
 export function resolveRelativeDate(text: string, now: Date): string | undefined {
   const t = text.toLowerCase();
@@ -105,27 +120,36 @@ export class RuleBasedNluProvider implements NluProvider {
     }
 
     const lower = text.toLowerCase();
+    const matches: LocationMatch[] = [];
 
-    for (const [alias, standard] of HANOI_ALIASES_SORTED) {
-      if (alias.length <= 4) {
-        const regex = new RegExp(`(^|\\s)${alias}($|\\s|[.,!?])`, 'i');
-        if (regex.test(lower)) {
-          entities.location = standard.toLowerCase();
-          break;
+    for (const { alias, standard } of ALL_LOCATION_ALIASES) {
+      // Khớp nguyên từ / ranh giới từ để tránh lỗi substring (vd: 'san trong nha dong nguoi')
+      const regex = new RegExp('(^|[^a-zà-ỹ0-9_])' + escapeRegex(alias) + '([^a-zà-ỹ0-9_]|$)', 'gi');
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(lower)) !== null) {
+        const prefixLen = match[1].length;
+        const matchIndex = match.index + prefixLen;
+        matches.push({
+          index: matchIndex,
+          length: alias.length,
+          district: standard,
+        });
+        // Tránh vòng lặp vô tận nếu match rỗng
+        if (regex.lastIndex === match.index) {
+          regex.lastIndex++;
         }
-      } else if (lower.includes(alias)) {
-        entities.location = standard.toLowerCase();
-        break;
       }
     }
 
-    if (!entities.location) {
-      for (const [alias, standard] of HCM_ALIASES_SORTED) {
-        if (lower.includes(alias)) {
-          entities.location = standard.toLowerCase();
-          break;
+    if (matches.length > 0) {
+      // EC-07: Ưu tiên xuất hiện SỚM NHẤT trong câu, cùng vị trí thì chọn alias DÀI NHẤT
+      matches.sort((a, b) => {
+        if (a.index !== b.index) {
+          return a.index - b.index;
         }
-      }
+        return b.length - a.length;
+      });
+      entities.location = matches[0].district;
     }
 
     const venueHintMatch = text.match(
