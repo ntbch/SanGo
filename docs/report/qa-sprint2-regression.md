@@ -1,6 +1,6 @@
 # CourtHub — Biên bản QA Regression Sprint 2
 
-> Owner: qa2 · Ngày: 2026-08-26 · Căn cứ: docs/superpowers/plans/2026-08-25-qa-regression-checklist-sprint2.md
+> Owner: qa2 · Cập nhật lần 2: 2026-08-26 (b25f1b0 teamId flow) · Ngày: 2026-08-26 · Căn cứ: docs/superpowers/plans/2026-08-25-qa-regression-checklist-sprint2.md
 > Kết luận: **PASS Sprint 2** — A1–A4 xanh, MAJOR-1 bị chặn chắc chắn, Smoke demo 6 bước **26/26 PASS × 2 lần liên tiếp**.
 
 ## A. Cổng chất lượng
@@ -48,6 +48,15 @@ Chạy: `cd apps/api && node smoke-sprint2.mjs` (cần API đang chạy port .en
 2. **14 file lệch prettier** (từ các commit FE/BE sprint 2) → `pnpm format`, formatting-only. Commit `a375a3e`.
 3. **Prisma client stale**: ts-jest compile lỗi `hold.teamId` TS2339 dù typecheck pass → `npx prisma generate` + clear cache → 26/26 suites xanh. (Khuyến nghị reviewer: thêm prisma generate vào postinstall.)
 4. Observations (không phải bug, đúng nghiệp vụ): login throttle 429 khi gọi dồn; 1 user/1 hold ACTIVE (HOLD_LIMIT); slot trùng bị chặn (SLOT_TAKEN); DB dev còn sót dữ liệu test integration (itwal-*/itflow-* users) — cân nhắn tách DB test nếu muốn sạch.
+
+## Team booking flow trên API thật — b25f1b0 (`20260826003000_s2_hold_teamid`)
+Xác minh riêng theo yêu cầu captain, chạy `apps/api/smoke-teamflow.mjs` trên server dev thật (Postgres, mode mock) — **6/6 PASS**:
+1. TF-0 · hold kèm teamId lạ → **404 TEAM_NOT_FOUND** (validate gap #2).
+2. TF-1/2 · `POST /bookings/holds` kèm teamId → 201; `BookingHold.teamId` persist đúng trong DB (gap #1, cột từ migration S2-HoldTeamId).
+3. TF-3 · checkout FULL mock → callback PAID.
+4. TF-4/5 · `GET /bookings/me` trả booking **CONFIRMED kèm teamId**; bản ghi trong DB có `teamId` khớp đội (confirmFromHold copy từ hold — gap #3).
+
+Regression nhanh các suite tiền sau b25f1b0: payments + vouchers + wallets = **3 suites / 23 tests PASS**.
 
 ## Delta verification sau khi biên bản lập xong
 - `fd8fb46` fix(web) addons-dialog error state: typecheck ✓ web 197 ✓ smoke chạy lại **lần 3 — 26/26 PASS**.
