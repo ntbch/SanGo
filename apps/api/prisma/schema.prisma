@@ -84,6 +84,17 @@ enum PaymentStatus {
   REFUNDED
 }
 
+/// Loại thông báo in-app/email (GĐ2): giá trị trùng khớp @courthub/shared.
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  PAYMENT_RECEIVED
+  NEW_BOOKING_OWNER
+  MATCH_JOINED
+  MATCH_LEFT
+  REMINDER
+}
+
 // ---------------------------------------------------------------- models
 
 model User {
@@ -105,6 +116,7 @@ model User {
   reviews       Review[]
   matchParticipants MatchParticipant[]
   passwordResetTokens PasswordResetToken[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -323,4 +335,23 @@ model Review {
 
   @@index([venueId])
   @@map("reviews")
+}
+
+/// Thông báo in-app của một người dùng (GĐ2): tạo nội bộ từ các luồng
+/// đặt sân/thanh toán/ghép trận; đọc qua GET /notifications.
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  /// Đường dẫn phía web (vd /bookings/CH-...) để điều hướng sau khi bấm.
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
 }

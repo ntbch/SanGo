@@ -8,6 +8,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { CourtsModule } from './courts/courts.module';
 import { HealthModule } from './health/health.module';
 import { MatchesModule } from './matches/matches.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PricingModule } from './pricing/pricing.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -29,6 +30,7 @@ import { VenuesModule } from './venues/venues.module';
     AiModule,
     HealthModule,
     MatchesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

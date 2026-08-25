@@ -112,5 +112,16 @@ export function vnToday(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
 }
 
+/** Loại thông báo in-app/email (GĐ2) — trùng khớp enum NotificationType trong Prisma. */
+export enum NotificationType {
+  BOOKING_CONFIRMED = 'BOOKING_CONFIRMED',
+  BOOKING_CANCELLED = 'BOOKING_CANCELLED',
+  PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
+  NEW_BOOKING_OWNER = 'NEW_BOOKING_OWNER',
+  MATCH_JOINED = 'MATCH_JOINED',
+  MATCH_LEFT = 'MATCH_LEFT',
+  REMINDER = 'REMINDER',
+}
+
 export * from './schemas';
 export * from './geo';
