@@ -9,3 +9,21 @@ export function minutesToTime(minutes: number): string {
   const m = minutes % 60;
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
+
+/**
+ * Ngày đánh giá theo định dạng Việt Nam (dd/mm/yyyy).
+ * ISO timestamp (backend) -> 'dd/mm/yyyy'; chuỗi đã định dạng sẵn -> giữ nguyên.
+ */
+export function formatReviewDate(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    }
+  }
+  return value;
+}
