@@ -12,7 +12,7 @@
 | A4 | Migration S2-T0 | PASS — đúng 1 batch gộm `20260825213000_s2_foundation_teams_services_shares` (teams, team_members, expense_shares, venue_services, booking_add_ons + venues_lat_lng_idx); schema up-to-date; invariant ví per-user SUM(credit−debit)=balance khớp toàn bộ (tổng 1.470.000đ) |
 
 ## B. Fix MAJOR-1 (voucher quota trước khi phát URL thanh toán)
-Chứng minh bằng smoke `apps/api/smoke-sprint2.cjs` (S6):
+Chứng minh bằng smoke `apps/api/smoke-sprint2.mjs` (S6):
 - Owner tạo mã riêng usageLimit=1 → customer apply (snapshot 201) → checkout FULL PAID (giảm đúng 20%: 120k→96k) → tiêu lượt.
 - customer2 áp CÙNG mã: snapshot tại apply vẫn 201 (đúng spec — apply không tiêu quota) → **checkout thứ 2 bị chặn ngay tại checkout(): 409 VOUCHER_EXHAUSTED**, không sinh Payment nào (verified trong DB).
 - Bảo vệ per-user: user đã dùng mã apply lại → **409 VOUCHER_USER_LIMIT ngay tại apply** (chặn sớm hơn spec, an toàn hơn).
@@ -41,7 +41,7 @@ txnRef '<id>.<TYPE>.<rand>' bất biến (DEPOSIT/FULL/ADD_ON) · WalletLedger a
 
 ## E. Smoke demo buổi 2 (apps/api/smoke-sprint2.cjs)
 Map bbox/ghim giá ✅ → Tạo đội/mời/join ✅ → Đặt sân teamId CONFIRMED ✅ → Chia tiền + PAID idempotent ✅ → Mua nước+thuê vợt ADD_ON thanh toán ✅ → **MAJOR-1 bị chặn (409 VOUCHER_EXHAUSTED, 0 payment)** ✅.
-Chạy: `cd apps/api && node smoke-sprint2.cjs` (cần API đang chạy port .env PORT=4000). Kết quả: **26/26 PASS × 2 lần liên tiếp**.
+Chạy: `cd apps/api && node smoke-sprint2.mjs` (cần API đang chạy port .env PORT=4000). Kết quả: **26/26 PASS × 2 lần liên tiếp**; chạy lại lần 3 sau commit `fd8fb46` (addons-dialog error state) — vẫn 26/26.
 
 ## Phát hiện & xử lý trong đợt QA
 1. **test(ai) QA-t8 fail do phụ thuộc đồng hồ thật** (hardcode 'hôm nay' = 2026-08-25) → sửa test-only: jest.useFakeTimers cố định mốc UTC, deterministic. Commit `20f1078`.

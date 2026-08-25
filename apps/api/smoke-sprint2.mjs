@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const B = 'http://localhost:4000/api/v1';
 const results = [];
@@ -127,9 +127,11 @@ async function waitApi() {
   rec(
     'S1a',
     'map bbox tra venue + priceFrom',
-    m1.status === 200 && arr.length > 0,
+    m1.status === 200 && arr.length > 0 && withPrice.length > 0,
     'n=' +
       arr.length +
+      ' withPriceFrom=' +
+      withPrice.length +
       ' priceFrom_sample=' +
       JSON.stringify(arr[0] && { n: arr[0].name, pf: arr[0].priceFrom, pt: arr[0].priceTo }),
   );
@@ -238,7 +240,6 @@ async function waitApi() {
     note: 'Smoke S2 quỹ đội',
   });
   const shares = Array.isArray(sp.json) ? sp.json : sp.json?.items || sp.json?.shares || [];
-  const totalShare = shares.reduce((s, x) => s + (x.amount || 0), 0);
   const expPer = Math.floor((bkTeam.depositAmount || bkTeam.subtotal || 0) / 2);
   rec(
     'S4a',
