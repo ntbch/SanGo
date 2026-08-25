@@ -192,7 +192,7 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
       { id: cust.id },
       { holdId: hold.holdId, type: 'DEPOSIT' },
     );
-    await payments.handleMockCallback({ txnRef: co2.txnRef });
+    await payments.handleMockCallback({ txnRef: co2.txnRef, amount: String(co2.amount) });
     expect(co2.txnRef).not.toBe(co.txnRef);
   });
 
@@ -232,5 +232,46 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
     params.vnp_SecureHash = signHmacSha512(buildSignData(params), 'test-secret-512');
     const ok = await payments.handleVnpayCallback(params);
     expect(ok.redirectUrl).toContain('status=SUCCESS');
+  });
+
+  it('S0: thiếu amount -> PAYMENT_AMOUNT_MISMATCH, không confirm đơn miễn phí', async () => {
+    if (!dbUp) return;
+    const DATE = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+    const hold = (await bookings.createHold(
+      { id: cust.id },
+      { courtId, date: DATE, slots: [780] },
+    )) as { holdId: string };
+    const co = await payments.createCheckout(
+      { id: cust.id },
+      { holdId: hold.holdId, type: 'DEPOSIT' },
+    );
+
+    // Lỗ hổng cũ: bỏ qua amount là xác nhận được đơn. Giờ phải bị chặn.
+    await expect(payments.handleMockCallback({ txnRef: co.txnRef })).rejects.toMatchObject({
+      response: { code: 'PAYMENT_AMOUNT_MISMATCH' },
+    });
+    expect(await prisma.payment.count({ where: { txnRef: co.txnRef } })).toBe(0);
+
+    // amount rỗng/không phải số cũng không qua được đối chiếu
+    await expect(
+      payments.handleMockCallback({ txnRef: co.txnRef, amount: '' }),
+    ).rejects.toMatchObject({ response: { code: 'PAYMENT_AMOUNT_MISMATCH' } });
+  });
+
+  it('S0: PAYMENT_MODE≠mock -> mock callback bị vô hiệu (PAYMENT_MOCK_DISABLED)', async () => {
+    if (!dbUp) return;
+    const prev = process.env.PAYMENT_MODE;
+    process.env.PAYMENT_MODE = 'vnpay';
+    try {
+      await expect(
+        payments.handleMockCallback({
+          txnRef: `deadbeef-0000-0000-0000-000000000000.DEPOSIT.x`,
+          amount: '1',
+        }),
+      ).rejects.toMatchObject({ response: { code: 'PAYMENT_MOCK_DISABLED' } });
+    } finally {
+      if (prev === undefined) delete process.env.PAYMENT_MODE;
+      else process.env.PAYMENT_MODE = prev;
+    }
   });
 });

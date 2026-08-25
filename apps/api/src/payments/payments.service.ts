@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -35,6 +36,14 @@ export class PaymentsService {
     const v = process.env[key];
     if (!v) throw new Error(`Thiếu biến môi trường ${key}`);
     return v;
+  }
+
+  /**
+   * Chế độ thanh toán hiện hành — mock callback CHỈ được phép mở khi trả về 'mock'
+   * (S0: mọi giá trị PAYMENT_MODE khác 'mock' coi như vnpay).
+   */
+  static resolveMode(): 'mock' | 'vnpay' {
+    return (process.env.PAYMENT_MODE ?? 'mock') === 'mock' ? 'mock' : 'vnpay';
   }
 
   /** Số tiền phải trả cho lệnh checkout này theo type. */
@@ -78,7 +87,7 @@ export class PaymentsService {
     void hold;
 
     const txnRef = makeTxnRef(dto.holdId, dto.type);
-    const mode = process.env.PAYMENT_MODE ?? 'mock';
+    const mode = PaymentsService.resolveMode();
     const orderInfo = `Thanh toan don ve san ${dto.holdId.slice(0, 8)}`;
 
     const port = process.env.PORT ?? '4000';
@@ -181,9 +190,16 @@ export class PaymentsService {
 
   /**
    * Callback giả lập cho PAYMENT_MODE=mock (demo khi sandbox trục trặc — §11).
-   * Vẫn đối chiếu số tiền + idempotency y hệt VNPay, chỉ bỏ chữ ký.
+   * S0 fix: route VÔ HIỆU khi PAYMENT_MODE≠mock và amount là BẮT BUỘC phải khớp
+   * hold — không còn luồng nào xác nhận đơn khi thiếu/thiếu đối chiếu số tiền.
    */
   async handleMockCallback(params: { txnRef?: string; amount?: string }) {
+    if (PaymentsService.resolveMode() !== 'mock') {
+      throw new ForbiddenException({
+        message: 'Mock callback chỉ khả dụng khi PAYMENT_MODE=mock',
+        code: 'PAYMENT_MOCK_DISABLED',
+      });
+    }
     const txnRef = params.txnRef ?? '';
     const parsed = this.parseTxnRef(txnRef);
     if (!parsed) {
@@ -195,7 +211,8 @@ export class PaymentsService {
       return this.frontendRedirect('SUCCESS', { txnRef });
     }
     const expected = await this.expectedAmountFor(holdId, type);
-    if (params.amount !== undefined && Number(params.amount) !== expected) {
+    // S0 fix: thiếu amount cũng bị chặn (trước đây undefined là bỏ qua đối chiếu).
+    if (params.amount === undefined || Number(params.amount) !== expected) {
       throw new BadRequestException({
         message: 'Số tiền callback không khớp',
         code: 'PAYMENT_AMOUNT_MISMATCH',

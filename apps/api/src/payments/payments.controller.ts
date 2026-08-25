@@ -53,7 +53,8 @@ export class PaymentsController {
 
   @Get('mock/callback')
   @ApiOperation({
-    summary: '[PAYMENT_MODE=mock] Callback giả lập — vẫn đối chiếu amount + idempotent',
+    summary:
+      '[PAYMENT_MODE=mock] Callback giả lập — tắt hẳn (403) khi PAYMENT_MODE≠mock, luôn bắt buộc khớp amount',
   })
   mockCallback(@Query() query: { txnRef?: string; amount?: string }) {
     return this.paymentsService.handleMockCallback(query);
