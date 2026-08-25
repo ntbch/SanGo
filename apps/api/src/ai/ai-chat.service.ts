@@ -2,6 +2,7 @@ import { vnToday } from '@courthub/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AiToolsService } from './ai-tools.service';
 import type { NluProvider } from './nlu-provider.interface';
+import type { ChatContext, ChatOrchestrator } from './chat-orchestrator.interface';
 import type { AiVenueCard } from './dto/ai.dto';
 
 export interface AiChatResponse {
@@ -36,13 +37,14 @@ function pickVenue(venues: AiVenueCard[], hint?: string): AiVenueCard | undefine
  * dùng phải bấm chip giờ rồi gọi POST /ai/hold bằng JWT của mình.
  */
 @Injectable()
-export class AiChatService {
+export class AiChatService implements ChatOrchestrator {
   constructor(
     @Inject('NluProvider') private readonly nlu: NluProvider,
     private readonly tools: AiToolsService,
   ) {}
 
-  async chat(message: string, user?: { id: string }): Promise<AiChatResponse> {
+  async chat(message: string, ctx?: ChatContext): Promise<AiChatResponse> {
+    const user = ctx?.user;
     const parsed = await this.nlu.parse(message);
     const today = vnToday();
     const dateHint = parsed.entities.dateHint ?? today;

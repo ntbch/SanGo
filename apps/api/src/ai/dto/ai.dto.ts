@@ -1,8 +1,18 @@
 import { z } from 'zod';
 
-/** POST /ai/chat — public, tin nhắn tiếng Việt tự nhiên. */
+/** Một lượt hội thoại client gửi kèm để agent nhớ ngữ cảnh (server stateless). */
+export const ChatHistoryItemSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().trim().min(1, 'Nội dung trống').max(500, 'Tin nhắn tối đa 500 ký tự'),
+});
+
+/** POST /ai/chat — public, tin nhắn tiếng Việt tự nhiên (+ history tuỳ chọn đa lượt). */
 export const AiChatSchema = z.object({
   message: z.string().trim().min(1, 'Tin nhắn trống').max(500, 'Tin nhắn tối đa 500 ký tự'),
+  history: z
+    .array(ChatHistoryItemSchema)
+    .max(16, 'Hội thoại tối đa 16 lượt')
+    .optional(),
 });
 export type AiChatDto = z.infer<typeof AiChatSchema>;
 

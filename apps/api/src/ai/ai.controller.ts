@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/guards/current-user.decorator';
@@ -7,8 +7,8 @@ import type { AuthUser } from '../common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import { AiChatSchema, CreateHoldSchema, SuggestedSlotsQuerySchema } from './dto/ai.dto';
 import type { AiChatDto, CreateHoldDto } from './dto/ai.dto';
-import { AiChatService } from './ai-chat.service';
 import { AiToolsService } from './ai-tools.service';
+import type { ChatOrchestrator } from './chat-orchestrator.interface';
 import { OptionalJwtAuthGuard } from './optional-jwt.guard';
 
 @ApiTags('ai')
@@ -16,7 +16,7 @@ import { OptionalJwtAuthGuard } from './optional-jwt.guard';
 @UseGuards(ThrottlerGuard)
 export class AiController {
   constructor(
-    private readonly chatService: AiChatService,
+    @Inject('ChatOrchestrator') private readonly chatService: ChatOrchestrator,
     private readonly tools: AiToolsService,
   ) {}
 
@@ -33,14 +33,32 @@ export class AiController {
     schema: {
       type: 'object',
       required: ['message'],
-      properties: { message: { type: 'string', maxLength: 500 } },
+      properties: {
+        message: { type: 'string', maxLength: 500 },
+        history: {
+          type: 'array',
+          maxItems: 16,
+          description: 'Hội thoại gần nhất (tuỳ chọn) để AI hiểu ngữ cảnh đa lượt',
+          items: {
+            type: 'object',
+            required: ['role', 'content'],
+            properties: {
+              role: { type: 'string', enum: ['user', 'assistant'] },
+              content: { type: 'string', maxLength: 500 },
+            },
+          },
+        },
+      },
     },
   })
   chat(
     @CurrentUser() user: AuthUser | undefined,
     @Body(new ZodValidationPipe(AiChatSchema)) dto: AiChatDto,
   ) {
-    return this.chatService.chat(dto.message, user ? { id: user.id } : undefined);
+    return this.chatService.chat(dto.message, {
+      history: dto.history,
+      ...(user ? { user: { id: user.id } } : {}),
+    });
   }
 
   @Get('suggested-slots')
