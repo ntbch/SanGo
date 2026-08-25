@@ -320,7 +320,9 @@ export class BookingsService {
   private async notifyAfterConfirm(bookingId: string, amountPaid: number): Promise<void> {
     try {
       const d = await this.notify.bookingMailData(bookingId);
-      const link = `/bookings/${d.code}`;
+      // QA-T4-P2-01: /bookings/:code không phải route web (bấm chuông bị 404) —
+      // trỏ về trang Đơn của tôi; mã đơn đã nằm sẵn trong title/body.
+      const link = '/dashboard/my-bookings';
       const mailBase = {
         code: d.code,
         customerName: d.customerName,
@@ -356,7 +358,7 @@ export class BookingsService {
         type: NotificationType.NEW_BOOKING_OWNER,
         title: 'Có đơn đặt sân mới',
         body: `Đơn ${d.code} · ${d.courtName} (${d.venueName}) vừa được xác nhận`,
-        link,
+        link: '/dashboard/bookings', // QA-T4-P2-01: trang đơn của chủ sân (route có sẵn)
       });
     } catch (e) {
       this.logger.warn(
@@ -457,7 +459,9 @@ export class BookingsService {
   ): Promise<void> {
     try {
       const d = await this.notify.bookingMailData(bookingId);
-      const link = `/bookings/${d.code}`;
+      // QA-T4-P2-01: /bookings/:code không phải route web (bấm chuông bị 404) —
+      // trỏ về trang Đơn của tôi; mã đơn đã nằm sẵn trong title/body.
+      const link = '/dashboard/my-bookings';
       const body = reason
         ? `Đơn ${d.code} · ${d.courtName} đã bị hủy. Lý do: ${reason}`
         : `Đơn ${d.code} · ${d.courtName} đã bị hủy`;
@@ -826,7 +830,7 @@ export class BookingsService {
         type: NotificationType.MATCH_JOINED,
         title: 'Có người tham gia đơn ghép trận',
         body: `${joinerName} vừa tham gia đơn ${result.bookingCode} (${result.joinedCount}/${result.slotsNeeded} người)`,
-        link: `/bookings/${result.bookingCode}`,
+        link: '/dashboard/my-bookings', // QA-T4-P2-01: route web có sẵn
       });
     } catch (e) {
       this.logger.warn(`Không gửi được MATCH_JOINED cho ${user.id}: ${(e as Error).message}`);
@@ -879,7 +883,7 @@ export class BookingsService {
         type: NotificationType.MATCH_LEFT,
         title: 'Có người rời đơn ghép trận',
         body: `${leaverName} đã rời đơn ${host.code}. Đơn mở lại chỗ trống.`,
-        link: `/bookings/${bookingId}`,
+        link: '/dashboard/my-bookings', // QA-T4-P2-01: route web có sẵn
       });
     }
     return { left: true, bookingId, matchFull };

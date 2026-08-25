@@ -143,9 +143,9 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
     expect(types).toContain(`${custId}:BOOKING_CONFIRMED`);
     expect(types).toContain(`${custId}:PAYMENT_RECEIVED`);
     expect(types).toContain(`${ownerId}:NEW_BOOKING_OWNER`);
-    // Mail xác nhận đã render branded
+    // Mail xác nhận đã render branded; link trỏ route Đơn của tôi (QA-T4-P2-01)
     const confirmed = notis.find((n) => n.type === 'BOOKING_CONFIRMED');
-    expect(confirmed?.link).toMatch(/^\/bookings\//);
+    expect(confirmed?.link).toBe('/dashboard/my-bookings');
   });
 
   it('cancelBooking -> khách và chủ venue đều nhận BOOKING_CANCELLED', async () => {
@@ -176,13 +176,15 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
 
   it('reminder cron chạy 2 LẦN không nhân đôi; cột remindedAt2h được claim', async () => {
     const booking = await mkConfirmedBooking(30 * 60_000);
+    // Đếm DELTA theo mốc — hai test reminder dùng chung link nên phải độc lập thứ tự
+    const countT2 = () =>
+      prisma.notification.count({
+        where: { userId: custId, type: 'REMINDER', title: 'Sắp tới giờ chơi!' },
+      });
+    const before = await countT2();
     await cron['sendReminders']();
     await cron['sendReminders'](); // lần 2 phải bị cột chống trùng chặn
-
-    const reminders = await prisma.notification.findMany({
-      where: { userId: custId, type: 'REMINDER', link: `/bookings/${booking.code}` },
-    });
-    expect(reminders).toHaveLength(1);
+    expect((await countT2()) - before).toBe(1);
 
     // Cột chống trùng trên booking: đã claim T-2h, KHÔNG đụng T-24h
     const flagged = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
@@ -192,13 +194,13 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
 
   it('reminder mốc T-24h: đơn còn ~20 tiếng nhận đúng T-24h, chưa T-2h', async () => {
     const booking = await mkConfirmedBooking(20 * HOUR);
+    const countT24 = () =>
+      prisma.notification.count({
+        where: { userId: custId, type: 'REMINDER', title: 'Nhắc lịch: ngày mai bạn có trận' },
+      });
+    const before = await countT24();
     await cron['sendReminders']();
-
-    const notis = await prisma.notification.findMany({
-      where: { userId: custId, type: 'REMINDER', link: `/bookings/${booking.code}` },
-    });
-    expect(notis).toHaveLength(1);
-    expect(notis[0].title).toBe('Nhắc lịch: ngày mai bạn có trận');
+    expect((await countT24()) - before).toBe(1);
 
     const flagged = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     expect(flagged.remindedAt24h).not.toBeNull();
