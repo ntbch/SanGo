@@ -36,6 +36,30 @@ const venueListQueryDocs = {
     schema: { type: 'string' },
     description: 'Tìm kiếm theo tên sân (không phân biệt hoa thường)',
   },
+  city: {
+    schema: { type: 'string' },
+    description: 'Lọc theo thành phố (mặc định Hà Nội)',
+  },
+  district: {
+    schema: { type: 'string' },
+    description: 'Lọc theo quận/huyện',
+  },
+  userLat: {
+    schema: { type: 'number' },
+    description: 'Vĩ độ GPS của người dùng để tính cự ly',
+  },
+  userLng: {
+    schema: { type: 'number' },
+    description: 'Kinh độ GPS của người dùng để tính cự ly',
+  },
+  radiusKm: {
+    schema: { type: 'number' },
+    description: 'Bán kính tìm kiếm (km)',
+  },
+  sortBy: {
+    schema: { enum: ['distance', 'price_asc', 'price_desc'] },
+    description: 'Tiêu chí sắp xếp kết quả',
+  },
   page: { schema: { type: 'integer', minimum: 1, default: 1 } },
   limit: { schema: { type: 'integer', minimum: 1, maximum: 50, default: 12 } },
 } as unknown as Record<string, object>;
@@ -97,6 +121,8 @@ export class VenuesController {
       properties: {
         name: { type: 'string', example: 'Sân thể thao Ngọc Khánh' },
         address: { type: 'string' },
+        city: { type: 'string', example: 'Hà Nội' },
+        district: { type: 'string', example: 'Ba Đình' },
         lat: { type: 'number', example: 21.0283 },
         lng: { type: 'number', example: 105.8342 },
         openMinute: {

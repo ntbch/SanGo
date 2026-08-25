@@ -6,6 +6,8 @@ export const CreateVenueSchema = z
   .object({
     name: z.string().min(3, 'Tên sân tối thiểu 3 ký tự').max(120),
     address: z.string().min(5, 'Địa chỉ quá ngắn').max(255),
+    city: z.string().trim().max(100).default('Hà Nội').optional(),
+    district: z.string().trim().max(100).default('Cầu Giấy').optional(),
     lat: z.number().min(-90).max(90),
     lng: z.number().min(-180).max(180),
     openMinute: z.number().int().min(0).max(1440),
@@ -27,10 +29,18 @@ export type UpdateVenueDto = z.infer<typeof UpdateVenueSchema>;
 export const VenueListQuerySchema = z.object({
   sportType: z.nativeEnum(SportType).optional(),
   q: z.string().trim().max(100).optional(),
+  city: z.string().trim().max(100).optional(),
+  district: z.string().trim().max(100).optional(),
+  userLat: z.coerce.number().min(-90).max(90).optional(),
+  userLng: z.coerce.number().min(-180).max(180).optional(),
+  radiusKm: z.coerce.number().positive().max(500).optional(),
+  sortBy: z.enum(['distance', 'price_asc', 'price_desc']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(12),
 });
 export type VenueListQueryDto = z.infer<typeof VenueListQuerySchema>;
+export const VenuesQuerySchema = VenueListQuerySchema;
+export type VenuesQueryDto = VenueListQueryDto;
 
 export const OwnerVenueListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

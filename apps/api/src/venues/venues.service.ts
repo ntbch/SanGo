@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { calculateHaversineDistanceKm } from '@courthub/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { uniqueSlug } from './slug.util';
 import type {
@@ -29,45 +30,87 @@ export class VenuesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // TODO(unaccent): bật extension unaccent để tìm kiếm tên sân bỏ dấu tiếng Việt.
-  /** Danh sách PUBLIC — chỉ venue APPROVED (đặc tả §3.2). Lọc sportType qua sân con ACTIVE. */
+  /** Danh sách PUBLIC — chỉ venue APPROVED (đặc tả §3.2). Lọc sportType qua sân con ACTIVE, lọc city, district, GPS cự ly & bán kính. */
   async listPublic(query: VenueListQueryDto) {
     const where: Prisma.VenueWhereInput = {
       status: 'APPROVED',
       ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
+      ...(query.city ? { city: { equals: query.city, mode: 'insensitive' } } : {}),
+      ...(query.district ? { district: { equals: query.district, mode: 'insensitive' } } : {}),
       ...(query.sportType
         ? { courts: { some: { sportType: query.sportType, status: 'ACTIVE' } } }
         : {}),
     };
-    const [items, total] = await Promise.all([
-      this.prisma.venue.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          address: true,
-          lat: true,
-          lng: true,
-          images: true,
-          amenities: true,
-          depositPercent: true,
-          openMinute: true,
-          closeMinute: true,
-          courts: { where: { status: 'ACTIVE' }, orderBy: { name: 'asc' }, select: courtCard },
-        },
-      }),
-      this.prisma.venue.count({ where }),
-    ]);
+
+    const hasUserGps = typeof query.userLat === 'number' && typeof query.userLng === 'number';
+    const hasRadius = typeof query.radiusKm === 'number' && hasUserGps;
+
+    const allVenues = await this.prisma.venue.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        address: true,
+        city: true,
+        district: true,
+        lat: true,
+        lng: true,
+        images: true,
+        amenities: true,
+        depositPercent: true,
+        openMinute: true,
+        closeMinute: true,
+        courts: { where: { status: 'ACTIVE' }, orderBy: { name: 'asc' }, select: courtCard },
+      },
+    });
+
+    let items = allVenues.map((v) => {
+      let distanceKm: number | null = null;
+      if (hasUserGps) {
+        distanceKm = calculateHaversineDistanceKm(query.userLat!, query.userLng!, v.lat, v.lng);
+      }
+      return { ...v, distanceKm };
+    });
+
+    if (hasRadius) {
+      items = items.filter((v) => v.distanceKm !== null && v.distanceKm <= query.radiusKm!);
+    }
+
+    if (query.sortBy === 'distance') {
+      items.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    } else if (query.sortBy === 'price_asc') {
+      items.sort((a, b) => {
+        const minA = a.courts.length > 0 ? Math.min(...a.courts.map((c) => c.defaultPricePerSlot)) : Infinity;
+        const minB = b.courts.length > 0 ? Math.min(...b.courts.map((c) => c.defaultPricePerSlot)) : Infinity;
+        return minA - minB;
+      });
+    } else if (query.sortBy === 'price_desc') {
+      items.sort((a, b) => {
+        const maxA = a.courts.length > 0 ? Math.max(...a.courts.map((c) => c.defaultPricePerSlot)) : -Infinity;
+        const maxB = b.courts.length > 0 ? Math.max(...b.courts.map((c) => c.defaultPricePerSlot)) : -Infinity;
+        return maxB - maxA;
+      });
+    }
+
+    const total = items.length;
+    const page = query.page || 1;
+    const limit = query.limit || 12;
+    const pagedItems = items.slice((page - 1) * limit, page * limit);
+
     return {
-      items,
+      items: pagedItems,
       total,
-      page: query.page,
-      limit: query.limit,
-      pages: Math.max(1, Math.ceil(total / query.limit)),
+      page,
+      limit,
+      pages: Math.max(1, Math.ceil(total / limit)),
     };
+  }
+
+  /** Bí danh cho listPublic */
+  findAll(query: VenueListQueryDto) {
+    return this.listPublic(query);
   }
 
   /** Chi tiết public theo slug hoặc id — 404 nếu chưa APPROVED (không lộ sân chờ duyệt). */
@@ -84,6 +127,8 @@ export class VenuesService {
         name: true,
         slug: true,
         address: true,
+        city: true,
+        district: true,
         lat: true,
         lng: true,
         images: true,
