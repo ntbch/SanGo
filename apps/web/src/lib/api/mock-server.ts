@@ -3092,6 +3092,79 @@ export async function handleMockRequest<T>(
   ) {
     const [rawPath, rawQuery = ''] = path.split('?');
     const search = new URLSearchParams(rawQuery);
+
+    // F5 Map nâng cao: GET /venues/map?bbox=minLat,minLng,maxLat,maxLng
+    if (rawPath === '/venues/map') {
+      const bboxStr = search.get('bbox') ?? '';
+      const sportType = search.get('sportType');
+      const q = (search.get('q') ?? '').trim().toLowerCase();
+      const limit = Math.max(1, Math.min(100, Number(search.get('limit') ?? '50') || 50));
+
+      const [minLat, minLng, maxLat, maxLng] = bboxStr.split(',').map(Number);
+      const hasValidBbox =
+        !isNaN(minLat) &&
+        !isNaN(minLng) &&
+        !isNaN(maxLat) &&
+        !isNaN(maxLng) &&
+        minLat <= maxLat &&
+        minLng <= maxLng;
+
+      const filtered = MOCK_VENUES.filter((venue) => {
+        const matchStatus = venue.status === 'APPROVED';
+        const matchBbox =
+          hasValidBbox &&
+          venue.lat >= minLat &&
+          venue.lat <= maxLat &&
+          venue.lng >= minLng &&
+          venue.lng <= maxLng;
+        const matchQ =
+          q === '' ||
+          venue.name.toLowerCase().includes(q) ||
+          venue.address.toLowerCase().includes(q);
+        const matchSport =
+          !sportType ||
+          venue.courts.some((c) => c.sportType === sportType && c.status !== 'MAINTENANCE');
+        return matchStatus && matchBbox && matchQ && matchSport;
+      }).slice(0, limit);
+
+      const items = filtered.map((v) => {
+        const activeCourts = v.courts.filter(
+          (c) => c.status !== 'MAINTENANCE' && (!sportType || c.sportType === sportType),
+        );
+        const prices = activeCourts.map((c) => c.defaultPricePerSlot);
+        const priceFrom = prices.length > 0 ? Math.min(...prices) : null;
+        const priceTo = prices.length > 0 ? Math.max(...prices) : null;
+        const availableSports = Array.from(new Set(v.courts.map((c) => c.sportType)));
+
+        return {
+          id: v.id,
+          name: v.name,
+          slug: v.slug,
+          address: v.address,
+          city: v.city,
+          district: v.district,
+          lat: v.lat,
+          lng: v.lng,
+          images: v.images,
+          amenities: v.amenities,
+          depositPercent: v.depositPercent,
+          openMinute: v.openMinute,
+          closeMinute: v.closeMinute,
+          totalCourts: v.courts.length,
+          priceFrom,
+          priceTo,
+          availableSports,
+          courts: v.courts,
+        };
+      });
+
+      return {
+        items,
+        total: items.length,
+        bounds: { minLat, minLng, maxLat, maxLng },
+      } as T;
+    }
+
     if (rawPath === '/venues') {
       const q = (search.get('q') ?? '').trim().toLowerCase();
       const sportType = search.get('sportType');

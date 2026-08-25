@@ -67,3 +67,45 @@ export interface PaginatedReviews {
   pages: number;
   avgRating?: number;
 }
+
+/** F5 Map nâng cao: Phần tử venue trả về từ GET /venues/map kèm aggregate giá. */
+export interface MapVenueItem {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  city?: string;
+  district?: string;
+  lat: number;
+  lng: number;
+  images: string[];
+  amenities: string[];
+  depositPercent: number;
+  openMinute: number;
+  closeMinute: number;
+  totalCourts: number;
+  priceFrom: number | null;
+  priceTo: number | null;
+  availableSports: string[];
+  courts: CourtCardInfo[];
+}
+
+/** Phản hồi GET /venues/map. */
+export interface VenueMapResponse {
+  items: MapVenueItem[];
+  total: number;
+  bounds: {
+    minLat: number;
+    minLng: number;
+    maxLat: number;
+    maxLng: number;
+  };
+}
+
+/** Tham số truy vấn GET /venues/map. */
+export interface VenueMapQuery {
+  bbox: string; // 'minLat,minLng,maxLat,maxLng'
+  sportType?: string;
+  q?: string;
+  limit?: number;
+}

@@ -1,4 +1,13 @@
-import { Crosshair, Loader2, MapPin, SearchX, Search, X } from 'lucide-react';
+import {
+  Crosshair,
+  LayoutGrid,
+  Loader2,
+  Map as MapIcon,
+  MapPin,
+  SearchX,
+  Search,
+  X,
+} from 'lucide-react';
 import { type FormEvent, type ReactElement, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { calculateHaversineDistanceKm, HANOI_DISTRICTS } from '@courthub/shared';
@@ -9,8 +18,9 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
 
 import { FilterSidebar, type VenueSort } from '../components/filter-sidebar';
+import { InteractiveVenuesMap } from '../components/interactive-venues-map';
 import { VenueCard } from '../components/venue-card';
-import { useVenues } from '../queries';
+import { useVenues, useVenuesMap } from '../queries';
 
 function SkeletonGrid(): ReactElement {
   return (
@@ -57,6 +67,12 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
   const [sort, setSort] = useState<VenueSort>('newest');
   const [draftQ, setDraftQ] = useState(q);
 
+  // F5 Map: Chế độ xem 'split' (chia đôi danh sách + bản đồ), 'list' (chỉ danh sách), 'map' (chỉ bản đồ)
+  const [viewMode, setViewMode] = useState<'split' | 'list' | 'map'>('split');
+  const [mapBbox, setMapBbox] = useState<string | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>(undefined);
+  const [hoveredVenueId, setHoveredVenueId] = useState<string | undefined>(undefined);
+
   // EC-02: trình duyệt không hỗ trợ Geolocation -> khoá nút GPS kèm tooltip.
   const geoSupported = typeof navigator !== 'undefined' && Boolean(navigator.geolocation);
 
@@ -83,6 +99,18 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
     page,
   });
   const data = query.data;
+
+  // F5 Map: Gọi API /venues/map khi bbox thay đổi (di chuyển/zoom)
+  const mapQuery = useVenuesMap(
+    mapBbox
+      ? {
+          bbox: mapBbox,
+          sportType: sportTypeParam,
+          q: q === '' ? undefined : q,
+          limit: 60,
+        }
+      : null,
+  );
 
   let items = [...(data?.items ?? [])].map((venue) => {
     let distanceKm = venue.distanceKm;
@@ -356,7 +384,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
               xếp theo khoảng cách thực tế.
             </p>
           ) : null}
-          <header className="flex items-center justify-between gap-2">
+          <header className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold tracking-tight">
               Kết quả{data !== undefined ? ` (${data.total} sân)` : ''}
               {districtParam ? (
@@ -366,6 +394,48 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                 </span>
               ) : null}
             </h2>
+
+            {/* F5 Map: Nút chuyển chế độ xem (Danh sách, Bản đồ, Chia đôi) */}
+            <div
+              className="flex items-center gap-1 rounded-lg border bg-card p-1 shadow-xs"
+              role="group"
+              aria-label="Chế độ xem"
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === 'split' ? 'default' : 'ghost'}
+                className="h-8 gap-1.5 px-3 text-xs font-semibold hidden md:flex"
+                onClick={() => setViewMode('split')}
+                aria-pressed={viewMode === 'split'}
+              >
+                <LayoutGrid className="size-3.5" />
+                <MapIcon className="size-3.5" />
+                Chia đôi
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                className="h-8 gap-1.5 px-3 text-xs font-semibold"
+                onClick={() => setViewMode('list')}
+                aria-pressed={viewMode === 'list'}
+              >
+                <LayoutGrid className="size-3.5" />
+                Danh sách
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === 'map' ? 'default' : 'ghost'}
+                className="h-8 gap-1.5 px-3 text-xs font-semibold"
+                onClick={() => setViewMode('map')}
+                aria-pressed={viewMode === 'map'}
+              >
+                <MapIcon className="size-3.5" />
+                Bản đồ
+              </Button>
+            </div>
           </header>
 
           {query.isPending ? <SkeletonGrid /> : null}
@@ -378,106 +448,256 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
             </p>
           ) : null}
 
-          {data !== undefined && items.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-              <SearchX className="size-10 text-muted-foreground/60" aria-hidden />
-              <div>
-                <p className="font-medium">
-                  {isFarFromHanoi && distanceToHanoiCenter !== null
-                    ? `Bạn đang ở cách Hà Nội ~${distanceToHanoiCenter} km`
-                    : userCoords !== null && radiusKm !== undefined
-                      ? `Không tìm thấy cụm sân nào trong bán kính ${radiusKm} km quanh bạn`
-                      : districtParam
-                        ? `Không tìm thấy cụm sân nào tại ${districtParam}`
-                        : 'Không tìm thấy sân phù hợp'}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {isFarFromHanoi
-                    ? 'Vị trí của bạn nằm ngoài vùng phủ Hà Nội. Bạn vẫn có thể xem toàn bộ cụm sân tại Hà Nội.'
-                    : userCoords !== null && radiusKm !== undefined
-                      ? 'Bạn có thể mở rộng bán kính tìm kiếm hoặc xem tất cả cụm sân tại Hà Nội.'
-                      : 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá khác.'}
-                </p>
+          {/* Nội dung kết quả theo viewMode */}
+          <div className="space-y-6">
+            {/* Chế độ BẢN ĐỒ TOÀN MÀN HÌNH */}
+            {viewMode === 'map' ? (
+              <div className="h-[650px] w-full">
+                <InteractiveVenuesMap
+                  items={mapQuery.data?.items ?? []}
+                  selectedVenueId={selectedVenueId}
+                  hoveredVenueId={hoveredVenueId}
+                  onBoundsChange={setMapBbox}
+                  onSelectVenue={(v) => setSelectedVenueId(v.id)}
+                  className="size-full h-[650px]"
+                />
               </div>
+            ) : viewMode === 'split' ? (
+              /* Chế độ CHIA ĐÔI: Danh sách cuộn bên trái, Bản đồ ghim bên phải */
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                <div className="space-y-6 lg:col-span-6 xl:col-span-7">
+                  {data !== undefined && items.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
+                      <SearchX className="size-10 text-muted-foreground/60" aria-hidden />
+                      <div>
+                        <p className="font-medium">
+                          {isFarFromHanoi && distanceToHanoiCenter !== null
+                            ? `Bạn đang ở cách Hà Nội ~${distanceToHanoiCenter} km`
+                            : userCoords !== null && radiusKm !== undefined
+                              ? `Không tìm thấy cụm sân nào trong bán kính ${radiusKm} km quanh bạn`
+                              : districtParam
+                                ? `Không tìm thấy cụm sân nào tại ${districtParam}`
+                                : 'Không tìm thấy sân phù hợp'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {isFarFromHanoi
+                            ? 'Vị trí của bạn nằm ngoài vùng phủ Hà Nội. Bạn vẫn có thể xem toàn bộ cụm sân tại Hà Nội.'
+                            : userCoords !== null && radiusKm !== undefined
+                              ? 'Bạn có thể mở rộng bán kính tìm kiếm hoặc xem tất cả cụm sân tại Hà Nội.'
+                              : 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá khác.'}
+                        </p>
+                      </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {/* EC-05/EC-04: gợi ý mở rộng — ẩn khi đã ở bán kính rộng nhất (20 km). */}
-                {userCoords !== null && radiusKm !== undefined && radiusKm < 20 ? (
-                  <Button size="sm" onClick={() => setRadiusKm(radiusKm < 10 ? 10 : 20)}>
-                    Mở rộng bán kính lên {radiusKm < 10 ? '10' : '20'} km
-                  </Button>
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        {userCoords !== null && radiusKm !== undefined && radiusKm < 20 ? (
+                          <Button size="sm" onClick={() => setRadiusKm(radiusKm < 10 ? 10 : 20)}>
+                            Mở rộng bán kính lên {radiusKm < 10 ? '10' : '20'} km
+                          </Button>
+                        ) : null}
+                        {userCoords !== null ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRadiusKm(undefined)}
+                          >
+                            Xem tất cả sân Hà Nội
+                          </Button>
+                        ) : null}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDraftQ('');
+                            setUserCoords(null);
+                            setRadiusKm(undefined);
+                            applyFilters({});
+                          }}
+                        >
+                          Xoá bộ lọc
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {items.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {items.map((venue) => (
+                          <div
+                            key={venue.id}
+                            onMouseEnter={() => setHoveredVenueId(venue.id)}
+                            onMouseLeave={() => setHoveredVenueId(undefined)}
+                            className={
+                              selectedVenueId === venue.id ? 'ring-2 ring-primary rounded-xl' : ''
+                            }
+                          >
+                            <VenueCard venue={venue} />
+                          </div>
+                        ))}
+                      </div>
+                      {data !== undefined && data.pages > 1 ? (
+                        <nav
+                          className="flex items-center justify-center gap-3 pt-2"
+                          aria-label="Phân trang"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page <= 1}
+                            onClick={() =>
+                              applyFilters({
+                                q,
+                                sportType: sportTypeParam,
+                                district: districtParam,
+                                page: page - 1,
+                              })
+                            }
+                          >
+                            Trang trước
+                          </Button>
+                          <span className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                            Trang {data.page}/{data.pages}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={data !== undefined && page >= data.pages}
+                            onClick={() =>
+                              applyFilters({
+                                q,
+                                sportType: sportTypeParam,
+                                district: districtParam,
+                                page: page + 1,
+                              })
+                            }
+                          >
+                            Trang sau
+                          </Button>
+                        </nav>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+
+                {/* Bản đồ bên phải sticky */}
+                <div className="hidden lg:block lg:col-span-6 xl:col-span-5">
+                  <div className="sticky top-24 h-[calc(100vh-8rem)] min-h-[500px]">
+                    <InteractiveVenuesMap
+                      items={mapQuery.data?.items ?? []}
+                      selectedVenueId={selectedVenueId}
+                      hoveredVenueId={hoveredVenueId}
+                      onBoundsChange={setMapBbox}
+                      onSelectVenue={(v) => setSelectedVenueId(v.id)}
+                      className="size-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Chế độ CHỈ DANH SÁCH (Grid đầy đủ) */
+              <>
+                {data !== undefined && items.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
+                    <SearchX className="size-10 text-muted-foreground/60" aria-hidden />
+                    <div>
+                      <p className="font-medium">
+                        {isFarFromHanoi && distanceToHanoiCenter !== null
+                          ? `Bạn đang ở cách Hà Nội ~${distanceToHanoiCenter} km`
+                          : userCoords !== null && radiusKm !== undefined
+                            ? `Không tìm thấy cụm sân nào trong bán kính ${radiusKm} km quanh bạn`
+                            : districtParam
+                              ? `Không tìm thấy cụm sân nào tại ${districtParam}`
+                              : 'Không tìm thấy sân phù hợp'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {isFarFromHanoi
+                          ? 'Vị trí của bạn nằm ngoài vùng phủ Hà Nội. Bạn vẫn có thể xem toàn bộ cụm sân tại Hà Nội.'
+                          : userCoords !== null && radiusKm !== undefined
+                            ? 'Bạn có thể mở rộng bán kính tìm kiếm hoặc xem tất cả cụm sân tại Hà Nội.'
+                            : 'Thử bỏ bớt bộ lọc hoặc đổi từ khoá khác.'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {userCoords !== null && radiusKm !== undefined && radiusKm < 20 ? (
+                        <Button size="sm" onClick={() => setRadiusKm(radiusKm < 10 ? 10 : 20)}>
+                          Mở rộng bán kính lên {radiusKm < 10 ? '10' : '20'} km
+                        </Button>
+                      ) : null}
+                      {userCoords !== null ? (
+                        <Button variant="outline" size="sm" onClick={() => setRadiusKm(undefined)}>
+                          Xem tất cả sân Hà Nội
+                        </Button>
+                      ) : null}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDraftQ('');
+                          setUserCoords(null);
+                          setRadiusKm(undefined);
+                          applyFilters({});
+                        }}
+                      >
+                        Xoá bộ lọc
+                      </Button>
+                    </div>
+                  </div>
                 ) : null}
-                {userCoords !== null ? (
-                  <Button variant="outline" size="sm" onClick={() => setRadiusKm(undefined)}>
-                    Xem tất cả sân Hà Nội
-                  </Button>
+
+                {items.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                      {items.map((venue) => (
+                        <VenueCard key={venue.id} venue={venue} />
+                      ))}
+                    </div>
+                    {data !== undefined && data.pages > 1 ? (
+                      <nav
+                        className="flex items-center justify-center gap-3 pt-2"
+                        aria-label="Phân trang"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={page <= 1}
+                          onClick={() =>
+                            applyFilters({
+                              q,
+                              sportType: sportTypeParam,
+                              district: districtParam,
+                              page: page - 1,
+                            })
+                          }
+                        >
+                          Trang trước
+                        </Button>
+                        <span className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          Trang {data.page}/{data.pages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={data !== undefined && page >= data.pages}
+                          onClick={() =>
+                            applyFilters({
+                              q,
+                              sportType: sportTypeParam,
+                              district: districtParam,
+                              page: page + 1,
+                            })
+                          }
+                        >
+                          Trang sau
+                        </Button>
+                      </nav>
+                    ) : null}
+                  </>
                 ) : null}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setDraftQ('');
-                    setUserCoords(null);
-                    setRadiusKm(undefined);
-                    applyFilters({});
-                  }}
-                >
-                  Xoá bộ lọc
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {items.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                {items.map((venue) => (
-                  <VenueCard key={venue.id} venue={venue} />
-                ))}
-              </div>
-              {data !== undefined && data.pages > 1 ? (
-                <nav
-                  className="flex items-center justify-center gap-3 pt-2"
-                  aria-label="Phân trang"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() =>
-                      applyFilters({
-                        q,
-                        sportType: sportTypeParam,
-                        district: districtParam,
-                        page: page - 1,
-                      })
-                    }
-                  >
-                    Trang trước
-                  </Button>
-                  <span className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Trang {data.page}/{data.pages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={data !== undefined && page >= data.pages}
-                    onClick={() =>
-                      applyFilters({
-                        q,
-                        sportType: sportTypeParam,
-                        district: districtParam,
-                        page: page + 1,
-                      })
-                    }
-                  >
-                    Trang sau
-                  </Button>
-                </nav>
-              ) : null}
-            </>
-          ) : null}
+              </>
+            )}
+          </div>
         </section>
       </div>
     </div>

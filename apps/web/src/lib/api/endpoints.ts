@@ -107,6 +107,9 @@ export const endpoints = {
   venues: {
     /** Tìm kiếm public. */
     list: (query: VenueListQuery = {}): string => '/venues' + qs(query),
+    /** F5 Map nâng cao: Tìm kiếm theo khung nhìn viewport bounding box. */
+    map: (query: { bbox: string; sportType?: string; q?: string; limit?: number }): string =>
+      '/venues/map' + qs(query),
     /** Chi tiết sân theo slug (hoặc id) + courts[]. */
     detail: (slugOrId: string): string => '/venues/' + seg(slugOrId),
     reviews: (slugOrId: string, query: ReviewsQuery = {}): string =>
