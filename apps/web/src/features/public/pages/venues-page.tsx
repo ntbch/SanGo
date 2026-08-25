@@ -14,7 +14,12 @@ import { useVenues } from '../queries';
 
 function SkeletonGrid(): ReactElement {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-hidden>
+    <div
+      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      role="status"
+      aria-busy="true"
+      aria-label="Đang tải danh sách sân"
+    >
       {[0, 1, 2, 3, 4, 5].map((index) => (
         <div key={index} className="space-y-3 rounded-xl border p-0">
           <Skeleton className="aspect-[16/10] w-full rounded-b-none" />
@@ -35,6 +40,9 @@ interface VenuesPageProps {
 }
 
 const RADIUS_OPTIONS = [3, 5, 10, 20] as const;
+
+/** Chuỗi container chuẩn Athletic Synergy (đặc tả §3). */
+const SHELL_CONTAINER = 'mx-auto w-full max-w-[1280px] px-4 md:px-6';
 
 /** Trang danh sách sân: hero tìm kiếm + lọc quận + GPS Gần tôi + sidebar lọc + lưới kết quả phân trang. */
 export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
@@ -188,25 +196,42 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
   }
 
   return (
-    <div className={compact ? 'space-y-6' : 'mx-auto w-full max-w-6xl space-y-6 px-4 py-8'}>
+    <div className={compact ? 'space-y-6' : `${SHELL_CONTAINER} space-y-6 py-8`}>
       {!compact ? (
-        <section className="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 p-6 text-white sm:p-10">
-          <h1 className="text-2xl font-bold sm:text-3xl">Tìm sân thể thao gần bạn</h1>
-          <p className="mt-1 text-sm text-emerald-100 sm:text-base">
+        <section className="relative isolate overflow-hidden rounded-xl bg-navy p-6 text-white sm:p-10">
+          {/* Nền nhiều lớp copy pattern hero golden home-page: quầng turf + oxygen, vệt chéo */}
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10"
+            style={{
+              background:
+                'radial-gradient(40rem 20rem at 12% -20%, rgba(46,204,113,0.25), transparent 60%),' +
+                'radial-gradient(30rem 16rem at 95% -10%, rgba(56,189,248,0.18), transparent 55%),' +
+                'linear-gradient(115deg, rgba(255,255,255,0.05) 0%, transparent 35%), #131b2e',
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-y-0 right-[-10%] -z-10 hidden w-1/3 rotate-12 bg-[repeating-linear-gradient(115deg,rgba(46,204,113,0.07)_0px,rgba(46,204,113,0.07)_14px,transparent_14px,transparent_36px)] lg:block"
+          />
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Tìm sân thể thao gần bạn
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
             Khám phá hơn 24 cụm sân tại 12 quận Hà Nội với điều hướng Google Maps và định vị thông
             minh.
           </p>
 
           <form
             onSubmit={onHeroSubmit}
-            className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center"
+            className="mt-5 flex flex-col gap-3 rounded-xl bg-card p-4 text-left shadow-[0_12px_40px_rgba(2,8,20,0.45)] sm:flex-row sm:items-center"
           >
             <Input
               value={draftQ}
               onChange={(event) => setDraftQ(event.target.value)}
               placeholder="Tên sân, khu vực hoặc môn chơi..."
               aria-label="Từ khoá tìm kiếm"
-              className="border-transparent bg-white text-foreground sm:flex-1"
+              className="h-12 border-input bg-background text-foreground sm:flex-1"
             />
 
             <select
@@ -220,7 +245,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                   district: event.target.value ? event.target.value : undefined,
                 })
               }
-              className="h-9 rounded-md border-0 bg-white/95 px-3 text-sm text-foreground shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:w-44"
+              className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-44"
             >
               <option value="">Tất cả 12 quận</option>
               {HANOI_DISTRICTS.map((d) => (
@@ -230,14 +255,14 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
               ))}
             </select>
 
-            <Button type="submit" variant="secondary" className="sm:w-auto">
-              <Search className="size-4" aria-hidden />
+            <Button type="submit" size="lg" className="rounded-lg font-bold sm:w-auto">
               Tìm sân
+              <Search className="size-4" aria-hidden />
             </Button>
 
             <Button
               type="button"
-              variant={userCoords !== null ? 'default' : 'secondary'}
+              variant={userCoords !== null ? 'default' : 'outline'}
               onClick={handleGetLocation}
               disabled={isLocating || !geoSupported}
               title={
@@ -245,11 +270,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                   ? undefined
                   : 'Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng chọn quận từ danh sách.'
               }
-              className={
-                userCoords !== null
-                  ? 'bg-emerald-900 text-white hover:bg-emerald-950 sm:w-auto'
-                  : 'bg-white/20 text-white hover:bg-white/30 sm:w-auto'
-              }
+              className="font-bold sm:w-auto"
               aria-label="Định vị gần tôi"
             >
               {isLocating ? (
@@ -257,7 +278,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
               ) : (
                 <Crosshair className="size-4" aria-hidden />
               )}
-              {userCoords !== null ? '📍 Đang bật GPS' : '📍 Gần tôi'}
+              {userCoords !== null ? 'Đang bật GPS' : 'Gần tôi'}
             </Button>
           </form>
         </section>
@@ -265,13 +286,13 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
 
       {/* Dải chọn bán kính khi bật GPS */}
       {userCoords !== null ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900 dark:bg-emerald-950/40">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent bg-accent/50 p-3">
           <div
             role="group"
             aria-label="Bán kính tìm kiếm gần bạn"
             className="flex flex-wrap items-center gap-2"
           >
-            <span className="flex items-center gap-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+            <span className="flex items-center gap-1 text-xs font-semibold text-accent-foreground">
               <MapPin className="size-3.5" aria-hidden /> Bán kính gần bạn:
             </span>
             {RADIUS_OPTIONS.map((r) => (
@@ -330,13 +351,13 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
 
         <section className="min-w-0 flex-1 space-y-4">
           {sort === 'distance' && userCoords === null && data !== undefined ? (
-            <p className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50/60 p-2 text-xs text-muted-foreground dark:border-emerald-800 dark:bg-emerald-950/30">
-              Bạn đang chọn sắp xếp “Gần nhất trước” nhưng chưa bật định vị. Nhấn “📍 Gần tôi” để
-              sắp xếp theo khoảng cách thực tế.
+            <p className="rounded-lg border border-dashed border-accent bg-accent/40 p-2 text-xs text-muted-foreground">
+              Bạn đang chọn sắp xếp “Gần nhất trước” nhưng chưa bật định vị. Nhấn “Gần tôi” để sắp
+              xếp theo khoảng cách thực tế.
             </p>
           ) : null}
           <header className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-xl font-semibold tracking-tight">
               Kết quả{data !== undefined ? ` (${data.total} sân)` : ''}
               {districtParam ? (
                 <span className="text-sm font-normal text-muted-foreground">
@@ -410,7 +431,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
 
           {items.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((venue) => (
                   <VenueCard key={venue.id} venue={venue} />
                 ))}
@@ -435,7 +456,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                   >
                     Trang trước
                   </Button>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     Trang {data.page}/{data.pages}
                   </span>
                   <Button

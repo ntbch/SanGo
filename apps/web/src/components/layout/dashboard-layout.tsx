@@ -89,7 +89,7 @@ function UserMenu({ compact = false }: UserMenuProps): ReactElement {
   );
 }
 
-/** Khung dashboard: sidebar theo vai trò (desktop) + topbar & nav cuộn ngang (mobile). */
+/** Khung dashboard A4: sidebar trái cố định w-64 + topbar mờ; nội dung fluid không mx-auto. */
 export function DashboardLayout(): ReactElement {
   const user = useAuthStore((state) => state.user);
   if (!user) return <span />; // ProtectedRoute đã chặn trước đó
@@ -99,22 +99,29 @@ export function DashboardLayout(): ReactElement {
 
   const navLinkClass = ({ isActive }: { isActive: boolean }): string =>
     cn(
-      'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors',
+      'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors',
       isActive
-        ? 'bg-primary/10 text-primary'
-        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        ? 'bg-accent font-semibold text-accent-foreground'
+        : 'font-medium text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground',
     );
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r bg-card p-3 md:flex">
-        <Link to="/" className="flex items-center gap-2 px-2 py-3 font-bold">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+    <div className="min-h-screen bg-background">
+      {/* A4: sidebar trái cố định — hidden < md, w-64, nền card, viền phải */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card shadow-lg md:flex">
+        <Link
+          to="/"
+          className="flex items-center gap-2 px-4 pb-2 pt-5 text-lg font-extrabold tracking-tight text-primary"
+        >
+          <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(15,23,42,0.08)]">
             <Trophy className="size-5" aria-hidden />
           </span>
           {APP_NAME}
         </Link>
-        <nav className="mt-3 flex flex-col gap-1" aria-label="Menu chính">
+        <p className="px-4 pb-1 pt-5 font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Điều hướng
+        </p>
+        <nav className="flex flex-col gap-1 px-3" aria-label="Menu chính">
           {items.map((item) => (
             <NavLink
               key={item.to}
@@ -127,34 +134,29 @@ export function DashboardLayout(): ReactElement {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto border-t pt-3">
-          <UserMenu />
-          <div className="mt-2 flex items-center justify-between px-2 pb-1">
-            <Badge variant={roleMeta.variant}>{roleMeta.label}</Badge>
-            <span className="flex items-center gap-1">
-              <NotificationBell />
-              <ThemeToggle />
-            </span>
-          </div>
+        <div className="mt-auto border-t border-border/60 p-4">
+          <Badge variant={roleMeta.variant}>{roleMeta.label}</Badge>
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur md:hidden">
-          <div className="flex h-14 items-center justify-between px-4">
-            <Link to="/" className="flex items-center gap-2 font-bold">
+      {/* Cột nội dung: offset đúng bằng sidebar (pl-64) — KHÔNG mx-auto/max-w chồng lên */}
+      <div className="flex min-h-screen min-w-0 flex-col md:pl-64">
+        {/* Topbar mờ dùng chung mọi breakpoint */}
+        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 shadow-[0_1px_12px_rgba(15,23,42,0.04)] backdrop-blur-md">
+          <div className="flex h-16 items-center gap-3 px-4 md:px-6">
+            <Link to="/" className="flex items-center gap-2 font-bold md:hidden">
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Trophy className="size-5" aria-hidden />
               </span>
               {APP_NAME}
             </Link>
-            <div className="flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1">
               <NotificationBell />
               <ThemeToggle />
               <UserMenu compact />
             </div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto px-3 pb-2" aria-label="Menu chính">
+          <nav className="flex gap-1 overflow-x-auto px-3 pb-2 md:hidden" aria-label="Menu chính">
             {items.map((item) => (
               <NavLink
                 key={item.to}
@@ -168,7 +170,7 @@ export function DashboardLayout(): ReactElement {
             ))}
           </nav>
         </header>
-        <main className="flex-1 bg-muted/30 p-4 md:p-8">
+        <main className="flex-1 bg-muted/30 p-4 md:p-6">
           <Outlet />
         </main>
       </div>

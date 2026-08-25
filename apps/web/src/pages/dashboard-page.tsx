@@ -1,6 +1,6 @@
 import { UserRole } from '@courthub/shared';
 import { useQueries } from '@tanstack/react-query';
-import { BarChart3, Calendar, Clock, MapPinned, QrCode, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BarChart3, Calendar, Clock, MapPinned, QrCode, ShieldCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -77,14 +77,15 @@ function CustomerUpcomingCard(): ReactElement {
     return (
       <div
         data-testid="customer-upcoming-empty"
-        className="space-y-3 rounded-xl border border-dashed py-16 text-center"
+        className="space-y-3 rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground"
       >
-        <Calendar className="mx-auto size-10 text-muted-foreground/40" />
-        <p className="text-sm text-muted-foreground">
-          Bạn chưa có đơn nào sắp diễn ra — đặt sân đầu tiên ngay!
-        </p>
-        <Button asChild size="sm">
-          <Link to="/venues">Đặt sân đầu tiên</Link>
+        <Calendar className="mx-auto mb-2 size-8 opacity-50" aria-hidden />
+        <p>Bạn chưa có đơn nào sắp diễn ra — đặt sân đầu tiên ngay!</p>
+        <Button asChild size="sm" className="rounded-lg font-bold">
+          <Link to="/venues">
+            Đặt sân đầu tiên
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
         </Button>
       </div>
     );
@@ -96,14 +97,19 @@ function CustomerUpcomingCard(): ReactElement {
   };
 
   return (
-    <Card data-testid="customer-upcoming">
+    <Card
+      data-testid="customer-upcoming"
+      className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]"
+    >
       <CardHeader>
         <CardTitle>Đơn sắp tới</CardTitle>
         <CardDescription>Trận đấu gần nhất của bạn tại CourtHub.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-sm font-bold text-primary">{nearest.code}</span>
+          <span className="font-score text-xs font-bold uppercase tracking-widest text-primary">
+            {nearest.code}
+          </span>
           <Badge variant={status.variant}>{status.label}</Badge>
         </div>
 
@@ -123,13 +129,16 @@ function CustomerUpcomingCard(): ReactElement {
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button asChild>
+          <Button asChild className="rounded-lg font-bold">
             <Link to="/dashboard/my-bookings">
-              <QrCode className="size-4" /> Xem QR check-in
+              <QrCode className="size-4" aria-hidden /> Xem QR check-in
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link to="/venues">Đặt sân ngay</Link>
+          <Button asChild variant="outline" className="rounded-lg font-bold">
+            <Link to="/venues">
+              Đặt sân ngay
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
           </Button>
         </div>
       </CardContent>
@@ -240,10 +249,18 @@ function OwnerKpiSection(): ReactElement {
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.label}>
+          <Card
+            key={card.label}
+            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
+          >
             <CardHeader className="pb-2">
-              <CardDescription>{card.label}</CardDescription>
-              <CardTitle className="text-3xl" data-testid={card.testId}>
+              <CardDescription className="text-xs font-semibold uppercase tracking-wide">
+                {card.label}
+              </CardDescription>
+              <CardTitle
+                className="font-score text-3xl font-extrabold tabular-nums tracking-tight"
+                data-testid={card.testId}
+              >
                 {card.value}
               </CardTitle>
             </CardHeader>
@@ -303,13 +320,16 @@ function AdminApprovalSection(): ReactElement {
 
   return (
     <section className="space-y-4">
-      <Card>
+      <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
         <CardHeader>
           <CardTitle>Cụm sân chờ duyệt</CardTitle>
           <CardDescription>Cần được xem xét và phê duyệt hoặc từ chối.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-5xl font-bold text-primary" data-testid="kpi-admin-pending">
+          <p
+            className="font-score text-5xl font-extrabold tabular-nums tracking-tight text-primary"
+            data-testid="kpi-admin-pending"
+          >
             {counts.PENDING}
           </p>
           <Button asChild>
@@ -328,10 +348,18 @@ function AdminApprovalSection(): ReactElement {
             { key: 'REJECTED', label: 'Từ chối' },
           ] as const
         ).map((row) => (
-          <Card key={row.key}>
+          <Card
+            key={row.key}
+            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
+          >
             <CardHeader className="pb-2">
-              <CardDescription>{row.label}</CardDescription>
-              <CardTitle className="text-2xl" data-testid={`admin-count-${row.key.toLowerCase()}`}>
+              <CardDescription className="text-xs font-semibold uppercase tracking-wide">
+                {row.label}
+              </CardDescription>
+              <CardTitle
+                className="font-score text-2xl font-extrabold tabular-nums tracking-tight"
+                data-testid={`admin-count-${row.key.toLowerCase()}`}
+              >
                 {counts[row.key]}
               </CardTitle>
             </CardHeader>
@@ -354,7 +382,7 @@ export function DashboardPage(): ReactElement {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Tổng quan</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Tổng quan</h1>
         <p className="text-sm text-muted-foreground">
           {greetingForRole(user?.role, user?.fullName ?? 'bạn')}
         </p>

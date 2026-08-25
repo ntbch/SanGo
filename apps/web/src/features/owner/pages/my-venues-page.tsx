@@ -64,10 +64,11 @@ export function MyVenuesPage(): ReactElement {
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Sân của tôi</h1>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Sân của tôi</h1>
           <p className="text-sm text-muted-foreground">Quản lý cụm sân, sân con và bảng giá.</p>
         </div>
         <Button
+          className="rounded-lg font-bold"
           onClick={() => {
             setEditingVenue(undefined);
             setFormOpen(true);
@@ -101,7 +102,12 @@ export function MyVenuesPage(): ReactElement {
             return (
               <Card
                 key={venue.id}
-                className={isSelected ? 'border-primary ring-1 ring-primary' : ''}
+                className={cn(
+                  'border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-all duration-300',
+                  isSelected
+                    ? 'border-primary ring-2 ring-primary/25'
+                    : 'hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]',
+                )}
               >
                 <CardContent className="space-y-2 p-4">
                   <button
@@ -111,14 +117,19 @@ export function MyVenuesPage(): ReactElement {
                   >
                     <span className="flex items-center justify-between gap-2 font-semibold hover:text-primary">
                       {venue.name}
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                      <Badge
+                        variant={badge.variant}
+                        className="rounded-full px-2.5 py-1 font-score text-[10px] uppercase tracking-wide"
+                      >
+                        {badge.label}
+                      </Badge>
                     </span>
                     <span className="mt-0.5 block line-clamp-1 text-xs text-muted-foreground">
                       {venue.address}
                     </span>
                   </button>
                   {venue.status === 'REJECTED' && venue.rejectReason ? (
-                    <p className="rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+                    <p className="rounded-lg bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
                       Lý do từ chối: {venue.rejectReason}
                     </p>
                   ) : null}
@@ -150,8 +161,8 @@ export function MyVenuesPage(): ReactElement {
             );
           })}
           {!venuesQuery.isPending && items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-14 text-center">
-              <MapPinned className="size-8 text-muted-foreground/50" aria-hidden />
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+              <MapPinned className="mb-2 size-8 opacity-50" aria-hidden />
               <p className="text-sm text-muted-foreground">
                 Chưa có cụm sân nào — tạo ngay để bắt đầu kinh doanh.
               </p>
@@ -166,16 +177,16 @@ export function MyVenuesPage(): ReactElement {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex w-fit gap-1.5 rounded-lg bg-muted p-1">
+              <div className="inline-flex w-fit gap-1 rounded-full bg-muted p-1">
                 <button
                   type="button"
                   aria-pressed={activeTab === 'courts'}
                   onClick={() => setActiveTab('courts')}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition',
+                    'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-colors',
                     activeTab === 'courts'
-                      ? 'bg-background shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
+                      ? 'bg-card font-semibold text-foreground shadow-xs'
+                      : 'font-medium text-muted-foreground hover:text-foreground',
                   )}
                 >
                   <MapPinned className="size-3.5" aria-hidden /> Sân con
@@ -185,10 +196,10 @@ export function MyVenuesPage(): ReactElement {
                   aria-pressed={activeTab === 'pricing'}
                   onClick={() => setActiveTab('pricing')}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition',
+                    'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition-colors',
                     activeTab === 'pricing'
-                      ? 'bg-background shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
+                      ? 'bg-card font-semibold text-foreground shadow-xs'
+                      : 'font-medium text-muted-foreground hover:text-foreground',
                   )}
                 >
                   <Tag className="size-3.5" aria-hidden /> Bảng giá

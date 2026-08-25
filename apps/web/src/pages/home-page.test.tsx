@@ -48,7 +48,9 @@ describe('HomePage — landing công khai', () => {
 
     useAuthStore.getState().setSession(sampleUser, 'token-test');
     renderApp({ route: '/' });
-    expect(screen.getByRole('link', { name: 'Vào bảng điều khiển' })).toBeTruthy();
+    // Customer: không thấy "Bảng điều khiển", chỉ có lối "Đơn đặt sân" (nav + hero).
+    expect(screen.queryByRole('link', { name: /Bảng điều khiển/i })).toBeNull();
+    expect(screen.getAllByRole('link', { name: 'Đơn đặt sân' }).length).toBeGreaterThan(0);
   });
 
   it('SEO cơ bản: đặt <title> và meta description của landing', async () => {

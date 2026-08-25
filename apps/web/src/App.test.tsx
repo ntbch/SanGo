@@ -35,12 +35,14 @@ describe('App smoke', () => {
     expect(screen.queryByRole('heading', { name: 'Đăng nhập CourtHub' })).toBeNull();
   });
 
-  it('đã đăng nhập truy cập "/" → landing đổi CTA sang bảng điều khiển', async () => {
+  it('customer đăng nhập truy cập "/" → KHÔNG thấy Bảng điều khiển, CTA là Đơn đặt sân', async () => {
     useAuthStore.getState().setSession(sampleUser, 'token-test');
     renderApp({ route: '/' });
 
     expect(await screen.findByRole('heading', { level: 1, name: /CourtHub/ })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Vào bảng điều khiển' })).toBeTruthy();
+    // Quyết định UX mới: khái niệm "Bảng điều khiển" chỉ dành cho chủ sân/quản trị.
+    expect(screen.queryByRole('link', { name: /Bảng điều khiển/i })).toBeNull();
+    expect((await screen.findAllByRole('link', { name: 'Đơn đặt sân' })).length).toBeGreaterThan(0);
     // Người dùng đã đăng nhập không còn thấy CTA Đăng ký ở hero (header cũng ẩn).
     expect(screen.queryByRole('link', { name: 'Đăng ký' })).toBeNull();
   });

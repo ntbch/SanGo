@@ -71,7 +71,7 @@ export function OwnerBookingsPage(): ReactElement {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-xl font-bold">Đơn đặt</h1>
+        <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Đơn đặt</h1>
         <p className="text-sm text-muted-foreground">
           Xử lý check-in, khách không đến và huỷ hộ theo sân.
         </p>
@@ -84,7 +84,7 @@ export function OwnerBookingsPage(): ReactElement {
             id="bk-venue"
             value={venueId}
             onChange={(event) => setVenueId(event.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Tất cả</option>
             {(venuesQuery.data?.items ?? []).map((venue) => (
@@ -111,7 +111,7 @@ export function OwnerBookingsPage(): ReactElement {
             id="bk-status"
             value={status}
             onChange={(event) => setStatus(event.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Tất cả</option>
             {(Object.keys(STATUS_LABELS) as OwnerBookingStatus[]).map((key) => (
@@ -122,6 +122,7 @@ export function OwnerBookingsPage(): ReactElement {
           </select>
         </div>
         <Button
+          className="rounded-lg font-bold"
           onClick={() => {
             setCode('');
             setCheckinOpen(true);
@@ -131,7 +132,7 @@ export function OwnerBookingsPage(): ReactElement {
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
         <CardContent className="p-0">
           {bookingsQuery.isError ? (
             <p role="alert" className="p-4 text-sm text-destructive">
@@ -141,13 +142,13 @@ export function OwnerBookingsPage(): ReactElement {
           {rows.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Mã đơn</TableHead>
-                  <TableHead>Khách</TableHead>
-                  <TableHead>Ngày & giờ chơi</TableHead>
-                  <TableHead>Thanh toán</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Hành động</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Mã đơn</TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Khách</TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Ngày & giờ chơi</TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Thanh toán</TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Trạng thái</TableHead>
+                  <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -156,15 +157,24 @@ export function OwnerBookingsPage(): ReactElement {
                   const actionable = booking.status === 'CONFIRMED';
                   return (
                     <TableRow key={booking.id}>
-                      <TableCell className="font-mono text-xs">{booking.code}</TableCell>
+                      <TableCell className="font-score text-xs font-semibold uppercase tracking-wide">
+                        {booking.code}
+                      </TableCell>
                       <TableCell>{booking.customerName}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap font-score text-xs">
                         {booking.date} · {minutesToTime(booking.startMinute)}–
                         {minutesToTime(booking.endMinute)}
                       </TableCell>
-                      <TableCell>{formatVnd(booking.amountPaid)}</TableCell>
+                      <TableCell className="whitespace-nowrap font-score text-xs tabular-nums">
+                        {formatVnd(booking.amountPaid)}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant={badge.variant}>{badge.label}</Badge>
+                        <Badge
+                          variant={badge.variant}
+                          className="rounded-full px-2.5 py-1 font-score text-[10px] uppercase tracking-wide"
+                        >
+                          {badge.label}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1.5">
@@ -197,7 +207,7 @@ export function OwnerBookingsPage(): ReactElement {
             </Table>
           ) : null}
           {!bookingsQuery.isPending && !bookingsQuery.isError && rows.length === 0 ? (
-            <p className="py-14 text-center text-sm text-muted-foreground">
+            <p className="m-4 rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
               Không có đơn nào khớp bộ lọc.
             </p>
           ) : null}

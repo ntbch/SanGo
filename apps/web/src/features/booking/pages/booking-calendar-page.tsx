@@ -1,4 +1,12 @@
-import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Calendar } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  MapPin,
+} from 'lucide-react';
 import { useMemo, useState, type ReactElement } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
@@ -14,6 +22,7 @@ import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { WeeklyGrid } from '../components/weekly-grid';
 import { useCourtWeeklySlots, useCreateBookingHold } from '../queries';
 import { useFilteredAiSuggestions } from '../../ai/filtered-suggestions';
+import { cn } from '../../../lib/utils';
 import { validateContiguousSlots } from '../slot-utils';
 import { validateOpenMatchInput } from '../../matches/match-utils';
 import type { SelectedSlot, TimeSlot } from '../types';
@@ -173,7 +182,7 @@ export function BookingCalendarPage(): ReactElement {
 
   if (venueQuery.isPending) {
     return (
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8" aria-busy="true">
+      <div className="space-y-6" aria-busy="true">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
@@ -192,7 +201,7 @@ export function BookingCalendarPage(): ReactElement {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
@@ -201,10 +210,13 @@ export function BookingCalendarPage(): ReactElement {
               <ArrowLeft className="size-4" aria-hidden /> {venue.name}
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Chọn giờ đặt sân</h1>
-          <p className="text-sm text-muted-foreground">
-            {venue.address} · Giờ mở cửa: {minutesToTime(venue.openMinute)} –{' '}
-            {minutesToTime(venue.closeMinute)}
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Chọn giờ đặt sân</h1>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              {venue.address} · Giờ mở cửa: {minutesToTime(venue.openMinute)} –{' '}
+              {minutesToTime(venue.closeMinute)}
+            </span>
           </p>
         </div>
       </header>
@@ -212,24 +224,37 @@ export function BookingCalendarPage(): ReactElement {
       {/* Court Tabs & Week navigator */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         {/* Danh sách court */}
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Chọn sân con">
-          {courts.map((court) => (
-            <Button
-              key={court.id}
-              type="button"
-              variant={court.id === activeCourt?.id ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setSelectedCourtId(court.id);
-                setSelectedSlots([]);
-                // Đổi sân con -> reset lựa chọn ghép trận (người chơi theo từng sân).
-                setIsPublicMatch(false);
-              }}
-              className="rounded-full font-medium"
-            >
-              {court.name} ({court.slotMinutes}')
-            </Button>
-          ))}
+        <div
+          className="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1"
+          role="group"
+          aria-label="Chọn sân con"
+        >
+          {courts.map((court) => {
+            const isActive = court.id === activeCourt?.id;
+            return (
+              <Button
+                key={court.id}
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-pressed={isActive}
+                onClick={() => {
+                  setSelectedCourtId(court.id);
+                  setSelectedSlots([]);
+                  // Đổi sân con -> reset lựa chọn ghép trận (người chơi theo từng sân).
+                  setIsPublicMatch(false);
+                }}
+                className={cn(
+                  'rounded-md',
+                  isActive
+                    ? 'bg-card font-semibold text-foreground shadow-sm hover:bg-card'
+                    : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
+                )}
+              >
+                {court.name} ({court.slotMinutes}')
+              </Button>
+            );
+          })}
         </div>
 
         {/* Chuyển tuần */}
@@ -242,10 +267,13 @@ export function BookingCalendarPage(): ReactElement {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <div className="flex items-center gap-1.5 text-xs font-semibold px-2">
+          <div className="flex items-center gap-1.5 px-2 text-xs font-semibold">
             <Calendar className="size-4 text-primary" aria-hidden />
             <span>
-              Bắt đầu: {fromDate.slice(8, 10)}/{fromDate.slice(5, 7)}/{fromDate.slice(0, 4)}
+              Bắt đầu:{' '}
+              <span className="font-score">
+                {fromDate.slice(8, 10)}/{fromDate.slice(5, 7)}/{fromDate.slice(0, 4)}
+              </span>
             </span>
           </div>
           <Button variant="outline" size="sm" onClick={() => changeWeek(7)} aria-label="Tuần sau">
@@ -257,7 +285,7 @@ export function BookingCalendarPage(): ReactElement {
       {/* Weekly Slot Grid */}
       {/* Dải gợi ý khung giờ AI-2 (§3.13) — đã lọc slot còn trống (t11) */}
       {aiSuggestions.suggestions.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3">
           <span className="text-sm font-semibold">💡 Gợi ý cho bạn</span>
           {aiSuggestions.suggestions.map((suggestion) => (
             <button
@@ -282,9 +310,9 @@ export function BookingCalendarPage(): ReactElement {
                   title: 'Khung giờ này không còn trống trong tuần đang xem.',
                 });
               }}
-              className="rounded-full border border-primary/50 bg-background px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+              className="rounded-full border border-primary/40 bg-card px-3 py-1 text-xs font-semibold text-primary shadow-xs transition-colors hover:bg-accent"
             >
-              {suggestion.label}
+              <span className="font-score">{suggestion.label}</span>
             </button>
           ))}
         </div>
@@ -308,10 +336,10 @@ export function BookingCalendarPage(): ReactElement {
       )}
 
       {/* Sticky Bottom Bar / Action card */}
-      <Card className="sticky bottom-4 border-primary/40 shadow-lg bg-card/95 backdrop-blur-xs">
+      <Card className="sticky bottom-4 rounded-xl border-border/60 bg-card/95 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur-xs">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
           {selectedSlots.length > 0 ? (
-            <div className="w-full rounded-lg border bg-muted/40 px-3 py-2.5">
+            <div className="w-full rounded-xl border border-border/60 bg-muted/40 px-3 py-2.5">
               <label
                 htmlFor="open-match-toggle"
                 className="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium"
@@ -353,7 +381,7 @@ export function BookingCalendarPage(): ReactElement {
               <>
                 <div className="flex items-center gap-2">
                   <Badge variant="success">Đã chọn {selectedSlots.length} slot</Badge>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="font-score text-xs text-muted-foreground">
                     {selectedSlots[0].date} (
                     {minutesToTime(Math.min(...selectedSlots.map((s) => s.startMinute)))} –{' '}
                     {minutesToTime(Math.max(...selectedSlots.map((s) => s.endMinute)))})
@@ -361,15 +389,17 @@ export function BookingCalendarPage(): ReactElement {
                 </div>
                 <div className="text-sm">
                   <span className="text-muted-foreground">Tạm tính: </span>
-                  <strong className="text-foreground text-base">{formatVnd(subtotal)}</strong>
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <strong className="font-score text-base font-bold text-primary">
+                    {formatVnd(subtotal)}
+                  </strong>
+                  <span className="ml-2 text-xs text-muted-foreground">
                     (Cọc {venue.depositPercent}% = {formatVnd(depositAmount)})
                   </span>
                 </div>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Nhấp vào các ô màu xanh để chọn khung giờ bạn muốn chơi (chọn liền kề).
+                Nhấp vào các ô còn trống để chọn khung giờ bạn muốn chơi (chọn liền kề).
               </p>
             )}
           </div>
@@ -385,10 +415,11 @@ export function BookingCalendarPage(): ReactElement {
               onClick={() => {
                 void handleHoldAndPay();
               }}
-              className="font-semibold"
+              className="font-bold"
             >
               {holdMutation.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Giữ chỗ & Thanh toán →
+              Giữ chỗ & Thanh toán
+              <ArrowRight className="size-4" aria-hidden />
             </Button>
           </div>
         </CardContent>

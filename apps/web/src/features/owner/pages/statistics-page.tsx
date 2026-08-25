@@ -76,13 +76,20 @@ function KpiCard(options: {
 }): ReactElement {
   const { icon, label, value, testId } = options;
   return (
-    <Card>
+    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
       <CardContent className="flex flex-col gap-2 p-4">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{label}</span>
-          <span className="text-muted-foreground/70">{icon}</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {label}
+          </span>
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+            {icon}
+          </span>
         </div>
-        <p data-testid={testId} className="text-2xl font-bold tabular-nums">
+        <p
+          data-testid={testId}
+          className="font-score text-2xl font-extrabold tabular-nums tracking-tight sm:text-3xl"
+        >
           {value}
         </p>
       </CardContent>
@@ -179,7 +186,7 @@ function TopCourtsTable(options: {
 }): ReactElement {
   const { rows } = options;
   return (
-    <Card>
+    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
       <CardHeader className="flex-row items-center gap-2 pb-0">
         <ListOrdered className="size-4 text-muted-foreground" aria-hidden />
         <CardTitle className="text-base">Top sân con chạy nhất</CardTitle>
@@ -188,19 +195,25 @@ function TopCourtsTable(options: {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">#</TableHead>
-              <TableHead>Sân con</TableHead>
-              <TableHead className="text-right">Lượt đặt</TableHead>
-              <TableHead className="text-right">Doanh thu</TableHead>
+              <TableHead className="w-10 font-score text-[11px] font-semibold uppercase tracking-widest">#</TableHead>
+              <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Sân con</TableHead>
+              <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">Lượt đặt</TableHead>
+              <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">Doanh thu</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row, index) => (
               <TableRow key={row.courtId}>
-                <TableCell>{index + 1}</TableCell>
+                <TableCell className="font-score text-xs text-muted-foreground">
+                  {index + 1}
+                </TableCell>
                 <TableCell className="font-medium">{row.courtName}</TableCell>
-                <TableCell className="text-right tabular-nums">{row.bookings}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatVnd(row.revenue)}</TableCell>
+                <TableCell className="text-right font-score text-xs tabular-nums">
+                  {row.bookings}
+                </TableCell>
+                <TableCell className="text-right font-score text-xs tabular-nums">
+                  {formatVnd(row.revenue)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -231,7 +244,7 @@ export function StatisticsPage(): ReactElement {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-xl font-bold">Thống kê</h1>
+        <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Thống kê</h1>
         <p className="text-sm text-muted-foreground">
           Doanh thu, lượt đặt và xếp hạng sân con theo khoảng thời gian.
         </p>
@@ -245,7 +258,7 @@ export function StatisticsPage(): ReactElement {
               id="st-venue"
               value={activeVenueId}
               onChange={(event) => setVenueId(event.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {venues.map((venue) => (
                 <option key={venue.id} value={venue.id}>
@@ -260,7 +273,7 @@ export function StatisticsPage(): ReactElement {
           <div
             role="group"
             aria-label="Chọn khoảng thời gian"
-            className="flex overflow-hidden rounded-md border border-input"
+            className="flex gap-1 rounded-lg border border-input bg-card p-1"
           >
             {RANGE_OPTIONS.map((option) => (
               <button
@@ -269,10 +282,10 @@ export function StatisticsPage(): ReactElement {
                 aria-pressed={days === option}
                 onClick={() => setDays(option)}
                 className={cn(
-                  'h-9 px-3 text-sm transition-colors',
+                  'h-9 rounded-md px-3 text-sm transition-colors',
                   days === option
-                    ? 'bg-primary font-medium text-primary-foreground'
-                    : 'bg-background hover:bg-muted',
+                    ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
                 {option} ngày
@@ -293,7 +306,7 @@ export function StatisticsPage(): ReactElement {
       ) : hasNoVenue ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <BarChart3 className="size-10 text-muted-foreground/40" aria-hidden />
+            <BarChart3 className="mb-2 size-8 opacity-50" aria-hidden />
             <p className="font-medium">Chưa có cụm sân nào</p>
             <p className="max-w-md text-sm text-muted-foreground">
               Tạo cụm sân trong mục Cụm sân để bắt đầu xem thống kê.
@@ -303,7 +316,7 @@ export function StatisticsPage(): ReactElement {
       ) : isEmpty ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <BarChart3 className="size-10 text-muted-foreground/40" aria-hidden />
+            <BarChart3 className="mb-2 size-8 opacity-50" aria-hidden />
             <p className="font-medium">Chưa có đơn đặt nào trong kỳ</p>
             <p className="max-w-md text-sm text-muted-foreground">
               Thống kê sẽ xuất hiện khi có đơn đặt trong {days} ngày qua.
@@ -341,7 +354,7 @@ export function StatisticsPage(): ReactElement {
             />
           </div>
 
-          <Card>
+          <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
             <CardHeader className="pb-0">
               <CardTitle className="text-base">Doanh thu & lượt đặt theo ngày</CardTitle>
             </CardHeader>

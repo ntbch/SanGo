@@ -123,17 +123,17 @@ export function ProfilePage(): ReactElement {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto w-full max-w-2xl space-y-6">
       <header className="flex items-center gap-4">
         <UserAvatar fullName={user.fullName} avatarUrl={user.avatarUrl} size={64} />
         <div>
-          <h1 className="text-2xl font-bold">Hồ sơ cá nhân</h1>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Hồ sơ cá nhân</h1>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
       </header>
 
       {/* Thông tin cá nhân */}
-      <Card>
+      <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
         <CardHeader>
           <CardTitle>Thông tin cá nhân</CardTitle>
           <CardDescription>Cập nhật họ tên, số điện thoại và ảnh đại diện.</CardDescription>
@@ -185,7 +185,11 @@ export function ProfilePage(): ReactElement {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={profileForm.formState.isSubmitting}>
+              <Button
+                type="submit"
+                disabled={profileForm.formState.isSubmitting}
+                className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
+              >
                 {profileForm.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" aria-hidden /> Đang lưu…
@@ -200,10 +204,13 @@ export function ProfilePage(): ReactElement {
       </Card>
 
       {/* Đổi mật khẩu */}
-      <Card>
+      <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <KeyRound className="size-5 text-primary" aria-hidden /> Đổi mật khẩu
+            <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <KeyRound className="size-5" aria-hidden />
+            </span>
+            Đổi mật khẩu
           </CardTitle>
           <CardDescription>
             Đổi xong mọi phiên đăng nhập cũ sẽ bị thoát trên tất cả thiết bị.

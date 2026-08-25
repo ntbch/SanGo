@@ -1,18 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Trophy } from 'lucide-react';
+import { Lock, Mail, Phone, ShieldCheck, User, UserPlus } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 import { APP_NAME } from '@courthub/shared';
 import { Button } from '../../../components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../../components/ui/card';
+import { Card, CardTitle } from '../../../components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -29,10 +23,11 @@ import {
   FormLabel,
   FormMessage,
 } from '../../../components/ui/form';
-import { Input } from '../../../components/ui/input';
 import { toast } from '../../../components/ui/use-toast';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { register } from '../api';
+import { AuthInput } from '../components/auth-input';
+import { AUTH_CARD_CLASS, AuthShell } from '../components/auth-shell';
 import { registerFormSchema, type RegisterFormValues } from '../schemas';
 
 export function RegisterPage(): ReactElement {
@@ -60,22 +55,25 @@ export function RegisterPage(): ReactElement {
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <div className="mx-auto w-full max-w-md py-10">
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow">
-            <Trophy className="size-6" aria-hidden />
+    <>
+      <AuthShell>
+        <Card className={AUTH_CARD_CLASS}>
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <UserPlus className="size-5" aria-hidden />
+            </span>
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-bold tracking-tight">
+                Tạo tài khoản {APP_NAME}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Miễn phí cho khách đặt sân. Chủ sân đăng ký kinh doanh sau khi đăng nhập.
+              </p>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <CardTitle className="text-2xl">Tạo tài khoản {APP_NAME}</CardTitle>
-            <CardDescription>
-              Miễn phí cho khách đặt sân. Chủ sân đăng ký kinh doanh sau khi đăng nhập.
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+
           <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-4" noValidate>
+            <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
               <FormField
                 control={form.control}
                 name="fullName"
@@ -83,7 +81,12 @@ export function RegisterPage(): ReactElement {
                   <FormItem>
                     <FormLabel>Họ và tên</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nguyễn Văn A" autoComplete="name" {...field} />
+                      <AuthInput
+                        icon={<User aria-hidden />}
+                        placeholder="Nguyễn Văn A"
+                        autoComplete="name"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -96,7 +99,8 @@ export function RegisterPage(): ReactElement {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input
+                      <AuthInput
+                        icon={<Mail aria-hidden />}
                         type="email"
                         placeholder="ban@courthub.vn"
                         autoComplete="email"
@@ -114,7 +118,8 @@ export function RegisterPage(): ReactElement {
                   <FormItem>
                     <FormLabel>Số điện thoại</FormLabel>
                     <FormControl>
-                      <Input
+                      <AuthInput
+                        icon={<Phone aria-hidden />}
                         type="tel"
                         inputMode="tel"
                         placeholder="0901234567 (không bắt buộc)"
@@ -133,7 +138,8 @@ export function RegisterPage(): ReactElement {
                   <FormItem>
                     <FormLabel>Mật khẩu</FormLabel>
                     <FormControl>
-                      <Input
+                      <AuthInput
+                        icon={<Lock aria-hidden />}
                         type="password"
                         placeholder="Tối thiểu 8 ký tự"
                         autoComplete="new-password"
@@ -151,29 +157,38 @@ export function RegisterPage(): ReactElement {
                   <FormItem>
                     <FormLabel>Nhập lại mật khẩu</FormLabel>
                     <FormControl>
-                      <Input type="password" autoComplete="new-password" {...field} />
+                      <AuthInput
+                        icon={<ShieldCheck aria-hidden />}
+                        type="password"
+                        autoComplete="new-password"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="h-11 w-full rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
+              >
                 {isSubmitting ? 'Đang tạo tài khoản…' : 'Đăng ký'}
               </Button>
             </form>
           </Form>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Đã có tài khoản?{'  '}
             <RouterLink
               to="/login"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="font-semibold text-primary underline-offset-4 hover:underline"
             >
               Đăng nhập
             </RouterLink>
           </p>
-        </CardContent>
-      </Card>
+        </Card>
+      </AuthShell>
 
       <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
         <DialogContent>
@@ -191,6 +206,6 @@ export function RegisterPage(): ReactElement {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

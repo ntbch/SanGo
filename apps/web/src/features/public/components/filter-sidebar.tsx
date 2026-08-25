@@ -35,7 +35,8 @@ interface FilterSidebarProps {
 }
 
 /**
- * Cột lọc trái: Dropdown 12 quận Hà Nội, chip loại sân + sắp xếp.
+ * Cột lọc trái: panel kính mờ sticky (DESIGN.md — Depth Cues/Glassmorphism cho
+ * filter bar) gồm dropdown 12 quận Hà Nội, chip loại sân + sắp xếp.
  * Dùng native select để tinh gọn và đồng bộ.
  */
 export function FilterSidebar({
@@ -52,7 +53,13 @@ export function FilterSidebar({
     : ['newest', 'price-asc', 'price-desc', 'distance'];
 
   return (
-    <aside className="space-y-6" aria-label="Bộ lọc tìm kiếm">
+    <aside
+      aria-label="Bộ lọc tìm kiếm"
+      className="space-y-6 rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_4px_20px_rgba(15,23,42,0.05)] backdrop-blur-md lg:sticky lg:top-28"
+    >
+      <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        Bộ lọc
+      </p>
       <div className="space-y-2">
         <Label htmlFor="venue-district" className="text-sm font-semibold">
           Quận / Huyện (Hà Nội)
@@ -65,8 +72,8 @@ export function FilterSidebar({
             onDistrictChange(event.target.value ? event.target.value : undefined)
           }
           className={cn(
-            'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors',
+            'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           )}
         >
           <option value="">Tất cả quận/huyện</option>
@@ -85,7 +92,11 @@ export function FilterSidebar({
             type="button"
             variant={sportType === undefined ? 'default' : 'outline'}
             size="sm"
-            className="rounded-full"
+            className={cn(
+              'rounded-full',
+              sportType === undefined && 'bg-primary text-primary-foreground',
+            )}
+            aria-pressed={sportType === undefined}
             onClick={() => onSportTypeChange(undefined)}
           >
             Tất cả
@@ -96,7 +107,10 @@ export function FilterSidebar({
               type="button"
               variant={sportType === type ? 'default' : 'outline'}
               size="sm"
-              className="rounded-full"
+              className={cn(
+                'rounded-full',
+                sportType === type && 'bg-primary text-primary-foreground',
+              )}
               aria-pressed={sportType === type}
               onClick={() => onSportTypeChange(type)}
             >
@@ -116,8 +130,8 @@ export function FilterSidebar({
           value={sort}
           onChange={(event) => onSortChange(event.target.value as VenueSort)}
           className={cn(
-            'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors',
+            'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           )}
         >
           {availableSorts.map((key) => (

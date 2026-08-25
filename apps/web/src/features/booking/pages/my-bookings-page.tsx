@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Star, Loader2, UsersRound } from 'lucide-react';
+import { Calendar, Clock, Plus, Star, Loader2, UsersRound } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -115,18 +115,22 @@ export function MyCustomerBookingsPage(): ReactElement {
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold">Đơn đặt sân của tôi</h1>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            Đơn đặt sân của tôi
+          </h1>
           <p className="text-sm text-muted-foreground">
             Theo dõi các trận đấu sắp diễn ra, lịch sử chơi và đánh giá.
           </p>
         </div>
-        <Button asChild size="sm">
-          <Link to="/venues">Đặt sân mới +</Link>
+        <Button asChild size="sm" className="rounded-lg font-bold">
+          <Link to="/venues">
+            <Plus className="size-4" aria-hidden /> Đặt sân mới
+          </Link>
         </Button>
       </header>
 
       {/* Tabs filter */}
-      <div className="flex w-fit gap-1.5 rounded-lg bg-muted p-1">
+      <div className="inline-flex w-fit gap-1 rounded-full bg-muted p-1">
         {(Object.keys(TAB_LABELS) as TabFilter[]).map((key) => (
           <button
             key={key}
@@ -134,10 +138,10 @@ export function MyCustomerBookingsPage(): ReactElement {
             aria-pressed={tab === key}
             onClick={() => setTab(key)}
             className={cn(
-              'rounded-md px-3.5 py-1.5 text-sm font-medium transition',
+              'rounded-full px-4 py-1.5 text-sm transition-colors',
               tab === key
-                ? 'bg-background shadow-xs font-semibold'
-                : 'text-muted-foreground hover:text-foreground',
+                ? 'bg-card font-semibold text-foreground shadow-xs'
+                : 'font-medium text-muted-foreground hover:text-foreground',
             )}
           >
             {TAB_LABELS[key]}
@@ -158,7 +162,7 @@ export function MyCustomerBookingsPage(): ReactElement {
         </p>
       ) : bookings.length === 0 ? (
         <div className="rounded-xl border border-dashed py-16 text-center space-y-3">
-          <Calendar className="size-10 text-muted-foreground/40 mx-auto" />
+          <Calendar className="mx-auto mb-2 size-8 opacity-50" aria-hidden />
           <p className="text-sm text-muted-foreground">Không có đơn đặt sân nào trong mục này.</p>
           <Button asChild variant="outline" size="sm">
             <Link to="/venues">Khám phá sân ngay</Link>
@@ -172,16 +176,27 @@ export function MyCustomerBookingsPage(): ReactElement {
             const canReview = b.status === 'COMPLETED' && !b.hasReviewed;
 
             return (
-              <Card key={b.id}>
+              <Card
+                key={b.id}
+                className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]"
+              >
                 <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5">
                   <div className="space-y-2 min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono font-bold text-sm text-primary">{b.code}</span>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                      <span className="font-score text-xs font-bold uppercase tracking-widest text-primary">
+                        {b.code}
+                      </span>
+                      <Badge
+                        variant={badge.variant}
+                        className="rounded-full px-2.5 py-1 font-score text-[10px] uppercase tracking-wide"
+                      >
+                        {badge.label}
+                      </Badge>
                       {b.isPublicMatch && b.status === 'CONFIRMED' ? (
                         <Badge
                           variant={b.matchFull ? 'success' : 'warning'}
                           data-testid="open-match-badge"
+                          className="rounded-full px-2.5 py-1 font-score text-[10px] uppercase tracking-wide"
                         >
                           {b.matchFull
                             ? 'Đã đủ người'
@@ -194,16 +209,22 @@ export function MyCustomerBookingsPage(): ReactElement {
                       <p className="font-bold text-base">
                         {b.venueName} · {b.courtName}
                       </p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="size-3.5" /> {b.date} ·{' '}
-                        <Clock className="size-3.5 ml-1" /> {minutesToTime(b.startMinute)} –{' '}
-                        {minutesToTime(b.endMinute)}
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="size-3.5" aria-hidden />{' '}
+                        <span className="font-score">{b.date}</span> ·{' '}
+                        <Clock className="ml-1 size-3.5" aria-hidden />{' '}
+                        <span className="font-score">
+                          {minutesToTime(b.startMinute)} – {minutesToTime(b.endMinute)}
+                        </span>
                       </p>
                     </div>
 
                     <div className="text-xs text-muted-foreground pt-1">
                       <span>
-                        Đã thanh toán: <strong>{formatVnd(b.amountPaid)}</strong>
+                        Đã thanh toán:{' '}
+                        <strong className="font-score text-primary">
+                          {formatVnd(b.amountPaid)}
+                        </strong>
                       </span>
                       {b.paymentType === 'DEPOSIT' ? (
                         <span className="ml-2">
@@ -215,7 +236,7 @@ export function MyCustomerBookingsPage(): ReactElement {
                     </div>
 
                     {b.review ? (
-                      <div className="rounded-md bg-muted/50 p-2.5 text-xs space-y-1 mt-2">
+                      <div className="mt-2 space-y-1 rounded-lg bg-muted/60 p-3 text-xs">
                         <div className="flex items-center gap-1 font-semibold">
                           <span>Đánh giá của bạn:</span>
                           <StarRating value={b.review.rating} />
@@ -293,14 +314,14 @@ export function MyCustomerBookingsPage(): ReactElement {
           {refundQuery.isPending ? (
             <Skeleton className="h-20 w-full" />
           ) : refundQuery.data ? (
-            <div className="rounded-lg border bg-muted/40 p-3 text-xs space-y-1.5">
+            <div className="space-y-1.5 rounded-lg border border-border/60 bg-muted/40 p-3 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Thời gian tới giờ chơi:</span>
                 <span className="font-medium">~{refundQuery.data.hoursUntilMatch} giờ</span>
               </div>
-              <div className="flex justify-between font-semibold text-sm pt-1 border-t">
+              <div className="flex justify-between border-t pt-1 text-sm font-semibold">
                 <span>Mức hoàn dự kiến ({refundQuery.data.refundPercent}%):</span>
-                <span className="text-primary font-bold">
+                <span className="font-score text-primary">
                   {formatVnd(refundQuery.data.refundAmount)}
                 </span>
               </div>
@@ -317,7 +338,7 @@ export function MyCustomerBookingsPage(): ReactElement {
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="vd: Bận việc đột xuất..."
-              className="w-full rounded-md border border-input bg-background p-2 text-xs"
+              className="w-full rounded-lg border border-input bg-background p-2 text-xs shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
@@ -391,7 +412,7 @@ export function MyCustomerBookingsPage(): ReactElement {
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
                 placeholder="Sân sạch sẽ, ánh sáng tốt, nhân viên hỗ trợ nhiệt tình..."
-                className="w-full rounded-md border border-input bg-background p-2.5 text-xs"
+                className="w-full rounded-lg border border-input bg-background p-2.5 text-xs shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -455,7 +476,7 @@ export function MyCustomerBookingsPage(): ReactElement {
                   {participantsQuery.data.participants.map((p) => (
                     <li
                       key={p.userId}
-                      className="flex items-center gap-3 rounded-md border px-3 py-2"
+                      className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 transition-colors hover:border-primary/40"
                     >
                       <span
                         aria-hidden

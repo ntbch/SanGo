@@ -52,7 +52,7 @@ export function ApprovalQueuePage(): ReactElement {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="flex items-center gap-2 text-xl font-bold">
+        <h1 className="flex items-center gap-2 text-xl font-extrabold tracking-tight sm:text-2xl">
           <ShieldCheck className="size-5 text-primary" aria-hidden /> Quản trị sân
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -61,7 +61,7 @@ export function ApprovalQueuePage(): ReactElement {
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1.5 rounded-lg bg-muted p-1">
+        <div className="inline-flex gap-1 rounded-full bg-muted p-1">
           {(Object.keys(FILTER_LABELS) as StatusFilter[]).map((key) => (
             <button
               key={key}
@@ -69,10 +69,10 @@ export function ApprovalQueuePage(): ReactElement {
               aria-pressed={filter === key}
               onClick={() => setFilter(key)}
               className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-medium transition',
+                'rounded-full px-4 py-1.5 text-sm transition-colors',
                 filter === key
-                  ? 'bg-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'bg-card font-semibold text-foreground shadow-xs'
+                  : 'font-medium text-muted-foreground hover:text-foreground',
               )}
             >
               {FILTER_LABELS[key]}
@@ -103,7 +103,10 @@ export function ApprovalQueuePage(): ReactElement {
 
       <div className="space-y-3">
         {items.map((venue) => (
-          <Card key={venue.id}>
+          <Card
+            key={venue.id}
+            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.12)]"
+          >
             <CardContent className="flex flex-wrap items-start gap-4 p-4">
               {venue.images[0] !== undefined ? (
                 <img src={venue.images[0]} alt="" className="h-20 w-32 rounded-lg object-cover" />
@@ -115,7 +118,10 @@ export function ApprovalQueuePage(): ReactElement {
               <div className="min-w-0 flex-1 space-y-1">
                 <p className="flex flex-wrap items-center gap-2 font-semibold">
                   {venue.name}
-                  <Badge variant={STATUS_VARIANTS[venue.status]}>
+                  <Badge
+                    variant={STATUS_VARIANTS[venue.status]}
+                    className="rounded-full px-2.5 py-1 font-score text-[10px] uppercase tracking-wide"
+                  >
                     {FILTER_LABELS[venue.status]}
                   </Badge>
                 </p>
@@ -127,7 +133,7 @@ export function ApprovalQueuePage(): ReactElement {
                   Tiện ích: {venue.amenities.length > 0 ? venue.amenities.join(' · ') : '—'}
                 </p>
                 {venue.rejectReason ? (
-                  <p className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
+                  <p className="rounded-lg bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
                     Lý do từ chối: {venue.rejectReason}
                   </p>
                 ) : null}
@@ -135,6 +141,7 @@ export function ApprovalQueuePage(): ReactElement {
               <div className="flex shrink-0 flex-col gap-1.5">
                 <Button
                   size="sm"
+                  className="rounded-lg font-bold"
                   disabled={approveMutation.isPending}
                   onClick={() => approveMutation.mutate(venue.id)}
                 >
@@ -143,6 +150,7 @@ export function ApprovalQueuePage(): ReactElement {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => {
                     setRejectTarget(venue);
                     setReason('');
@@ -183,7 +191,7 @@ export function ApprovalQueuePage(): ReactElement {
               onChange={(event) => setReason(event.target.value)}
               rows={3}
               placeholder="vd: Ảnh chưa rõ mặt sân, vui lòng bổ sung tối thiểu 3 ảnh thật"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <DialogFooter>

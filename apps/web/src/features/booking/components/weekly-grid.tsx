@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { useMemo, type ReactElement } from 'react';
 import { cn } from '../../../lib/utils';
 import { minutesToTime, formatVnd } from '../../public/format';
@@ -18,32 +19,34 @@ const STATE_STYLES: Record<
   SlotState,
   { bg: string; text: string; label: string; selectable: boolean }
 > = {
+  // Recipe §4.5: slot trống — card nền sáng, hover đổi sang primary.
   AVAILABLE: {
-    bg: 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 cursor-pointer',
+    bg: 'border-input bg-card text-foreground cursor-pointer transition-colors hover:border-primary hover:text-primary',
     text: 'Trống',
     label: 'Trống',
     selectable: true,
   },
+  // Recipe §4.5: slot không còn — gạch chéo + opacity-40, KHÔNG đổi màu khác.
   BOOKED: {
-    bg: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 cursor-not-allowed opacity-75',
+    bg: 'border-border bg-muted text-muted-foreground line-through opacity-40 cursor-not-allowed',
     text: 'Đã kín',
     label: 'Đã kín',
     selectable: false,
   },
   HELD: {
-    bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 cursor-not-allowed animate-pulse',
+    bg: 'border-border bg-muted text-muted-foreground line-through opacity-40 cursor-not-allowed',
     text: 'Đang giữ',
     label: 'Đang giữ',
     selectable: false,
   },
   MAINTENANCE: {
-    bg: 'bg-muted/80 border-border text-muted-foreground cursor-not-allowed opacity-60',
+    bg: 'border-border bg-muted text-muted-foreground line-through opacity-40 cursor-not-allowed',
     text: 'Bảo trì',
     label: 'Bảo trì',
     selectable: false,
   },
   PAST: {
-    bg: 'bg-muted/40 border-border/50 text-muted-foreground/50 cursor-not-allowed opacity-40',
+    bg: 'border-border bg-muted text-muted-foreground line-through opacity-40 cursor-not-allowed',
     text: 'Quá hạn',
     label: 'Quá hạn',
     selectable: false,
@@ -88,26 +91,18 @@ export function WeeklyGrid({
   return (
     <div className="space-y-4">
       {/* Chú thích màu trạng thái */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground rounded-lg bg-muted/40 p-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-emerald-400 bg-emerald-100 dark:bg-emerald-900" />
+          <span className="size-3 rounded border border-input bg-card" />
           <span>Trống (chọn được)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-primary bg-primary text-primary-foreground" />
+          <span className="size-3 rounded border-turf bg-turf" />
           <span className="font-medium text-foreground">Đang chọn</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-amber-400 bg-amber-100 dark:bg-amber-900" />
-          <span>Đang giữ (10')</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-rose-300 bg-rose-100 dark:bg-rose-900" />
-          <span>Đã kín</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-border bg-muted" />
-          <span>Quá hạn / Bảo trì</span>
+          <span className="size-3 rounded border-border bg-muted opacity-60" />
+          <span>Không khả dụng: đã kín · đang giữ · bảo trì · quá hạn</span>
         </div>
       </div>
 
@@ -138,7 +133,7 @@ export function WeeklyGrid({
           <tbody>
             {timeRows.map((row) => (
               <tr key={row.start} className="border-b last:border-b-0 hover:bg-muted/10">
-                <td className="p-2 text-center text-xs font-mono text-muted-foreground sticky left-0 bg-card z-10">
+                <td className="p-2 text-center font-score text-xs text-muted-foreground sticky left-0 bg-card z-10">
                   {minutesToTime(row.start)}
                 </td>
                 {weekDays.map((d) => {
@@ -160,15 +155,17 @@ export function WeeklyGrid({
                         aria-pressed={isSelected}
                         aria-label={`Slot ${d.date} ${minutesToTime(slot.startMinute)} - ${style.label}`}
                         className={cn(
-                          'w-full py-2 px-1 rounded-md border text-xs font-medium transition-all flex flex-col items-center justify-center gap-0.5 min-h-[46px]',
+                          'w-full px-1 py-2 rounded-lg border text-xs font-medium transition-all flex flex-col items-center justify-center gap-0.5 min-h-[46px]',
                           isSelected
-                            ? 'bg-primary border-primary text-primary-foreground shadow-sm ring-2 ring-primary/40 font-bold scale-[0.98]'
+                            ? 'border-turf bg-turf font-bold text-navy-deep shadow-sm'
                             : style.bg,
                         )}
                       >
                         {isSelected ? (
                           <>
-                            <span>Đã chọn ✓</span>
+                            <span className="flex items-center gap-1">
+                              <Check className="size-3" aria-hidden /> Đã chọn
+                            </span>
                             {slot.price ? (
                               <span className="text-[10px] opacity-90">
                                 {formatVnd(slot.price)}
