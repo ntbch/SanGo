@@ -26,7 +26,7 @@ export class MailerService {
           from: process.env.MAIL_FROM ?? 'CourtHub <no-reply@courthub.vn>',
           to: [email],
           subject: 'CourtHub — Đặt lại mật khẩu',
-          html: `<p>Bạn vừa yêu cầu đặt lại mật khẩu CourtHub.</p><p><a href="${resetLink}">Nhấn vào đây để đặt mật khẩu mới</a> (hết hạn sau 15 phút).</p><p>Nếu không phải bạn, hãy bỏ qua email này.</p>`,
+          html: `<p>Bạn vừa yêu cầu đặt lại mật khẩu CourtHub.</p><p><a href="${resetLink}">Nhấn vào đây để đặt mật khẩu mới</a> (hết hạn sau 30 phút).</p><p>Nếu không phải bạn, hãy bỏ qua email này.</p>`,
         }),
       });
       if (!res.ok) {

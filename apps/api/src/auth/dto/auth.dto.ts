@@ -30,3 +30,9 @@ export const ResetPasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 export type ResetPasswordDto = z.infer<typeof ResetPasswordSchema>;
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
+  newPassword: passwordSchema,
+});
+export type ChangePasswordDto = z.infer<typeof ChangePasswordSchema>;

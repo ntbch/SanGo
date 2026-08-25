@@ -92,6 +92,7 @@ model User {
   passwordHash String
   fullName     String
   phone        String?
+  avatarUrl    String?
   role         UserRole   @default(CUSTOMER)
   status       UserStatus @default(ACTIVE)
   createdAt    DateTime   @default(now())
@@ -103,6 +104,7 @@ model User {
   bookingHolds  BookingHold[]
   reviews       Review[]
   matchParticipants MatchParticipant[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -120,6 +122,21 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+/// Reset token quên mật khẩu — chỉ lưu sha256(token), token gốc chỉ đi qua email/console dev.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model Venue {

@@ -1,12 +1,14 @@
 import { Body, Controller, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
+  ChangePasswordSchema,
   ForgotPasswordSchema,
   LoginSchema,
   RegisterSchema,
   ResetPasswordSchema,
+  type ChangePasswordDto,
   type ForgotPasswordDto,
   type LoginDto,
   type RegisterDto,
@@ -14,6 +16,8 @@ import {
 } from './dto/auth.dto';
 import { ZodValidationPipe } from './zod-validation.pipe';
 import { REFRESH_COOKIE, REFRESH_TTL_SECONDS, AuthService } from './auth.service';
+import { CurrentUser } from '../common/guards/current-user.decorator';
+import { JwtAuthGuard, type AuthUser } from '../common/guards/jwt-auth.guard';
 
 const emailPasswordBody = {
   schema: {
@@ -149,8 +153,16 @@ export class AuthController {
     status: 200,
     description: 'Luôn thành công — nếu email tồn tại sẽ nhận được link qua email/console',
   })
-  async forgotPassword(@Body(new ZodValidationPipe(ForgotPasswordSchema)) dto: ForgotPasswordDto) {
-    await this.authService.forgotPassword(dto);
+  async forgotPassword(
+    @Res({ passthrough: true }) res: Response,
+    @Body(new ZodValidationPipe(ForgotPasswordSchema)) dto: ForgotPasswordDto,
+  ) {
+    const resetToken = await this.authService.forgotPassword(dto);
+    // MAILER chưa có (RESEND_API_KEY trống): môi trường dev/test lấy token qua header
+    // để mở thẳng link đặt lại mật khẩu mà không cần đọc console.
+    if (resetToken && process.env.NODE_ENV !== 'production') {
+      res.setHeader('X-Dev-Reset-Token', resetToken);
+    }
     return { message: 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.' };
   }
 
@@ -168,5 +180,34 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'RESET_TOKEN_INVALID / RESET_TOKEN_STALE' })
   async resetPassword(@Body(new ZodValidationPipe(ResetPasswordSchema)) dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
+  }
+
+  @Post('change-password')
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Đổi mật khẩu khi đang đăng nhập — mọi phiên cũ bị đăng xuất' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['currentPassword', 'newPassword'],
+      properties: {
+        currentPassword: { type: 'string' },
+        newPassword: { type: 'string', minLength: 8, maxLength: 72 },
+      },
+    },
+  })
+  @ApiResponse({ status: 204, description: 'Đổi mật khẩu thành công, xóa cookie refresh' })
+  @ApiResponse({ status: 400, description: 'CURRENT_PASSWORD_WRONG / validation lỗi zod' })
+  @ApiResponse({ status: 401, description: 'UNAUTHENTICATED — thiếu/sai Bearer token' })
+  async changePassword(
+    @CurrentUser() auth: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+    @Body(new ZodValidationPipe(ChangePasswordSchema)) dto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(auth.id, dto);
+    // Session cũ đã bị thu hồi ở DB — xóa luôn cookie refresh phía client.
+    res.clearCookie(REFRESH_COOKIE, { path: '/api/v1/auth' });
   }
 }

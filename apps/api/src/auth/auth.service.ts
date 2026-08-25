@@ -8,11 +8,17 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from './mailer.service';
-import type { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto/auth.dto';
+import type {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
 
 const BCRYPT_COST = 12;
 export const REFRESH_COOKIE = 'courthub_refresh';
@@ -28,16 +34,15 @@ export interface SessionTokens {
 
 export type SafeUser = Pick<
   User,
-  'id' | 'email' | 'fullName' | 'phone' | 'role' | 'status' | 'createdAt'
+  'id' | 'email' | 'fullName' | 'phone' | 'avatarUrl' | 'role' | 'status' | 'createdAt'
 >;
+
+/** Reset token chỉ lưu sha256(token) trong DB; token gốc (64 hex) chỉ đi qua email/console dev. */
+const RESET_TOKEN_TTL_MINUTES = 30;
+const RESET_TOKEN_TTL_MS = RESET_TOKEN_TTL_MINUTES * 60 * 1000;
 
 function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex');
-}
-
-/** Fingerprint của mật khẩu hiện tại — nhúng vào reset token để đổi mật khẩu xong thì link cũ vô hiệu. */
-function passwordVerifier(passwordHash: string): string {
-  return sha256('courthub-pwdv:' + passwordHash).slice(0, 32);
 }
 
 @Injectable()
@@ -179,60 +184,92 @@ export class AuthService {
   }
 
   /**
-   * Quên mật khẩu: LUÔN trả lời thành công chung chung để tránh dò email (đặc tả §7).
-   * Reset token là JWT 15 phút nhúng fingerprint mật khẩu hiện tại.
-   * Chưa có RESEND_API_KEY => MailerService chỉ log link ra console (TODO env).
+   * Quên mật khẩu: LUÔN im lặng khi email không tồn tại/khóa để tránh dò email (đặc tả §7).
+   * Sinh token ngẫu nhiên 64 hex, chỉ lưu sha256(token) vào DB, hết hạn sau 30 phút.
+   * Yêu cầu mới sẽ vô hiệu mọi link cũ còn hiệu lực của user.
+   * Trả về token gốc để controller expose qua header X-Dev-Reset-Token khi KHÔNG ở production
+   * (MAILER chưa cấu hình RESEND_API_KEY => MailerService log link ra console).
    */
-  async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
+  async forgotPassword(dto: ForgotPasswordDto): Promise<string | null> {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (user && user.status === 'ACTIVE') {
-      const token = await this.jwtService.signAsync(
-        { sub: user.id, tv: passwordVerifier(user.passwordHash), typ: 'pwd_reset' },
-        { secret: process.env.JWT_SECRET, expiresIn: '15m' },
-      );
-      const webUrl = process.env.WEB_APP_URL ?? 'http://localhost:5173';
-      await this.mailer.sendPasswordResetLink(
-        user.email,
-        `${webUrl}/dat-lai-mat-khau?token=${token}`,
-      );
-    }
+    if (!user || user.status !== 'ACTIVE') return null;
+
+    // Chỉ link MỚI NHẤT được dùng: dọn mọi token cũ (kể cả đã dùng) của user.
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: sha256(token),
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      },
+    });
+
+    const webUrl = process.env.WEB_APP_URL ?? 'http://localhost:5173';
+    await this.mailer.sendPasswordResetLink(
+      user.email,
+      `${webUrl}/dat-lai-mat-khau?token=${token}`,
+    );
+    return token;
   }
 
+  /** Đặt lại mật khẩu bằng token từ link: verify hash + hạn dùng trong DB, thu hồi mọi session. */
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
-    let payload: { sub: string; tv: string; typ: string };
-    try {
-      payload = await this.jwtService.verifyAsync(dto.token, { secret: process.env.JWT_SECRET });
-    } catch {
+    const row = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: sha256(dto.token) },
+    });
+    if (!row || row.expiresAt.getTime() <= Date.now()) {
       throw new BadRequestException({
         message: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
         code: 'RESET_TOKEN_INVALID',
       });
     }
-    if (payload.typ !== 'pwd_reset') {
-      throw new BadRequestException({ message: 'Token không hợp lệ', code: 'RESET_TOKEN_INVALID' });
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) {
-      throw new BadRequestException({ message: 'Token không hợp lệ', code: 'RESET_TOKEN_INVALID' });
-    }
-    // Mật khẩu đã đổi sau khi link được cấp => link cũ vô hiệu.
-    if (passwordVerifier(user.passwordHash) !== payload.tv) {
+    if (row.usedAt) {
       throw new BadRequestException({
         message: 'Link đặt lại mật khẩu đã được sử dụng, hãy yêu cầu link mới',
         code: 'RESET_TOKEN_STALE',
       });
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash: await bcrypt.hash(dto.newPassword, BCRYPT_COST) },
-    });
-    // Đổi mật khẩu thành công => thu hồi mọi session đang có.
-    await this.prisma.refreshToken.updateMany({
-      where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    // Nguyên tử: đổi mật khẩu + đánh dấu link đã dùng + thu hồi toàn bộ refresh token.
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: row.userId },
+        data: { passwordHash: await bcrypt.hash(dto.newPassword, BCRYPT_COST) },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: row.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: row.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
+  /** Đổi mật khẩu khi đang đăng nhập: xác thực mật khẩu hiện tại, thu hồi mọi session cũ. */
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !(await bcrypt.compare(dto.currentPassword, user.passwordHash))) {
+      throw new BadRequestException({
+        message: 'Mật khẩu hiện tại không đúng',
+        code: 'CURRENT_PASSWORD_WRONG',
+      });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: await bcrypt.hash(dto.newPassword, BCRYPT_COST) },
+      }),
+      // Đổi mật khẩu thành công => mọi phiên đăng nhập cũ phải đăng nhập lại.
+      this.prisma.refreshToken.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   /** Cấp cặp token cho user; onRotate cho phép xoay vòng trong cùng transaction. */
@@ -275,6 +312,7 @@ export function toSafeUser(user: User): SafeUser {
     email: user.email,
     fullName: user.fullName,
     phone: user.phone,
+    avatarUrl: user.avatarUrl,
     role: user.role,
     status: user.status,
     createdAt: user.createdAt,
