@@ -8,12 +8,12 @@
 
 | Hạng mục | Kết quả |
 | --- | --- |
-| Guest journey (landing → /venues → Giữ chỗ → login?next) | ⚠️ 5/6 bước PASS — **lỗi mất redirect ?next sau đăng nhập** |
+| Guest journey (landing → /venues → Giữ chỗ → login?next) | ✅ 6/6 PASS trên a0927dc (lần đầu trên 1afb676: 5/6, lỗi QA-T4-01 đã được fix) |
 | Quên mật khẩu end-to-end trên mock | ✅ 5/5 PASS |
 | Đổi mật khẩu + sửa hồ sơ | ✅ 7/7 PASS |
 | Gates lint / typecheck / test / build | ✅ toàn bộ xanh (0 lỗi) |
 
-**Tổng smoke journey: 16 PASS / 1 FAIL** — chi tiết từng bước ở §2.
+**Tổng smoke journey (chạy lại trên a0927dc): 17/17 PASS** — chi tiết ở §2. Lần chạy đầu trên 1afb676: 16 PASS / 1 FAIL (QA-T4-01).
 
 ## 2. Chi tiết smoke journey
 
@@ -26,7 +26,7 @@
 | J1.3 Vào chi tiết sân | PASS | slug san-the-thao-quan-ngua, h1 «Sân Thể Thao Quần Ngựa» |
 | J1.4 Lịch tuần + tab sân con render | PASS | URL /venues/san-the-thao-quan-ngua/book |
 | J1.5 Khách chọn slot Trống → bấm «Giữ chỗ & Thanh toán →» | PASS | Toast «Yêu cầu đăng nhập» + chuyển /login?next=%2Fvenues%2F…%3FcourtId%3Dc-hn-101 |
-| J1.6 Đăng nhập xong quay lại đúng trang next | **FAIL** | Sau đăng nhập thành công rơi về /dashboard thay vì trang giữ chỗ — xem Finding QA-T4-01 |
+| J1.6 Đăng nhập xong quay lại đúng trang next | PASS (sau fix a0927dc) | URL cuối = /venues/san-the-thao-quan-ngua/book?courtId=c-hn-101 đúng đích next — xem Finding QA-T4-01 |
 
 ### J2 · Quên mật khẩu end-to-end (mock, P1-F2)
 
@@ -40,19 +40,6 @@
 
 Token reset là one-time đúng hợp đồng (dùng lại sẽ RESET_TOKEN_STALE — đã phủ bởi unit test password-pages.test.tsx).
 
-## 3. Finding
-
-### QA-T4-01 · Mất redirect ?next sau đăng nhập (Medium-High) — cần fix trong Đợt 2
-
-- **Hiện tượng:** khách bấm «Giữ chỗ & Thanh toán →» bị đưa tới /login?next=%2Fvenues%2F<slug>%2Fbook%3FcourtId%3D…; sau khi đăng nhập thành công, app luôn về /dashboard thay vì quay lại trang giữ chỗ. Tái hiện 100%: 2 lần trong journey + 1 lần repro độc lập với full-page load.
-- **Phạm vi ảnh hưởng:** trọn vòng guest booking P1-F1; mọi luồng dùng ?next (Giữ chỗ, tham gia trận ghép, AI giữ chỗ).
-- **Nguyên nhân (phân tích tĩnh):** LoginPage.onSubmit gọi setSession() (zustand — thông báo subscriber ngay lập tức) TRƯỚC navigate(target). Khi store cập nhật, GuestRoute re-render thấy user !== null và trả <Navigate to="/dashboard" replace /> trước khi navigate(target) kịp có hiệu lực — đích ?next bị ghi đè.
-- **Gợi ý fix (chọn 1):**
-  1. Tính target và gọi navigate(target, { replace: true }) TRƯỚC setSession;
-  2. hoặc cho GuestRoute ưu tiên location.state.from / giữ vị trí trong một nhịp sau login;
-  3. hoặc dời setSession xuống sau navigate.
-- **Kiểm thử bổ sung đề xuất:** thêm case e2e/unit «login có ?next → URL đích = next» để khoá hồi quy.
-
 ### J3 · Sửa hồ sơ + đổi mật khẩu (owner, P1-F2)
 
 | Bước | Kết quả | Bằng chứng |
@@ -63,6 +50,24 @@ Token reset là one-time đúng hợp đồng (dùng lại sẽ RESET_TOKEN_STAL
 | J3.4 Phiên cũ chết — vào lại /dashboard trong cùng phiên | PASS | ProtectedRoute đẩy về /login |
 | J3.5 Đăng nhập lại bằng MK cũ (owner) | PASS | INVALID_CREDENTIALS |
 | J3.6 Đăng nhập bằng MK mới (owner) | PASS | Vào /dashboard |
+
+## 3. Finding
+
+### QA-T4-01 · Mất redirect ?next sau đăng nhập (Medium-High) — ✅ ĐÃ FIX & VERIFIED (a0927dc)
+
+- **Hiện tượng:** khách bấm «Giữ chỗ & Thanh toán →» bị đưa tới /login?next=%2Fvenues%2F<slug>%2Fbook%3FcourtId%3D…; sau khi đăng nhập thành công, app luôn về /dashboard thay vì quay lại trang giữ chỗ. Tái hiện 100%: 2 lần trong journey + 1 lần repro độc lập với full-page load.
+- **Phạm vi ảnh hưởng:** trọn vòng guest booking P1-F1; mọi luồng dùng ?next (Giữ chỗ, tham gia trận ghép, AI giữ chỗ).
+- **Nguyên nhân (phân tích tĩnh):** LoginPage.onSubmit gọi setSession() (zustand — thông báo subscriber ngay lập tức) TRƯỚC navigate(target). Khi store cập nhật, GuestRoute re-render thấy user !== null và trả <Navigate to="/dashboard" replace /> trước khi navigate(target) kịp có hiệu lực — đích ?next bị ghi đè.
+- **Gợi ý fix (chọn 1):**
+  1. Tính target và gọi navigate(target, { replace: true }) TRƯỚC setSession;
+  2. hoặc cho GuestRoute ưu tiên location.state.from / giữ vị trí trong một nhịp sau login;
+  3. hoặc dời setSession xuống sau navigate.
+- **Kiểm thử bổ sung đề xuất:** thêm case e2e/unit «login có ?next → URL đích = next» để khoá hồi quy.
+
+**Quá trình xử lý:**
+- Lần 1 (8403db9): đổi thứ tự navigate-trước-setSession trong LoginPage — re-verify trên browser thật THẤT BẠI. Trace history API cho thấy navigate(next) chạy đúng nhưng bị <Navigate to="/dashboard"> của GuestRoute đè sau: useNavigate() không commit location đồng bộ qua React, còn setSession() (zustand/useSyncExternalStore) thông báo subscriber SYNCHRONOUS khiến GuestRoute re-render trên location CŨ (/login) với user mới. Bài học: jsdom/MemoryRouter flush đồng bộ nên không tái hiện được race này — bắt buộc smoke browser thật.
+- Lần 2 (a0927dc): GuestRoute khi user!=null tự đọc ?next= (ưu tiên) hoặc state.from rồi Navigate đến đó (giữ safeInternalTarget chống open-redirect ở tầng này; register cũng hưởng lợi). Kết quả cuộc đua không còn ý nghĩa — cả hai lệnh đều trỏ cùng đích.
+- **Re-verify browser trên a0927dc: PASS.** Repro độc lập full-page: URL cuối = /venues/san-the-thao-quan-ngua/book?courtId=c-hn-101 ✓ · //evil.com bị chặn → /dashboard ✓ · Full suite 17/17 PASS ✓ · Gates lint/typecheck/test/build exit 0 ✓
 
 ## 4. Gates monorepo (CI=true)
 
