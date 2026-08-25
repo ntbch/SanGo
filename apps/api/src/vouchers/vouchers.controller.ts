@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/guards/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -9,23 +9,29 @@ import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
   ApplyVoucherSchema,
   CreateVoucherSchema,
-  SetVoucherStatusSchema,
+  UpdateVoucherSchema,
+  VoucherIdParamSchema,
   type ApplyVoucherDto,
   type CreateVoucherDto,
-  type SetVoucherStatusDto,
+  type UpdateVoucherDto,
 } from './dto/voucher.dto';
 import { VouchersService } from './vouchers.service';
 
+/**
+ * F3 Voucher — route đầy đủ (không prefix controller) để tách namespace:
+ *  - /owner/vouchers      : owner quản lý mã của mình
+ *  - /holds/:id/voucher   : khách áp mã vào hold của mình
+ */
 @ApiTags('vouchers')
-@Controller('vouchers')
+@Controller()
 export class VouchersController {
   constructor(private readonly vouchersService: VouchersService) {}
 
-  @Post()
+  @Post('owner/vouchers')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('OWNER', 'ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '[OWNER] Tạo voucher giảm giá theo % cho venue của mình' })
+  @ApiOperation({ summary: '[OWNER] Tạo voucher giảm giá theo % kèm cửa sổ giờ thấp điểm' })
   create(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(CreateVoucherSchema)) dto: CreateVoucherDto,
@@ -33,7 +39,7 @@ export class VouchersController {
     return this.vouchersService.createVoucher(user, dto);
   }
 
-  @Get('mine')
+  @Get('owner/vouchers')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('OWNER', 'ADMIN')
   @ApiBearerAuth()
@@ -42,30 +48,45 @@ export class VouchersController {
     return this.vouchersService.listOwnVouchers(user.id);
   }
 
-  @Patch(':id/status')
+  @Patch('owner/vouchers/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('OWNER', 'ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '[OWNER] Bật/tắt voucher' })
-  setStatus(
+  @ApiOperation({
+    summary: '[OWNER] Cập nhật một phần voucher (percentOff/cửa sổ/limit/status...)',
+  })
+  async update(
     @CurrentUser() user: AuthUser,
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(SetVoucherStatusSchema)) dto: SetVoucherStatusDto,
-  ) {
-    return this.vouchersService.setStatus(user.id, id, dto);
+    @Param(new ZodValidationPipe(VoucherIdParamSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(UpdateVoucherSchema)) dto: UpdateVoucherDto,
+  ): Promise<void> {
+    await this.vouchersService.updateVoucher(user.id, params.id, dto);
   }
 
-  @Post('apply')
+  @Delete('owner/vouchers/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('OWNER', 'ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '[OWNER] Xoá voucher' })
+  async remove(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodValidationPipe(VoucherIdParamSchema)) params: { id: string },
+  ): Promise<void> {
+    await this.vouchersService.deleteVoucher(user.id, params.id);
+  }
+
+  @Post('holds/:id/voucher')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary:
-      'Áp mã vào hold của mình — snapshot discountAmount/finalAmount vào hold ngay lúc áp mã (F3)',
+      'Áp mã vào hold của mình — snapshot discountAmount/finalAmount vào hold NGAY LÚC ÁP MÃ; quota tiêu khi thanh toán thành công',
   })
   apply(
     @CurrentUser() user: AuthUser,
+    @Param(new ZodValidationPipe(VoucherIdParamSchema)) params: { id: string },
     @Body(new ZodValidationPipe(ApplyVoucherSchema)) dto: ApplyVoucherDto,
   ) {
-    return this.vouchersService.applyToHold(user, dto);
+    return this.vouchersService.applyToHold(user, { holdId: params.id, code: dto.code });
   }
 }

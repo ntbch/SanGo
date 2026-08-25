@@ -9,7 +9,7 @@ import { NotificationType } from '@courthub/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { roundVnd } from '../bookings/pricing.util';
 import { NotifyService } from '../notifications/notify.service';
-import type { ApplyVoucherDto, CreateVoucherDto, SetVoucherStatusDto } from './dto/voucher.dto';
+import type { ApplyVoucherDto, CreateVoucherDto, UpdateVoucherDto } from './dto/voucher.dto';
 
 /**
  * F3 Voucher — áp mã giảm giá PERCENT vào BookingHold.
@@ -41,6 +41,7 @@ export class VouchersService {
       data: {
         code: dto.code,
         percentOff: dto.percentOff,
+        dayOfWeek: dto.dayOfWeek,
         validFromMinute: dto.validFromMinute,
         validToMinute: dto.validToMinute,
         usageLimit: dto.usageLimit,
@@ -61,24 +62,56 @@ export class VouchersService {
     });
   }
 
-  /** Bật/tắt mã — chỉ owner của mã (hoặc ADMIN ở tầng controller) được phép. */
-  async setStatus(ownerId: string, voucherId: string, dto: SetVoucherStatusDto): Promise<void> {
+  /** Cập nhật một phần voucher (kể cả active/status) — chỉ owner của mã được phép. */
+  async updateVoucher(ownerId: string, voucherId: string, dto: UpdateVoucherDto): Promise<void> {
+    if (
+      dto.validFromMinute !== undefined &&
+      dto.validToMinute !== undefined &&
+      dto.validFromMinute >= dto.validToMinute
+    ) {
+      throw new BadRequestException({
+        message: 'Cửa sổ giờ không hợp lệ (validFromMinute phải nhỏ hơn validToMinute)',
+        code: 'VOUCHER_BAD_WINDOW',
+      });
+    }
     const updated = await this.prisma.voucher.updateMany({
       where: { id: voucherId, ownerId },
-      data: { active: dto.active },
+      data: {
+        ...(dto.percentOff !== undefined ? { percentOff: dto.percentOff } : {}),
+        ...(dto.dayOfWeek !== undefined ? { dayOfWeek: dto.dayOfWeek } : {}),
+        ...(dto.validFromMinute !== undefined ? { validFromMinute: dto.validFromMinute } : {}),
+        ...(dto.validToMinute !== undefined ? { validToMinute: dto.validToMinute } : {}),
+        ...(dto.usageLimit !== undefined ? { usageLimit: dto.usageLimit } : {}),
+        ...(dto.perUserLimit !== undefined ? { perUserLimit: dto.perUserLimit } : {}),
+        ...(dto.expiresAt !== undefined
+          ? { expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null }
+          : {}),
+        ...(dto.active !== undefined ? { active: dto.active } : {}),
+      },
     });
     if (updated.count === 0) {
       throw new NotFoundException({ message: 'Không tìm thấy voucher', code: 'VOUCHER_NOT_FOUND' });
     }
   }
 
+  /** Xoá hẳn mã — hold đã áp vẫn giữ giá đã snapshot (voucherId không FK). */
+  async deleteVoucher(ownerId: string, voucherId: string): Promise<void> {
+    const deleted = await this.prisma.voucher.deleteMany({ where: { id: voucherId, ownerId } });
+    if (deleted.count === 0) {
+      throw new NotFoundException({ message: 'Không tìm thấy voucher', code: 'VOUCHER_NOT_FOUND' });
+    }
+  }
+
   /**
-   * Áp mã vào hold của chính mình: validate -> tính giảm -> atomic trừ quota ->
-   * ghi redemption (UNIQUE chặn dùng lại) -> snapshot giá vào hold, trong MỘT transaction.
+   * Áp mã vào hold của chính mình — CHỈ SNAPSHOT GIÁ (discountAmount/finalAmount/voucherId)
+   * vào hold ngay lúc áp mã: callback VNPay recompute giá rồi so vnp_Amount nên phải đọc
+   * giá đã chốt từ hold; voucher bị tắt/hết hạn sau đó không làm lệch số tiền đã xem.
+   * QUOTA KHÔNG tiêu ở đây — consume redemption trong tx confirmFromHold (atomic,
+   * pattern BookingCodeSeq) để hold hết hạn/không thanh toán không đốt lượt dùng.
    */
   async applyToHold(
     user: Pick<User, 'id'>,
-    dto: ApplyVoucherDto,
+    dto: ApplyVoucherDto & { holdId: string },
   ): Promise<{
     holdId: string;
     code: string;
@@ -121,7 +154,14 @@ export class VouchersService {
         code: 'VOUCHER_NOT_APPLICABLE',
       });
     }
-    // Cửa sổ khung giờ thấp điểm: khoảng chơi của hold phải nằm trọn trong cửa sổ.
+    // Cửa sổ khung giờ thấp điểm: đúng thứ trong tuần + khoảng chơi nằm trọn cửa sổ.
+    // date lưu @db.Date (nửa đêm UTC) nên lấy thứ bằng getUTCDay() cho tất định.
+    if (hold.date.getUTCDay() !== voucher.dayOfWeek) {
+      throw new BadRequestException({
+        message: 'Mã chỉ áp dụng cho ngày trong tuần cụ thể',
+        code: 'VOUCHER_OUT_OF_WINDOW',
+      });
+    }
     if (hold.startMinute < voucher.validFromMinute || hold.endMinute > voucher.validToMinute) {
       throw new BadRequestException({
         message: `Mã chỉ áp dụng cho khung giờ ${voucher.validFromMinute}-${voucher.validToMinute} phút`,
@@ -144,42 +184,12 @@ export class VouchersService {
     );
     const finalAmount = hold.subtotal - discountAmount;
 
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        // Chặn vượt limit nguyên tử: chỉ increment khi còn slot quota.
-        const bumped = await tx.voucher.updateMany({
-          where: { id: voucher.id, usedCount: { lt: voucher.usageLimit } },
-          data: { usedCount: { increment: 1 } },
-        });
-        if (bumped.count === 0) {
-          throw new ConflictException({
-            message: 'Mã đã hết lượt sử dụng',
-            code: 'VOUCHER_EXHAUSTED',
-          });
-        }
-        // UNIQUE(voucherId, userId) chặn dùng lại khi retry/đồng thời (rollback cả bump).
-        await tx.voucherRedemption.create({
-          data: {
-            voucherId: voucher.id,
-            userId: user.id,
-            holdId: hold.id,
-            amountDiscounted: discountAmount,
-          },
-        });
-        await tx.bookingHold.update({
-          where: { id: hold.id },
-          data: { discountAmount, finalAmount },
-        });
-      });
-    } catch (e) {
-      if ((e as { code?: string }).code === 'P2002') {
-        throw new ConflictException({
-          message: 'Bạn đã dùng hết lượt cho mã này',
-          code: 'VOUCHER_USER_LIMIT',
-        });
-      }
-      throw e;
-    }
+    // Snapshot giá + liên kết voucher vào hold. Per-user check ở trên chỉ là báo sớm:
+    // gate chính thức (quota + UNIQUE) nằm trong tx confirmFromHold.
+    await this.prisma.bookingHold.update({
+      where: { id: hold.id },
+      data: { discountAmount, finalAmount, voucherId: voucher.id },
+    });
 
     // F8 wave-1: thông báo VOUCHER — gọi SAU khi transaction áp mã đã commit.
     await this.notify

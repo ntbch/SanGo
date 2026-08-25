@@ -69,10 +69,11 @@ export class PaymentsService {
         code: 'HOLD_EXPIRED',
       });
     }
+    // F3: giá đã chốt trên hold (finalAmount sau voucher) là nguồn tính — callback
+    // recompute qua đây nên số tiền đối chiếu luôn khớp những gì khách đã xem.
+    const base = hold.finalAmount ?? hold.subtotal;
     const amount =
-      type === 'FULL'
-        ? hold.subtotal
-        : roundVnd((hold.subtotal * hold.court.venue.depositPercent) / 100);
+      type === 'FULL' ? base : roundVnd((base * hold.court.venue.depositPercent) / 100);
     return { hold, amount };
   }
 

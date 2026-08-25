@@ -11,6 +11,8 @@ import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { BookingsModule } from '../bookings/bookings.module';
 import { BookingsService } from '../bookings/bookings.service';
+import { VouchersModule } from '../vouchers/vouchers.module';
+import { VouchersService } from '../vouchers/vouchers.service';
 import { PaymentsModule } from './payments.module';
 import { PaymentsService } from './payments.service';
 
@@ -20,6 +22,7 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
   let prisma: PrismaClient;
   let bookings: BookingsService;
   let payments: PaymentsService;
+  let vouchers: VouchersService;
   let dbUp = false;
 
   let cust!: User;
@@ -45,10 +48,11 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
     });
 
     const moduleRef = await Test.createTestingModule({
-      imports: [PrismaModule, AuthModule, BookingsModule, PaymentsModule],
+      imports: [PrismaModule, AuthModule, BookingsModule, PaymentsModule, VouchersModule],
     }).compile();
     bookings = moduleRef.get(BookingsService);
     payments = moduleRef.get(PaymentsService);
+    vouchers = moduleRef.get(VouchersService);
 
     const owner = await prisma.user.create({
       data: {
@@ -91,6 +95,11 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
         select: { id: true },
       });
       const ids = users.map((u) => u.id);
+      await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.voucherRedemption.deleteMany({
+        where: { voucher: { ownerId: { in: ids } } },
+      });
+      await prisma.voucher.deleteMany({ where: { ownerId: { in: ids } } });
       await prisma.payment.deleteMany({ where: { booking: { customerId: { in: ids } } } });
       await prisma.booking.deleteMany({ where: { customerId: { in: ids } } });
       await prisma.bookingHold.deleteMany({ where: { userId: { in: ids } } });
@@ -273,5 +282,68 @@ describe('Payments mock/vnpay-callback flow (integration)', () => {
       if (prev === undefined) delete process.env.PAYMENT_MODE;
       else process.env.PAYMENT_MODE = prev;
     }
+  });
+
+  it('F3 voucher: snapshot giá qua callback kể cả khi mã bị tắt giữa chừng', async () => {
+    if (!dbUp) return;
+    const owner = await prisma.user.findFirstOrThrow({
+      where: { email: { contains: 'itpay-owner' } },
+    });
+    const date = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+    const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+    const v = await prisma.voucher.create({
+      data: {
+        code: `ITPAYVCH-${SUFFIX}`,
+        percentOff: 25,
+        dayOfWeek: dow,
+        validFromMinute: 540,
+        validToMinute: 960,
+        usageLimit: 5,
+        perUserLimit: 1,
+        ownerId: owner.id,
+      },
+    });
+    // Các test trước có thể để lại hold ACTIVE (callback thất bại cố ý) -> giải phóng
+    await prisma.bookingHold.updateMany({
+      where: { userId: cust.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold({ id: cust.id }, { courtId, date, slots: [840] })) as {
+      holdId: string;
+    };
+    // Áp mã: snapshot finalAmount = 150k (200k - 25%) vào hold
+    const res = await vouchers.applyToHold({ id: cust.id }, { holdId: hold.holdId, code: v.code });
+    expect(res.finalAmount).toBe(150_000);
+
+    // Checkout DEPOSIT tính trên giá đã giảm: 50% của 150k
+    const co = await payments.createCheckout(
+      { id: cust.id },
+      { holdId: hold.holdId, type: 'DEPOSIT' },
+    );
+    expect(co.amount).toBe(75_000);
+
+    // Mã bị tắt SAU lúc áp -> callback VẪN đối chiếu theo snapshot, không lệch
+    await prisma.voucher.update({ where: { id: v.id }, data: { active: false } });
+    const r = await payments.handleMockCallback({
+      txnRef: co.txnRef,
+      amount: String(co.amount),
+    });
+    expect(r.redirectUrl).toContain('status=SUCCESS');
+
+    const booking = await prisma.booking.findFirstOrThrow({
+      where: { customerId: cust.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(booking.depositAmount).toBe(75_000);
+    const payment = await prisma.payment.findUniqueOrThrow({ where: { txnRef: co.txnRef } });
+    expect(payment.amount).toBe(75_000);
+
+    // Confirm tiêu quota đúng 1 lần dù mã đã bị tắt
+    const after = await prisma.voucher.findUniqueOrThrow({ where: { id: v.id } });
+    expect(after.usedCount).toBe(1);
+    const redemption = await prisma.voucherRedemption.findFirstOrThrow({
+      where: { voucherId: v.id },
+    });
+    expect(redemption.amountDiscounted).toBe(50_000);
   });
 });

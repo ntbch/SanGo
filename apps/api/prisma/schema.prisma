@@ -258,6 +258,8 @@ model BookingHold {
   /// nên phải đọc giá đã chốt từ hold). null = chưa áp voucher.
   discountAmount Int?
   finalAmount    Int?
+  /// Voucher đã áp (audit + consume redemption lúc confirm); không FK để owner xoá mã tự do.
+  voucherId      String? @db.Uuid
   expiresAt   DateTime
   status      BookingHoldStatus @default(ACTIVE)
   /// Ghép trận mở (GĐ2): giữ lựa chọn công khai từ lúc hold để copy sang Booking.
@@ -269,6 +271,7 @@ model BookingHold {
   court Court @relation(fields: [courtId], references: [id])
 
   @@index([courtId, date, status])
+  @@index([voucherId])
   @@index([status, expiresAt])
   @@map("booking_holds")
 }
@@ -387,7 +390,9 @@ model Voucher {
   /// Mã nhập tại checkout — UNIQUE để tra cứu chính xác một mã.
   code            String    @unique
   percentOff      Int
-  /// Cửa sổ khung giờ thấp điểm: [startMinute, endMinute) của hold phải nằm trong khoảng này.
+  /// Cửa sổ khung giờ thấp điểm: hold phải rơi vào dayOfWeek (0=CN..6=7 theo getUTCDay)
+  /// và [startMinute, endMinute) nằm trọn trong khoảng phút này.
+  dayOfWeek       Int
   validFromMinute Int
   validToMinute   Int
   /// Tổng số lần được dùng; vượt limit chặn bằng UPDATE ... WHERE usedCount < usageLimit (atomic).

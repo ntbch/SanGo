@@ -231,10 +231,13 @@ export class BookingsService {
         where: { id: hold.courtId },
         include: { venue: { select: { depositPercent: true } } },
       });
-      // Trả đủ thì coi như đã đóng toàn bộ giá trị đơn, ngược lại giữ mức cọc của venue.
+      // F3: tiền ghi nhận tính trên giá ĐÃ GIẢM snapshot ở hold (callback cũng đối chiếu
+      // theo nó). depositAmount là gốc tính hoàn/hủy (refundQuote) nên tự khớp
+      // "hoàn theo giá đã giảm" mà không cần xử lý riêng ở luồng hủy.
+      const paidBase = hold.finalAmount ?? hold.subtotal;
       const depositAmount = opts.paidInFull
-        ? hold.subtotal
-        : roundVnd((hold.subtotal * court.venue.depositPercent) / 100);
+        ? paidBase
+        : roundVnd((paidBase * court.venue.depositPercent) / 100);
 
       // Mã đơn CH-YYYYMMDD-NNNN — hotfix 25P02: cấp phát số thứ tự ATOMIC bằng bảng
       // đếm booking_code_seq trong CÙNG tx. INSERT ... ON CONFLICT DO UPDATE ...
@@ -303,6 +306,44 @@ export class BookingsService {
           paidAt: new Date(),
         },
       });
+
+      // F3: tiêu quota voucher NGAY TRONG tx confirm (pattern BookingCodeSeq:
+      // guard atomic WHERE usedCount < usageLimit; UNIQUE(voucherId,userId) chặn dùng lại).
+      // Voucher bị owner xoá sau lúc áp -> bỏ qua consume nhưng vẫn giữ giá đã giảm (snapshot).
+      if (hold.voucherId && hold.discountAmount != null) {
+        const vch = await tx.voucher.findUnique({ where: { id: hold.voucherId } });
+        if (vch) {
+          const bumped = await tx.voucher.updateMany({
+            where: { id: vch.id, usedCount: { lt: vch.usageLimit } },
+            data: { usedCount: { increment: 1 } },
+          });
+          if (bumped.count === 0) {
+            throw new ConflictException({
+              message: 'Mã giảm giá đã hết lượt sử dụng',
+              code: 'VOUCHER_EXHAUSTED',
+            });
+          }
+          try {
+            await tx.voucherRedemption.create({
+              data: {
+                voucherId: vch.id,
+                userId: hold.userId,
+                holdId: hold.id,
+                amountDiscounted: hold.discountAmount,
+              },
+            });
+          } catch (e) {
+            if ((e as { code?: string }).code === 'P2002') {
+              throw new ConflictException({
+                message: 'Bạn đã dùng hết lượt cho mã này',
+                code: 'VOUCHER_USER_LIMIT',
+              });
+            }
+            throw e;
+          }
+        }
+      }
+
       await tx.bookingHold.update({ where: { id: hold.id }, data: { status: 'CONVERTED' } });
 
       this.logger.log(`Booking ${booking.code} CONFIRMED từ hold ${hold.id}`);
@@ -467,9 +508,7 @@ export class BookingsService {
         });
       } catch (e) {
         if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
-          this.logger.warn(
-            `Đơn ${result.booking.id}: refund đã ghi ví trước đó (retry) — bỏ qua`,
-          );
+          this.logger.warn(`Đơn ${result.booking.id}: refund đã ghi ví trước đó (retry) — bỏ qua`);
         } else {
           // Không fail request vì hủy đơn đã commit; Payment(REFUND) giữ PENDING làm dấu đối soát/replay.
           this.logger.error(

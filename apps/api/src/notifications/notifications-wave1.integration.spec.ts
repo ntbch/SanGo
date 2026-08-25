@@ -155,11 +155,13 @@ describe('Notifications wave-1 (integration)', () => {
       },
     });
     try {
+      const holdDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
       const v = await vouchers.createVoucher(
         { id: owner.id },
         {
           code: `NOTIFVCH-${SUFFIX}`,
           percentOff: 25,
+          dayOfWeek: new Date(holdDate + 'T00:00:00Z').getUTCDay(),
           validFromMinute: 540,
           validToMinute: 960,
           usageLimit: 5,
@@ -170,7 +172,7 @@ describe('Notifications wave-1 (integration)', () => {
         { id: cust1.id },
         {
           courtId: court.id,
-          date: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10),
+          date: holdDate,
           slots: [600],
         },
       )) as { holdId: string };
