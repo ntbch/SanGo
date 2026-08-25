@@ -7,7 +7,10 @@
  *  - Phủ đủ 5 sportType: FOOTBALL5, FOOTBALL7, PICKLEBALL, BADMINTON, TENNIS
  *  - Pricing rules ngày thường / cuối tuần hợp lý
  *  - Booking mẫu đủ trạng thái + Payment + Review + BookingHold
- *  - 3 tài khoản demo (mật khẩu in rõ ở cuối log)
+ *  - DEMO BUỔI 1: ví 500k cho 2 khách, voucher GIAM20-* đủ 7 thứ,
+ *    3 đơn CONFIRMED đã trả cùng 1 ngày tới (demo hủy hàng loạt N2),
+ *    thông báo WALLET chưa đọc sẵn cho chuông thông báo.
+ *  - 4 tài khoản demo (mật khẩu in rõ ở cuối log)
  */
 import { PrismaClient, type SportType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -69,6 +72,13 @@ interface VenueSpec {
 
 async function main() {
   console.log('🧹 Dọn dữ liệu cũ...');
+  // Thứ tự FK-an-toàn: con trước cha; bảng F6/F3/F8 xoá trước users.
+  await prisma.voucherRedemption.deleteMany();
+  await prisma.voucher.deleteMany();
+  await prisma.walletLedger.deleteMany();
+  await prisma.walletTopup.deleteMany();
+  await prisma.walletBalance.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.review.deleteMany();
   await prisma.matchParticipant.deleteMany();
@@ -78,6 +88,8 @@ async function main() {
   await prisma.court.deleteMany();
   await prisma.venue.deleteMany();
   await prisma.refreshToken.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.bookingCodeSeq.deleteMany(); // reset bộ đếm mã đơn -> demo luôn CH-...-0001
   await prisma.user.deleteMany();
 
   console.log('👤 Tạo tài khoản demo...');
@@ -106,6 +118,16 @@ async function main() {
       passwordHash,
       fullName: 'Lê Thị Khách Hàng',
       phone: '0900000003',
+      role: 'CUSTOMER',
+    },
+  });
+  // Khách thứ 2 phục vụ demo N2 (hủy hàng loạt -> hoàn ví + thông báo TỪNG khách)
+  const customer2 = await prisma.user.create({
+    data: {
+      email: 'customer2@courthub.vn',
+      passwordHash,
+      fullName: 'Phạm Văn Khách Hai',
+      phone: '0900000004',
       role: 'CUSTOMER',
     },
   });
@@ -1219,14 +1241,154 @@ async function main() {
     },
   });
 
+  // ================================================================
+  // DEMO BUỔI BẢO VỆ 1 (roadmap v5): nạp ví -> áp mã -> trả tiền ->
+  // owner hủy cả ngày mưa -> tiền về ví + chuông thông báo từng khách.
+  // ================================================================
+
+  console.log('💰 F6: Nạp sẵn ví 500.000đ cho 2 khách (ledger + balance đồng bộ)...');
+  const seedWallet = async (userId: string) => {
+    const amount = 500_000;
+    const txnRef = `demo-topup-${userId.slice(0, 8)}.TOPUP.seed`;
+    await prisma.walletTopup.create({
+      data: {
+        userId,
+        amount,
+        method: 'MOCK',
+        txnRef,
+        status: 'PAID',
+        paidAt: new Date(),
+      },
+    });
+    await prisma.walletLedger.create({
+      data: {
+        userId,
+        direction: 'CREDIT',
+        type: 'TOPUP',
+        amount,
+        refType: 'TOPUP',
+        refId: txnRef, // UNIQUE(refType, refId, type): idempotency như callback thật
+        balanceAfter: amount,
+      },
+    });
+    await prisma.walletBalance.create({ data: { userId, balance: amount } });
+  };
+  await seedWallet(customer.id);
+  await seedWallet(customer2.id);
+
+  console.log('🎟️  F3: Tạo voucher giảm 20% phủ đủ 7 thứ trong tuần (owner sở hữu)...');
+  // Mỗi thứ một mã — presenter đặt sân ngày nào cũng có mã hợp lệ để áp ngay.
+  const weekdayCodes = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']; // index = getUTCDay()
+  for (let dow = 0; dow < 7; dow++) {
+    await prisma.voucher.create({
+      data: {
+        code: `GIAM20-${weekdayCodes[dow]}`,
+        percentOff: 20,
+        dayOfWeek: dow,
+        validFromMinute: 360, // 06:00
+        validToMinute: 1320, // 22:00
+        usageLimit: 50,
+        perUserLimit: 1,
+        ownerId: owner.id,
+      },
+    });
+  }
+
+  console.log('🌧️  N2: 3 đơn CONFIRMED đã trả trên cùng 1 ngày tới (cụm sân của owner)...');
+  // Owner sẽ hủy hàng loạt đúng ngày này -> hoàn 100% tiền ĐÃ TRẢ vào ví từng khách.
+  const rainyDate = addDays(today, 3);
+  interface RainyBookingSeed {
+    court: { id: string };
+    customerId: string;
+    startMinute: number;
+    endMinute: number;
+    subtotal: number;
+    depositPercent: number;
+  }
+  const rainyBookings: RainyBookingSeed[] = [
+    {
+      court: football5A,
+      customerId: customer.id,
+      startMinute: 1080,
+      endMinute: 1140,
+      subtotal: 450_000,
+      depositPercent: 30,
+    },
+    {
+      court: badminton1,
+      customerId: customer2.id,
+      startMinute: 600,
+      endMinute: 660,
+      subtotal: 100_000,
+      depositPercent: 30,
+    },
+    {
+      court: tennis1,
+      customerId: customer2.id,
+      startMinute: 810,
+      endMinute: 900,
+      subtotal: 350_000,
+      depositPercent: 25,
+    },
+  ];
+  let rainySeq = 1;
+  for (const rb of rainyBookings) {
+    const depositAmount = depositOf(rb.subtotal, rb.depositPercent);
+    const booking = await prisma.booking.create({
+      data: {
+        code: `BK-${formatCodeDate(rainyDate)}-000${rainySeq}`,
+        customerId: rb.customerId,
+        courtId: rb.court.id,
+        date: toDate(rainyDate),
+        startMinute: rb.startMinute,
+        endMinute: rb.endMinute,
+        subtotal: rb.subtotal,
+        depositAmount,
+        status: 'CONFIRMED',
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        type: 'DEPOSIT',
+        method: 'MOCK',
+        amount: depositAmount,
+        txnRef: `demo-rainy-${booking.id.slice(0, 8)}`,
+        status: 'PAID',
+        paidAt: new Date(),
+      },
+    });
+    rainySeq++;
+  }
+
+  console.log('🔔 F8: 2 thông báo WALLET chưa đọc để chuông thông báo có badge sẵn...');
+  for (const c of [customer, customer2]) {
+    await prisma.notification.create({
+      data: {
+        userId: c.id,
+        type: 'WALLET',
+        title: 'Nạp ví thành công',
+        body: 'Ví của bạn vừa được cộng 500.000đ (nạp qua cổng giả lập).',
+        link: '/wallet',
+      },
+    });
+  }
+
   console.log('\n============================================================');
   console.log('✨ SEED DỮ LIỆU THÀNH CÔNG!');
   console.log('============================================================');
-  console.log('3 tài khoản demo sẵn sàng đăng nhập (mật khẩu chung):');
+  console.log('4 tài khoản demo sẵn sàng đăng nhập (mật khẩu chung):');
   console.log(`  Mật khẩu: ${DEMO_PASSWORD}`);
   console.log('  1. ADMIN:    admin@courthub.vn');
-  console.log('  2. OWNER:    owner@courthub.vn');
-  console.log('  3. CUSTOMER: customer@courthub.vn');
+  console.log('  2. OWNER:    owner@courthub.vn   (sở hữu mọi venue + voucher GIAM20-*)');
+  console.log('  3. CUSTOMER: customer@courthub.vn (ví 500k, đơn ngày mưa)');
+  console.log('  4. CUSTOMER: customer2@courthub.vn (ví 500k, đơn ngày mưa)');
+  console.log('------------------------------------------------------------');
+  console.log('🎟️  Voucher F3: GIAM20-CN..GIAM20-T7 (giảm 20%, theo thứ, 06:00-22:00)');
+  console.log(
+    `🌧️  Ngày mưa N2: ${rainyBookings.length} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
+  );
+  console.log('💰 Ví F6: customer & customer2 mỗi ví 500.000đ');
   console.log('------------------------------------------------------------');
   console.log(
     `Tổng cộng: ${venueSpecs.length} venue (${venueSpecs.length - 1} Hà Nội phủ 12 quận, 1 TP.HCM), ${createdCourts.length} court.`,
