@@ -5,10 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PaymentMethod, PaymentStatus } from '@prisma/client';
+import { PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
+import { NotificationType } from '@courthub/shared';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';
+import { NotifyService } from '../notifications/notify.service';
 import { roundVnd } from '../bookings/pricing.util';
 import {
   buildSignData,
@@ -19,13 +21,14 @@ import {
   type VnpayCallbackQuery,
 } from './vnpay.util';
 
-type CheckoutType = 'DEPOSIT' | 'FULL';
+export type CheckoutType = 'DEPOSIT' | 'FULL' | 'ADD_ON';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bookings: BookingsService,
+    private readonly notify: NotifyService,
   ) {}
 
   private env(key: string, fallback = ''): string {
@@ -146,9 +149,94 @@ export class PaymentsService {
     return { txnRef, amount, type: dto.type, mode, paymentUrl };
   }
 
-  /** Số tiền mong đợi của một txnRef — suy ra từ hold, dùng để đối chiếu callback. */
-  private async expectedAmountFor(holdId: string, type: CheckoutType): Promise<number> {
-    const { amount } = await this.quoteHold(holdId, type);
+  /**
+   * Tạo lệnh thanh toán cho dịch vụ đi kèm (ADD_ON) của một booking đã CONFIRMED/CHECKED_IN.
+   * txnRef phát định danh "<bookingId>.ADD_ON.<rand>".
+   */
+  async createAddonCheckout(user: { id: string; role?: string }, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        court: { include: { venue: { select: { ownerId: true } } } },
+      },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Không tìm thấy đơn đặt sân',
+        code: 'BOOKING_NOT_FOUND',
+      });
+    }
+    const isOwner = user.role !== 'CUSTOMER' && booking.court.venue.ownerId === user.id;
+    if (booking.customerId !== user.id && user.role !== 'ADMIN' && !isOwner) {
+      throw new ForbiddenException({
+        message: 'Không phải đơn đặt sân của bạn',
+        code: 'BOOKING_FORBIDDEN',
+      });
+    }
+    if (booking.status !== 'CONFIRMED' && booking.status !== 'CHECKED_IN') {
+      throw new ConflictException({
+        message: 'Chỉ có thể thanh toán dịch vụ cho đơn đã xác nhận hoặc đã check-in',
+        code: 'BOOKING_NOT_CONFIRMED',
+      });
+    }
+
+    const unpaidAmount = await this.expectedAmountFor(booking.id, 'ADD_ON');
+    if (unpaidAmount <= 0) {
+      throw new ConflictException({
+        message: 'Tất cả dịch vụ đi kèm của đơn này đã được thanh toán',
+        code: 'NO_UNPAID_ADDONS',
+      });
+    }
+
+    const txnRef = makeTxnRef(booking.id, 'ADD_ON');
+    const mode = PaymentsService.resolveMode();
+    const orderInfo = `Thanh toan dich vu don ${booking.code}`;
+
+    const port = process.env.PORT ?? '4000';
+    let paymentUrl: string;
+    if (mode === 'mock') {
+      paymentUrl = `http://localhost:${port}/api/v1/payments/mock/callback?txnRef=${encodeURIComponent(txnRef)}&amount=${unpaidAmount}`;
+    } else {
+      paymentUrl = buildVnpayPaymentUrl({
+        baseUrl: this.env(
+          'VNPAY_SANDBOX_URL',
+          'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+        ),
+        tmnCode: this.requireEnv('VNPAY_TMN_CODE'),
+        hashSecret: this.requireEnv('VNPAY_HASH_SECRET'),
+        txnRef,
+        amountVnd: unpaidAmount,
+        orderInfo,
+        returnUrl: this.env(
+          'VNPAY_RETURN_URL',
+          `http://localhost:${port}/api/v1/payments/vnpay/callback`,
+        ),
+        ipAddr: '127.0.0.1',
+      });
+    }
+
+    return { txnRef, amount: unpaidAmount, type: 'ADD_ON' as const, mode, paymentUrl };
+  }
+
+  /** Số tiền mong đợi của một txnRef — suy ra từ hold (DEPOSIT|FULL) hoặc booking (ADD_ON), dùng để đối chiếu callback. */
+  async expectedAmountFor(id: string, type: CheckoutType): Promise<number> {
+    if (type === 'ADD_ON') {
+      const addOns = await this.prisma.bookingAddOn.findMany({
+        where: { bookingId: id },
+        select: { quantity: true, unitPrice: true },
+      });
+      const totalAddOnCost = addOns.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+      const paidPayments = await this.prisma.payment.findMany({
+        where: { bookingId: id, type: PaymentType.ADD_ON, status: PaymentStatus.PAID },
+        select: { amount: true },
+      });
+      const paidTotal = paidPayments.reduce((sum, p) => sum + p.amount, 0);
+
+      return Math.max(0, totalAddOnCost - paidTotal);
+    }
+
+    const { amount } = await this.quoteHold(id, type);
     return amount;
   }
 
@@ -166,7 +254,7 @@ export class PaymentsService {
 
   /**
    * Callback VNPay — spec §6.1 bước 4: verify HMAC-SHA512 + đối chiếu số tiền +
-   * idempotency qua txnRef UNIQUE, rồi confirm hold trong MỘT transaction.
+   * idempotency qua txnRef UNIQUE, rồi confirm hold hoặc ghi nhận ADD_ON trong MỘT transaction.
    */
   async handleVnpayCallback(query: VnpayCallbackQuery) {
     const secret = this.env('VNPAY_HASH_SECRET', 'sandbox-secret');
@@ -189,12 +277,12 @@ export class PaymentsService {
     if (!parsed) {
       throw new BadRequestException({ message: 'txnRef không hợp lệ', code: 'PAYMENT_BAD_TXNREF' });
     }
-    const { holdId, type } = parsed;
+    const { id, type } = parsed;
 
     if (await this.isAlreadyPaid(txnRef)) {
       return this.frontendRedirect('SUCCESS', { txnRef }); // idempotent theo spec
     }
-    const expected = await this.expectedAmountFor(holdId, type);
+    const expected = await this.expectedAmountFor(id, type);
     if (Number(query.vnp_Amount) !== expected * 100) {
       throw new BadRequestException({
         message: 'Số tiền callback không khớp',
@@ -202,8 +290,45 @@ export class PaymentsService {
       });
     }
 
+    if (type === 'ADD_ON') {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id },
+        select: { id: true, code: true, customerId: true },
+      });
+      if (!booking) {
+        throw new NotFoundException({
+          message: 'Không tìm thấy đơn đặt sân',
+          code: 'BOOKING_NOT_FOUND',
+        });
+      }
+
+      await this.prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          amount: expected,
+          type: PaymentType.ADD_ON,
+          method: PaymentMethod.VNPAY,
+          txnRef,
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+        },
+      });
+
+      await this.notify
+        .dispatch({
+          userId: booking.customerId,
+          type: NotificationType.SERVICE,
+          title: 'Thanh toán dịch vụ thành công',
+          body: `Đã thanh toán ${expected.toLocaleString('vi-VN')}đ dịch vụ đi kèm cho đơn ${booking.code}.`,
+          link: '/dashboard/my-bookings',
+        })
+        .catch(() => undefined);
+
+      return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code });
+    }
+
     try {
-      const booking = await this.bookings.confirmFromHold(holdId, {
+      const booking = await this.bookings.confirmFromHold(id, {
         txnRef,
         method: PaymentMethod.VNPAY,
         amountPaid: expected,
@@ -221,7 +346,7 @@ export class PaymentsService {
   /**
    * Callback giả lập cho PAYMENT_MODE=mock (demo khi sandbox trục trặc — §11).
    * S0 fix: route VÔ HIỆU khi PAYMENT_MODE≠mock và amount là BẮT BUỘC phải khớp
-   * hold — không còn luồng nào xác nhận đơn khi thiếu/thiếu đối chiếu số tiền.
+   * hold/booking — không còn luồng nào xác nhận đơn khi thiếu/thiếu đối chiếu số tiền.
    */
   async handleMockCallback(params: { txnRef?: string; amount?: string }) {
     if (PaymentsService.resolveMode() !== 'mock') {
@@ -235,12 +360,12 @@ export class PaymentsService {
     if (!parsed) {
       throw new BadRequestException({ message: 'txnRef không hợp lệ', code: 'PAYMENT_BAD_TXNREF' });
     }
-    const { holdId, type } = parsed;
+    const { id, type } = parsed;
 
     if (await this.isAlreadyPaid(txnRef)) {
       return this.frontendRedirect('SUCCESS', { txnRef });
     }
-    const expected = await this.expectedAmountFor(holdId, type);
+    const expected = await this.expectedAmountFor(id, type);
     // S0 fix: thiếu amount cũng bị chặn (trước đây undefined là bỏ qua đối chiếu).
     if (params.amount === undefined || Number(params.amount) !== expected) {
       throw new BadRequestException({
@@ -249,8 +374,45 @@ export class PaymentsService {
       });
     }
 
+    if (type === 'ADD_ON') {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id },
+        select: { id: true, code: true, customerId: true },
+      });
+      if (!booking) {
+        throw new NotFoundException({
+          message: 'Không tìm thấy đơn đặt sân',
+          code: 'BOOKING_NOT_FOUND',
+        });
+      }
+
+      await this.prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          amount: expected,
+          type: PaymentType.ADD_ON,
+          method: PaymentMethod.MOCK,
+          txnRef,
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+        },
+      });
+
+      await this.notify
+        .dispatch({
+          userId: booking.customerId,
+          type: NotificationType.SERVICE,
+          title: 'Thanh toán dịch vụ thành công',
+          body: `Đã thanh toán ${expected.toLocaleString('vi-VN')}đ dịch vụ đi kèm cho đơn ${booking.code}.`,
+          link: '/dashboard/my-bookings',
+        })
+        .catch(() => undefined);
+
+      return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code });
+    }
+
     try {
-      const booking = await this.bookings.confirmFromHold(holdId, {
+      const booking = await this.bookings.confirmFromHold(id, {
         txnRef,
         method: PaymentMethod.MOCK,
         amountPaid: expected,
@@ -265,14 +427,13 @@ export class PaymentsService {
     }
   }
 
-  private parseTxnRef(txnRef: string): { holdId: string; type: CheckoutType } | null {
+  private parseTxnRef(txnRef: string): { id: string; type: CheckoutType } | null {
     const parts = txnRef.split('.');
     if (parts.length !== 3) return null;
-    const [holdId, type] = parts;
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(holdId))
-      return null;
-    if (type !== 'DEPOSIT' && type !== 'FULL') return null;
-    return { holdId, type };
+    const [id, type] = parts;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+    if (type !== 'DEPOSIT' && type !== 'FULL' && type !== 'ADD_ON') return null;
+    return { id, type: type as CheckoutType };
   }
 
   private async isAlreadyPaid(txnRef: string): Promise<boolean> {

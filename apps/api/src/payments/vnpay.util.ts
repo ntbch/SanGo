@@ -76,8 +76,8 @@ export function buildVnpayPaymentUrl(opts: {
   return `${opts.baseUrl}?${qs}&vnp_SecureHash=${secureHash}`;
 }
 
-/** txnRef định danh lệnh: "<holdId>.<DEPOSIT|FULL>" — parse ngược được, unique theo hold+type. */
-export function makeTxnRef(holdId: string, type: 'DEPOSIT' | 'FULL'): string {
+/** txnRef định danh lệnh: "<id>.<TYPE>.<rand>" (DEPOSIT|FULL theo holdId, ADD_ON theo bookingId). */
+export function makeTxnRef(id: string, type: 'DEPOSIT' | 'FULL' | 'ADD_ON'): string {
   const short = Math.random().toString(36).slice(2, 6);
-  return `${holdId}.${type}.${short}`;
+  return `${id}.${type}.${short}`;
 }

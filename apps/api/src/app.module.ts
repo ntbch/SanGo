@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { VenuesModule } from './venues/venues.module';
+import { VenueServicesModule } from './venue-services/venue-services.module';
 import { VouchersModule } from './vouchers/vouchers.module';
 import { WalletsModule } from './wallets/wallets.module';
 
@@ -35,6 +36,7 @@ import { WalletsModule } from './wallets/wallets.module';
     NotificationsModule,
     WalletsModule,
     VouchersModule,
+    VenueServicesModule,
   ],
 })
 export class AppModule {}
