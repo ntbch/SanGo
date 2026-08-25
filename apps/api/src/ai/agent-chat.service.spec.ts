@@ -73,6 +73,9 @@ function makeAgent(llm: LlmClient): AgentChatService {
   return new AgentChatService(llm, toolsStub as never, fallbackStub);
 }
 
+/** courtId hợp lệ cho test — execTool chặn UUID sai (review B-L5). */
+const COURT_ID = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
+
 describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -100,7 +103,7 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
       },
       {
         toolCalls: [
-          { id: 'call_1', name: 'checkSlots', args: { courtId: 'c1', date: '2026-08-26' } },
+          { id: 'call_1', name: 'checkSlots', args: { courtId: COURT_ID, date: '2026-08-26' } },
         ],
       },
       { text: 'Sân Pickleball Saigon còn giờ 17:00–18:30 nhé.' },
@@ -114,7 +117,7 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
     const secondRoundMessages = llm.calls[1] ?? [];
     const toolMsg = secondRoundMessages.find((m) => m.role === 'tool');
     expect(toolMsg?.content ?? '').toContain('venueId');
-    expect(toolsStub.checkSlots).toHaveBeenCalledWith('c1', '2026-08-26');
+    expect(toolsStub.checkSlots).toHaveBeenCalledWith(COURT_ID, '2026-08-26');
   });
 
   it('(c) tool ném lỗi -> error JSON feedback, agent vẫn chốt text bình thường', async () => {
@@ -125,7 +128,8 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
     ]);
     const res = await makeAgent(llm).chat('tìm sân');
     expect(res.reply).toContain('bận');
-    expect(res.toolsUsed).toEqual(['searchVenues']);
+    // Chỉ ghi tool THÀNH CÔNG — call lỗi không được badge [tool ✓] ở UI.
+    expect(res.toolsUsed).toEqual([]);
   });
 
   it('(d) LLM lỗi mạng/quota -> delegate nguyên request sang rule-based fallback', async () => {
@@ -136,8 +140,6 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
   });
 
   it('(e) model đòi gọi tool mãi -> dừng ở vòng 4 rồi ép chốt không tool', async () => {
-    const llm = fakeLlm([]); // queue rỗng: mặc định trả tool call mỗi lượt...
-    void llm;
     const scripted = fakeLlmWithAlwaysToolThenText();
     const res = await makeAgent(scripted.llm).chat('giúp mình');
     expect(scripted.llm.calls.length).toBeLessThanOrEqual(5); // 4 vòng + 1 ép chốt
@@ -156,16 +158,59 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
 
   it('(g) userId do server gán từ JWT, getSuggestedSlots nhận đúng user', async () => {
     const llm = fakeLlm([
-      { toolCalls: [{ id: 'call_0', name: 'getSuggestedSlots', args: { courtId: 'c1' } }] },
+      { toolCalls: [{ id: 'call_0', name: 'getSuggestedSlots', args: { courtId: COURT_ID } }] },
       { text: 'Mình gợi ý khung 17:00 cho bạn.' },
     ]);
     const res = await makeAgent(llm).chat('gợi ý giờ đi', { user: { id: 'u9' }, history: [] });
-    expect(toolsStub.getSuggestedSlots).toHaveBeenCalledWith('c1', {
+    expect(toolsStub.getSuggestedSlots).toHaveBeenCalledWith(COURT_ID, {
       date: expect.any(String),
       userId: 'u9',
     });
     expect(res.intent).toBe('HOLD_REQUEST');
     expect(res.data.suggestions?.[0]?.label).toBe('17:00–18:30');
+  });
+
+  it('(h) US-AI-02: history vào messages dạng khối nhãn, chỉ giữ 8 lượt gần nhất', async () => {
+    const llm = fakeLlm([{ text: 'ok' }]);
+    const history = Array.from({ length: 10 }, (_, i) => ({
+      role: i % 2 === 0 ? ('user' as const) : ('assistant' as const),
+      content: 'lượt-' + i,
+    }));
+    await makeAgent(llm).chat('câu hỏi hiện tại', { user: { id: 'u1' }, history });
+    const firstCall = llm.calls[0] ?? [];
+    expect(firstCall[0]?.role).toBe('system');
+    // History gộp MỘT khối user có nhãn — client không thể giả mạo lượt assistant.
+    const historyBlock = firstCall.find(
+      (m) => m.role === 'user' && m.content?.includes('LỊCH SỬ HỘI THOẠI'),
+    );
+    expect(historyBlock).toBeDefined();
+    expect(firstCall.filter((m) => m.role === 'assistant')).toEqual([]);
+    expect(historyBlock?.content ?? '').toContain('Trợ lý: lượt-9'); // lượt cuối giữ lại
+    expect(historyBlock?.content ?? '').not.toContain('lượt-0'); // cắt bớt lượt cũ
+    expect(firstCall[firstCall.length - 1]?.content).toBe('câu hỏi hiện tại');
+  });
+
+  it('(i) ngân sách thời gian cạn -> fallback ngay, không gọi LLM', async () => {
+    const llm = fakeLlm([{ text: 'không bao giờ được gọi' }]);
+    const agent = new AgentChatService(llm, toolsStub as never, fallbackStub, 0);
+    const res = await agent.chat('tìm sân');
+    expect(res.reply).toBe('rule-based-reply');
+    expect(llm.calls.length).toBe(0);
+  });
+
+  it('(j) tối đa 3 tool call mỗi vòng, phần thừa nhận lỗi bỏ qua', async () => {
+    const fiveCalls = Array.from({ length: 5 }, (_, i) => ({
+      id: 'call_' + i,
+      name: 'searchVenues',
+      args: {},
+    }));
+    const llm = fakeLlm([{ toolCalls: fiveCalls }, { text: 'xong' }]);
+    const res = await makeAgent(llm).chat('quá nhiều tool');
+    expect(toolsStub.searchVenues).toHaveBeenCalledTimes(3);
+    const toolMsgs = (llm.calls[1] ?? []).filter((m) => m.role === 'tool');
+    expect(toolMsgs.length).toBe(5); // 3 kết quả + 2 thông báo bỏ qua
+    expect(toolMsgs[4]?.content ?? '').toContain('Bỏ qua');
+    expect(res.reply).toBe('xong');
   });
 });
 

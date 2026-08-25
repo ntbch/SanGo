@@ -2,12 +2,17 @@ import 'reflect-metadata';
 
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Deploy sau reverse proxy (Render/nginx): req.ip lấy từ X-Forwarded-For hop cuối
+  // để Throttler /ai/chat bucket theo IP client THẬT, không gộp cả proxy thành 1 bucket.
+  app.set('trust proxy', 1);
 
   // Quy ước REST /api/v1 — đặc tả §4
   app.setGlobalPrefix('api/v1');

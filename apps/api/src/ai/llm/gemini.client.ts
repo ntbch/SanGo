@@ -91,7 +91,11 @@ export class GeminiLlmClient implements LlmClient {
       const json = (await response.json()) as {
         candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
       };
-      const parts = json.candidates?.[0]?.content?.parts ?? [];
+      const parts = json.candidates?.[0]?.content?.parts;
+      if (parts === undefined || parts.length === 0) {
+        // Rỗng = bị safety filter chặn hoặc model lỗi -> ném để agent rơi rule-based
+        throw new Error('Gemini trả về rỗng hoặc bị safety filter chặn');
+      }
       let text = '';
       const toolCalls: LlmToolCall[] = [];
       for (const part of parts) {

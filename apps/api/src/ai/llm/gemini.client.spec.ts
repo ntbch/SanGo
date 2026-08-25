@@ -76,6 +76,12 @@ describe('GeminiLlmClient', () => {
     const client = new GeminiLlmClient('test-key');
     await expect(client.generate([{ role: 'user', content: 'hi' }], [])).rejects.toThrow(/429/);
   });
+
+  it('candidates rỗng (safety block) -> reject để agent rơi rule-based', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({}));
+    const client = new GeminiLlmClient('test-key');
+    await expect(client.generate([{ role: 'user', content: 'hi' }], [])).rejects.toThrow(/rỗng|safety/);
+  });
 });
 
 describe('createLlmClient factory', () => {

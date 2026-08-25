@@ -1,5 +1,9 @@
+import { Logger } from '@nestjs/common';
+
 import { GeminiLlmClient } from './gemini.client';
 import type { LlmClient } from './llm-client.interface';
+
+const logger = new Logger('LlmClientFactory');
 
 /**
  * Factory chọn LLM client theo env (spec §3.1):
@@ -12,6 +16,9 @@ export function createLlmClient(): LlmClient | undefined {
     const key = process.env.GEMINI_API_KEY;
     if (key === undefined || key === '') return undefined;
     return new GeminiLlmClient(key, process.env.LLM_MODEL || 'gemini-2.5-flash');
+  }
+  if (provider !== 'none') {
+    logger.warn(`LLM_PROVIDER="${provider}" không được hỗ trợ — dùng rule-based (hỗ trợ: none|gemini)`);
   }
   return undefined;
 }
