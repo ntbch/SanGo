@@ -240,6 +240,55 @@ export class PaymentsService {
     return amount;
   }
 
+  /**
+   * MAJOR-B fix: ghi Payment(ADD_ON, PAID) trong MỘT transaction có khoá dòng booking
+   * (SELECT ... FOR UPDATE) và re-check tổng paid BÊN TRONG transaction — hai callback
+   * song song (khác txnRef) cùng booking không thể ghi tổng PAID vượt tổng tiền dịch vụ.
+   * Giao dịch thừa (amount > unpaidAmount lúc khoá) bị từ chối an toàn bằng
+   * PAYMENT_ADDON_OVERPAID mà không ghi bản ghi nào. Replay trùng txnRef chạm UNIQUE
+   * constraint (P2002) và được caller xử lý idempotent như trước.
+   */
+  private async recordAddonPayment(
+    bookingId: string,
+    txnRef: string,
+    amount: number,
+    method: PaymentMethod,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      // Khoá dòng booking để tuần tự hoá các callback ADD_ON song song của cùng booking.
+      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${bookingId}::uuid FOR UPDATE`;
+
+      const addOns = await tx.bookingAddOn.findMany({
+        where: { bookingId },
+        select: { quantity: true, unitPrice: true },
+      });
+      const totalAddOnCost = addOns.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+      const paidAgg = await tx.payment.aggregate({
+        where: { bookingId, type: PaymentType.ADD_ON, status: PaymentStatus.PAID },
+        _sum: { amount: true },
+      });
+      const unpaidAmount = Math.max(0, totalAddOnCost - (paidAgg._sum.amount ?? 0));
+      if (amount > unpaidAmount) {
+        throw new ConflictException({
+          message: 'Giao dịch vượt số tiền dịch vụ chưa thanh toán của đơn',
+          code: 'PAYMENT_ADDON_OVERPAID',
+        });
+      }
+
+      await tx.payment.create({
+        data: {
+          bookingId,
+          amount,
+          type: PaymentType.ADD_ON,
+          method,
+          txnRef,
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+        },
+      });
+    });
+  }
+
   private frontendRedirect(
     status: 'SUCCESS' | 'FAIL',
     detail: Record<string, string>,
@@ -302,17 +351,15 @@ export class PaymentsService {
         });
       }
 
-      await this.prisma.payment.create({
-        data: {
-          bookingId: booking.id,
-          amount: expected,
-          type: PaymentType.ADD_ON,
-          method: PaymentMethod.VNPAY,
-          txnRef,
-          status: PaymentStatus.PAID,
-          paidAt: new Date(),
-        },
-      });
+      try {
+        // MAJOR-B: ghi trong transaction có FOR UPDATE + re-check tổng paid.
+        await this.recordAddonPayment(booking.id, txnRef, expected, PaymentMethod.VNPAY);
+      } catch (e) {
+        if ((e as { code?: string }).code === 'P2002') {
+          return this.frontendRedirect('SUCCESS', { txnRef }); // replay song song trùng txnRef: idempotent
+        }
+        throw e;
+      }
 
       await this.notify
         .dispatch({
@@ -386,17 +433,15 @@ export class PaymentsService {
         });
       }
 
-      await this.prisma.payment.create({
-        data: {
-          bookingId: booking.id,
-          amount: expected,
-          type: PaymentType.ADD_ON,
-          method: PaymentMethod.MOCK,
-          txnRef,
-          status: PaymentStatus.PAID,
-          paidAt: new Date(),
-        },
-      });
+      try {
+        // MAJOR-B: ghi trong transaction có FOR UPDATE + re-check tổng paid.
+        await this.recordAddonPayment(booking.id, txnRef, expected, PaymentMethod.MOCK);
+      } catch (e) {
+        if ((e as { code?: string }).code === 'P2002') {
+          return this.frontendRedirect('SUCCESS', { txnRef }); // replay song song trùng txnRef: idempotent
+        }
+        throw e;
+      }
 
       await this.notify
         .dispatch({
