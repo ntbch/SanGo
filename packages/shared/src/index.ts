@@ -72,6 +72,22 @@ export enum PaymentType {
   DEPOSIT = 'DEPOSIT',
   FULL = 'FULL',
   REFUND = 'REFUND',
+  /** F4 dịch vụ đi kèm — trùng khớp enum PaymentType trong Prisma. */
+  ADD_ON = 'ADD_ON',
+}
+
+/** Chiều biến động ví (T0) — trùng khớp enum WalletLedgerDirection trong Prisma. */
+export enum WalletLedgerDirection {
+  CREDIT = 'CREDIT',
+  DEBIT = 'DEBIT',
+}
+
+/** Loại biến động ví (T0) — trùng khớp enum WalletLedgerType trong Prisma. */
+export enum WalletLedgerType {
+  TOPUP = 'TOPUP',
+  PAYMENT = 'PAYMENT',
+  REFUND = 'REFUND',
+  CASHBACK = 'CASHBACK',
 }
 
 export enum PaymentMethod {

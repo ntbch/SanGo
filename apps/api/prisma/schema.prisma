@@ -70,6 +70,8 @@ enum PaymentType {
   DEPOSIT
   FULL
   REFUND
+  /// F4 dịch vụ đi kèm: thanh toán addon SAU khi booking CONFIRMED (mở rộng whitelist parseTxnRef).
+  ADD_ON
 }
 
 enum PaymentMethod {
@@ -82,6 +84,20 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+/// Chiều biến động ví (T0): CREDIT cộng tiền vào ví, DEBIT trừ tiền khỏi ví.
+enum WalletLedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+/// Loại biến động ví (T0): TOPUP nạp tiền, PAYMENT trả đơn, REFUND hoàn vào ví, CASHBACK dự phòng v2.
+enum WalletLedgerType {
+  TOPUP
+  PAYMENT
+  REFUND
+  CASHBACK
 }
 
 /// Loại thông báo in-app/email (GĐ2): giá trị trùng khớp @courthub/shared.
@@ -117,6 +133,7 @@ model User {
   matchParticipants MatchParticipant[]
   passwordResetTokens PasswordResetToken[]
   notifications     Notification[]
+  walletLedgers     WalletLedger[]
 
   @@map("users")
 }
@@ -227,6 +244,10 @@ model BookingHold {
   startMinute Int
   endMinute   Int
   subtotal    Int
+  /// F3 Voucher: snapshot giảm giá NGAY LÚC ÁP MÃ (callback recompute rồi so vnp_Amount,
+  /// nên phải đọc giá đã chốt từ hold). null = chưa áp voucher.
+  discountAmount Int?
+  finalAmount    Int?
   expiresAt   DateTime
   status      BookingHoldStatus @default(ACTIVE)
   /// Ghép trận mở (GĐ2): giữ lựa chọn công khai từ lúc hold để copy sang Booking.
@@ -263,6 +284,10 @@ model Booking {
   /// P2-B2: mốc chống gửi trùng nhắc lịch (null = chưa nhắc ở mốc đó).
   remindedAt24h DateTime?
   remindedAt2h  DateTime?
+  /// F2 Ranking: mốc check-in thực tế (null = chưa check-in; dữ liệu cũ NULL tính trung tính).
+  checkedInAt DateTime?
+  /// F1 Team Profile: đặt sân tư cách đội (FK -> teams sẽ thêm trong migration của F1).
+  teamId      String?   @db.Uuid
   createdAt     DateTime      @default(now())
 
   customer User      @relation("BookingCustomer", fields: [customerId], references: [id])
@@ -319,6 +344,31 @@ model Payment {
 
   @@index([bookingId])
   @@map("payments")
+}
+
+/// Sổ cái ví nội bộ (T0) — NGUỒN SỰ THẬT số dư, append-only: không UPDATE/DELETE,
+/// ghi SAU khi commit giao dịch chính (tránh kéo dài FOR UPDATE lock).
+/// UNIQUE(refType, refId, type) chặn ghi trùng khi callback retry/crash (hoàn kép).
+/// Payment(REFUND) chỉ là chứng từ đối soát; dashboard doanh thu đọc từ bảng này.
+model WalletLedger {
+  id           String                @id @default(uuid()) @db.Uuid
+  userId       String                @db.Uuid
+  direction    WalletLedgerDirection
+  type         WalletLedgerType
+  /// Số tiền biến động (đồng, luôn dương; chiều do direction quyết định).
+  amount       Int
+  /// refType: 'TOPUP' | 'BOOKING' ... ; refId: id đối tượng gốc (topup txnRef / bookingId).
+  refType      String
+  refId        String
+  /// Số dư ngay sau biến động (denormalized phục vụ hiển thị lịch sử).
+  balanceAfter Int
+  createdAt    DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([refType, refId, type])
+  @@index([userId, createdAt])
+  @@map("wallet_ledgers")
 }
 
 /// Mỗi đơn chỉ được đánh giá một lần (bookingId UNIQUE); người đánh giá là khách trong đơn COMPLETED.
