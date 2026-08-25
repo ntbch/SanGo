@@ -208,4 +208,45 @@ describe('guest browsing công khai (P1-F1)', () => {
     // Trang đích thực sự render được lịch chọn giờ.
     expect(await screen.findByText('Chọn giờ đặt sân')).toBeTruthy();
   });
+
+  it('QA-T4-01 v2 hồi quy: đã setSession mà còn ở /login?next → GuestRoute dẫn về đúng next', async () => {
+    // Mô phỏng tĩnh cuộc đua thật: user đã có trong store, location vẫn là /login
+    // (browser thật: zustand thông báo sync trước khi useNavigate commit).
+    asUser(UserRole.CUSTOMER);
+    const nextPath = '/venues/san-pickleball-saigon/book';
+    renderApp({
+      route: '/login?next=' + encodeURIComponent(nextPath),
+      ui: (
+        <>
+          <AppRoutes />
+          <RouteProbe />
+        </>
+      ),
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('route-loc').textContent).toBe(nextPath);
+      },
+      { timeout: 3000 },
+    );
+    expect(screen.getByTestId('route-loc').textContent).not.toBe('/dashboard');
+  });
+
+  it('QA-T4-01 v2: GuestRoute cũng chặn open-redirect khi tôn trọng next', async () => {
+    asUser(UserRole.CUSTOMER);
+    renderApp({
+      route: '/login?next=' + encodeURIComponent('//evil.com'),
+      ui: (
+        <>
+          <AppRoutes />
+          <RouteProbe />
+        </>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('route-loc').textContent).toBe('/dashboard');
+    });
+  });
 });

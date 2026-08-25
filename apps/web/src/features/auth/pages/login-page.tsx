@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { APP_NAME } from '@courthub/shared';
+import { safeInternalTarget } from '../../../components/auth/guards';
 import { Button } from '../../../components/ui/button';
 import {
   Card,
@@ -31,12 +32,6 @@ import { loginSchema, type LoginDto } from '../schemas';
 
 /** Tài khoản demo hiển thị khi chạy chế độ mock (VITE_USE_MOCK=true). */
 const MOCK_HINT_ACCOUNTS = ['customer@courthub.vn', 'owner@courthub.vn', 'admin@courthub.vn'];
-
-/** Chỉ nhận đích nội bộ (bắt đầu bằng '/', không phải '//') để tránh open-redirect. */
-function safeInternalTarget(raw: string | null): string | null {
-  if (raw === null || !raw.startsWith('/') || raw.startsWith('//')) return null;
-  return raw;
-}
 
 export function LoginPage(): ReactElement {
   const navigate = useNavigate();

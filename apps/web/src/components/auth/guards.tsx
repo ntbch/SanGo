@@ -1,8 +1,16 @@
 import { type UserRole } from '@courthub/shared';
 import type { ReactElement, ReactNode } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 
 import { useAuthStore } from '../../lib/auth/auth-store';
+
+/** Chỉ nhận đích nội bộ (bắt đầu bằng '/', không phải '//') — chống open-redirect. */
+export function safeInternalTarget(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined || !raw.startsWith('/') || raw.startsWith('//')) {
+    return null;
+  }
+  return raw;
+}
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -32,9 +40,19 @@ interface GuestRouteProps {
 /** Trang dành cho khách chưa đăng nhập (login/register…) — đã đăng nhập thì về dashboard. */
 export function GuestRoute({ children }: GuestRouteProps): ReactElement {
   const user = useAuthStore((state) => state.user);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    // QA-T4-01 (v2): setSession (external store) thông báo subscriber đồng bộ nên
+    // GuestRoute có thể re-render với location CŨ trong khi useNavigate của
+    // LoginPage commit qua React state — hai lệnh navigate đua nhau và
+    // /dashboard từng thắng. Cho GuestRoute tự tôn trọng đích next/from để
+    // DÙ trang nào thắng cuộc đua thì đích cuối cũng là next → tất định đúng.
+    const next =
+      safeInternalTarget(searchParams.get('next')) ??
+      safeInternalTarget((location.state as { from?: string } | null)?.from);
+    return <Navigate to={next ?? '/dashboard'} replace />;
   }
 
   // Dùng như pathless layout route thì render con qua Outlet.
