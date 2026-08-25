@@ -18,27 +18,29 @@ describe('GeminiLlmClient', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('map message -> contents và parse functionCall thành toolCalls', async () => {
-    const fetchMock = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        okResponse({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  { text: 'Để mình tìm sân nhé' },
-                  { functionCall: { name: 'searchVenues', args: { location: 'Gò Vấp' } } },
-                ],
-              },
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      okResponse({
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Để mình tìm sân nhé' },
+                { functionCall: { name: 'searchVenues', args: { location: 'Gò Vấp' } } },
+              ],
             },
-          ],
-        }),
-      );
+          },
+        ],
+      }),
+    );
     const client = new GeminiLlmClient('test-key', 'gemini-2.5-flash');
     const messages: LlmMessage[] = [
       { role: 'system', content: 'Bạn là trợ lý CourtHub.' },
       { role: 'user', content: 'Tìm sân Gò Vấp' },
-      { role: 'assistant', content: 'ok', toolCalls: [{ id: 'call_0', name: 'searchVenues', args: {} }] },
+      {
+        role: 'assistant',
+        content: 'ok',
+        toolCalls: [{ id: 'call_0', name: 'searchVenues', args: {} }],
+      },
       { role: 'tool', toolCallId: 'call_0', name: 'searchVenues', content: '{"venues":[]}' },
     ];
     const result = await client.generate(messages, TOOLS);

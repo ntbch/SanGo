@@ -39,7 +39,8 @@ export class GeminiLlmClient implements LlmClient {
         contents.push({ role: 'user', parts: [{ text: message.content ?? '' }] });
       } else if (message.role === 'assistant') {
         const parts: GeminiPart[] = [];
-        if (message.content !== undefined && message.content !== '') parts.push({ text: message.content });
+        if (message.content !== undefined && message.content !== '')
+          parts.push({ text: message.content });
         for (const call of message.toolCalls ?? []) {
           parts.push({ functionCall: { name: call.name, args: call.args } });
         }
