@@ -174,21 +174,34 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
     expect(left.body).toContain('rời đơn');
   });
 
-  it('reminder cron: đơn còn ~30 phút chỉ nhận ĐÚNG 1 bản ghi REMINDER T-2h', async () => {
-    await mkConfirmedBooking(30 * 60_000);
-    // Tick hai lần liên tiếp — lần 2 phải bị chặn bởi dedup
+  it('reminder cron chạy 2 LẦN không nhân đôi; cột remindedAt2h được claim', async () => {
+    const booking = await mkConfirmedBooking(30 * 60_000);
     await cron['sendReminders']();
-    await cron['sendReminders']();
+    await cron['sendReminders'](); // lần 2 phải bị cột chống trùng chặn
 
     const reminders = await prisma.notification.findMany({
-      where: { userId: custId, type: 'REMINDER', title: 'Sắp tới giờ chơi!' },
+      where: { userId: custId, type: 'REMINDER', link: `/bookings/${booking.code}` },
     });
     expect(reminders).toHaveLength(1);
-    // Chưa tới mốc T-24h riêng? Có: mốc T-24h cũng đã qua cửa sổ (30 phút < 24h)
-    // nên tổng cộng mỗi tick chỉ phát T-2h; T-24h KHÔNG phát lùi lại.
-    const t24 = await prisma.notification.findMany({
-      where: { userId: custId, title: 'Nhắc lịch: ngày mai bạn có trận' },
+
+    // Cột chống trùng trên booking: đã claim T-2h, KHÔNG đụng T-24h
+    const flagged = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    expect(flagged.remindedAt2h).not.toBeNull();
+    expect(flagged.remindedAt24h).toBeNull();
+  });
+
+  it('reminder mốc T-24h: đơn còn ~20 tiếng nhận đúng T-24h, chưa T-2h', async () => {
+    const booking = await mkConfirmedBooking(20 * HOUR);
+    await cron['sendReminders']();
+
+    const notis = await prisma.notification.findMany({
+      where: { userId: custId, type: 'REMINDER', link: `/bookings/${booking.code}` },
     });
-    expect(t24).toHaveLength(0);
+    expect(notis).toHaveLength(1);
+    expect(notis[0].title).toBe('Nhắc lịch: ngày mai bạn có trận');
+
+    const flagged = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    expect(flagged.remindedAt24h).not.toBeNull();
+    expect(flagged.remindedAt2h).toBeNull();
   });
 });

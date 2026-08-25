@@ -260,6 +260,9 @@ model Booking {
   isPublicMatch Boolean?
   slotsNeeded   Int?
   matchFull     Boolean?
+  /// P2-B2: mốc chống gửi trùng nhắc lịch (null = chưa nhắc ở mốc đó).
+  remindedAt24h DateTime?
+  remindedAt2h  DateTime?
   createdAt     DateTime      @default(now())
 
   customer User      @relation("BookingCustomer", fields: [customerId], references: [id])

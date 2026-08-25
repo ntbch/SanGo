@@ -7,29 +7,41 @@ import { BookingsService } from './bookings.service';
 import { NotifyService } from '../notifications/notify.service';
 import { reminderEmail } from '../notifications/mail-templates';
 
-const TICK_MS = 60_000;
+const TICK_MS = 60_000; // expire holds + hoàn tất đơn — cần độ trễ thấp
+const REMINDER_TICK_MS = 15 * 60_000; // job nhắc lịch chạy mỗi 15 phút (P2-B2)
 const HOUR_MS = 3_600_000;
 
 /** Hai mốc nhắc lịch theo đặc tả Đợt 2. */
 const REMINDER_MARKS = [
-  { label: 'T-24h' as const, windowMs: 24 * HOUR_MS, title: 'Nhắc lịch: ngày mai bạn có trận' },
-  { label: 'T-2h' as const, windowMs: 2 * HOUR_MS, title: 'Sắp tới giờ chơi!' },
+  {
+    label: 'T-24h' as const,
+    column: 'remindedAt24h' as const,
+    windowMs: 24 * HOUR_MS,
+    title: 'Nhắc lịch: ngày mai bạn có trận',
+  },
+  {
+    label: 'T-2h' as const,
+    column: 'remindedAt2h' as const,
+    windowMs: 2 * HOUR_MS,
+    title: 'Sắp tới giờ chơi!',
+  },
 ];
 
 /**
- * Cron mỗi phút — spec §6.1:
- * 1) Hold ACTIVE quá hạn -> EXPIRED (nhả slot)
- * 2) Booking CONFIRMED qua giờ kết thúc -> COMPLETED
- * 3) Nhắc lịch chơi tại mốc T-24h và T-2h trước giờ bắt đầu (P2-B2)
+ * Cron nền của booking engine — spec §6.1 + P2-B2:
+ * 1) MỖI PHÚT: hold ACTIVE quá hạn -> EXPIRED (nhả slot); đơn qua giờ -> COMPLETED.
+ * 2) MỖI 15 PHÚT: nhắc lịch chơi tại mốc T-24h và T-2h trước giờ bắt đầu.
  *
- * Chống gửi trùng: mỗi mốc nhận một dòng Notification(type=REMINDER) với bộ
- * khóa (userId, link đơn, title mốc). Tra findFirst TRƯỚC khi gửi nên bền vững
- * qua restart và an toàn khi tick dồn nhiều lần — khác hẳn Set in-memory cũ.
+ * Chống gửi trùng bằng 2 cột Booking.remindedAt24h / remindedAt2h:
+ * claim ATOMIC updateMany(where {id, col: null}) -> ai thắng count=1 mới được
+ * gửi. Bền vững qua restart, an toàn khi nhiều instance/tick dồn — khác hẳn
+ * Set in-memory cũ. Gửi lỗi thì nhả claim để tick sau thử lại.
  */
 @Injectable()
 export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BookingsCronService.name);
   private timer?: NodeJS.Timeout;
+  private reminderTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly bookings: BookingsService,
@@ -39,13 +51,18 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     this.timer = setInterval(() => void this.tick(), TICK_MS);
-    this.logger.log('Booking cron đã bật (mỗi 60s)');
+    this.reminderTimer = setInterval(() => void this.sendReminders(), REMINDER_TICK_MS);
+    this.logger.log(
+      `Booking cron đã bật: expire/complete mỗi ${TICK_MS / 1000}s, nhắc lịch mỗi ${REMINDER_TICK_MS / 60_000}phút`,
+    );
   }
 
   onModuleDestroy(): void {
     if (this.timer) clearInterval(this.timer);
+    if (this.reminderTimer) clearInterval(this.reminderTimer);
   }
 
+  /** Tick nhanh: dọn hold hết hạn + hoàn tất đơn qua giờ. */
   async tick(): Promise<void> {
     try {
       const expired = await this.bookings.expireStaleHolds();
@@ -53,20 +70,21 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
 
       const completed = await this.bookings.completePastBookings();
       if (completed > 0) this.logger.log(`Cron: ${completed} booking qua giờ -> COMPLETED`);
-
-      await this.sendReminders();
     } catch (e) {
       this.logger.error(`Cron tick lỗi: ${(e as Error).message}`);
     }
   }
 
-  /** Quét đơn CONFIRMED còn chưa chơi trong vòng 24h -> phát nhắc từng mốc. */
-  private async sendReminders(): Promise<void> {
+  /**
+   * Job nhắc lịch (mỗi 15'): quét đơn CONFIRMED sắp chơi và phát từng mốc.
+   * Pha độc lập: T-24h chỉ áp dụng khi còn > T-2h window — đơn tạo muộn
+   * không nhận mail "ngày mai bạn có trận" vô nghĩa.
+   */
+  async sendReminders(): Promise<void> {
     const now = Date.now();
     const upcoming = await this.prisma.booking.findMany({
       where: {
         status: BookingStatus.CONFIRMED,
-        // Sơ lọc SQL: chỉ đơn bắt đầu trong tương lai và không quá xa 24h+1 ngày
         date: { gte: new Date(now - 48 * HOUR_MS) },
       },
       select: {
@@ -76,6 +94,8 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
         date: true,
         startMinute: true,
         endMinute: true,
+        remindedAt24h: true,
+        remindedAt2h: true,
         court: { select: { name: true, venue: { select: { name: true } } } },
       },
     });
@@ -86,18 +106,18 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
       if (untilStart <= 0 || untilStart > 24 * HOUR_MS) continue;
 
       for (const mark of REMINDER_MARKS) {
-        // Chưa tới mốc -> bỏ; T-24h bị bỏ luôn khi đã lọt vào cửa sổ T-2h
-        // (đơn tạo muộn không nhận mail "ngày mai bạn có trận" vô nghĩa).
-        if (untilStart > mark.windowMs) continue;
+        if (untilStart > mark.windowMs) continue; // chưa tới mốc
         if (mark.label === 'T-24h' && untilStart <= REMINDER_MARKS[1].windowMs) continue;
+        if (b[mark.column]) continue; // đã nhắc mốc này (đọc nhanh, vẫn có claim bên dưới)
         await this.remindOnce(b, startAt, mark);
       }
     }
   }
 
-  /** Gửi đúng MỘT lần cho một mốc — chặn trùng bằng bản ghi REMINDER cùng title. */
+  /** Claim atomic cột mốc rồi gửi — count=0 nghĩa là instance/kick khác đã gửi. */
   private async remindOnce(
     booking: {
+      id: string;
       code: string;
       customerId: string;
       date: Date;
@@ -108,17 +128,18 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
     startAt: number,
     mark: (typeof REMINDER_MARKS)[number],
   ): Promise<void> {
-    const link = `/bookings/${booking.code}`;
-    const already = await this.prisma.notification.findFirst({
-      where: {
-        userId: booking.customerId,
-        type: 'REMINDER',
-        link,
-        title: mark.title,
-      },
-      select: { id: true },
-    });
-    if (already) return;
+    const now = new Date();
+    const claim =
+      mark.label === 'T-24h'
+        ? await this.prisma.booking.updateMany({
+            where: { id: booking.id, remindedAt24h: null },
+            data: { remindedAt24h: now },
+          })
+        : await this.prisma.booking.updateMany({
+            where: { id: booking.id, remindedAt2h: null },
+            data: { remindedAt2h: now },
+          });
+    if (claim.count === 0) return;
 
     try {
       const minutesLeft = Math.max(0, Math.round((startAt - Date.now()) / 60_000));
@@ -127,7 +148,7 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
         type: NotificationType.REMINDER,
         title: mark.title,
         body: `Đơn ${booking.code} · ${booking.court.name} bắt đầu sau khoảng ${minutesLeft} phút (${mark.label})`,
-        link,
+        link: `/bookings/${booking.code}`,
         mail: reminderEmail({
           code: booking.code,
           courtName: booking.court.name,
@@ -141,6 +162,11 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
       });
       this.logger.log(`Cron: nhắc ${mark.label} đơn ${booking.code}`);
     } catch (e) {
+      // Nhả claim để tick sau thử lại — ưu tiên đúng hơn là im lặng bỏ sót.
+      await this.prisma.booking.updateMany({
+        where: { id: booking.id },
+        data: mark.label === 'T-24h' ? { remindedAt24h: null } : { remindedAt2h: null },
+      });
       this.logger.warn(`Nhắc lịch thất bại đơn ${booking.code}: ${(e as Error).message}`);
     }
   }
