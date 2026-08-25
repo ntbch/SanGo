@@ -37,11 +37,22 @@ export function register(values: RegisterFormValues): Promise<AuthResponse> {
   });
 }
 
-export function forgotPassword(values: ForgotPasswordDto): Promise<ForgotPasswordResponse> {
-  return apiFetch<ForgotPasswordResponse>(endpoints.auth.forgotPassword(), {
+export async function forgotPassword(values: ForgotPasswordDto): Promise<ForgotPasswordResponse> {
+  // API thật (dev, NODE_ENV!=production): backend trả raw token qua header
+  // X-Dev-Reset-Token — đây là path chính để xây link đặt lại; devResetLink
+  // trong body chỉ là cơ chế tương đương của mock (mock không có lớp HTTP).
+  let devToken: string | undefined;
+  const response = await apiFetch<ForgotPasswordResponse>(endpoints.auth.forgotPassword(), {
     method: 'POST',
     body: { email: values.email.trim().toLowerCase() },
+    onResponse: (res) => {
+      const token = res.headers.get('X-Dev-Reset-Token');
+      if (token !== null && token !== '') devToken = token;
+    },
   });
+  return devToken !== undefined
+    ? { ...response, devResetLink: '/dat-lai-mat-khau?token=' + devToken }
+    : response;
 }
 
 /** Đặt lại mật khẩu bằng token từ email — API trả 204 không body. */

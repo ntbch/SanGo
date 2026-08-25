@@ -19,6 +19,11 @@ export interface ApiRequestOptions {
   /** Đối tượng JS tuỳ ý — sẽ được JSON.stringify tự động. */
   body?: unknown;
   signal?: AbortSignal;
+  /**
+   * Hook đọc raw Response (vd header X-Dev-Reset-Token của forgot-password).
+   * Chỉ chạy ở chế độ API thật — mock trả giá trị trước khi fetch diễn ra.
+   */
+  onResponse?: (response: Response) => void;
 }
 
 /** Các endpoint auth không cần thử refresh khi gặp 401 (tránh vòng lặp). */
@@ -98,6 +103,7 @@ export async function apiFetch<T>(
     },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
+  options.onResponse?.(response);
 
   if (
     response.status === 401 &&
