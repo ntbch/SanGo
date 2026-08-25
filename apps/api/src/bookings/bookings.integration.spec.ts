@@ -96,7 +96,11 @@ describe('Booking engine chống double-booking (integration)', () => {
       await prisma.pricingRule.deleteMany({ where: { court: { venueId: { in: venueIds } } } });
       await prisma.court.deleteMany({ where: { venueId: { in: venueIds } } });
       await prisma.venue.deleteMany({ where: { id: { in: venueIds } } });
-      // S2-F1: đội tham chiếu captain (RESTRICT) — dọn trước khi xóa user.
+      // S2-F1/MAJOR-A: thành viên + đội tham chiếu user (RESTRICT) — dọn trước.
+      await prisma.expenseShare.deleteMany({
+        where: { OR: [{ payerId: { in: ids } }, { debtorId: { in: ids } }] },
+      });
+      await prisma.teamMember.deleteMany({ where: { userId: { in: ids } } });
       await prisma.team.deleteMany({ where: { captainId: { in: ids } } });
       await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
@@ -233,6 +237,21 @@ describe('Booking engine chống double-booking (integration)', () => {
       },
     });
     try {
+      // MAJOR-A: người đặt phải là TeamMember ACTIVE của đội (captain cũng có row).
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: custA.id, role: 'CAPTAIN', status: 'ACTIVE' },
+      });
+      // Đảm bảo không vướng HOLD_LIMIT của các case trước (race winner không xác định).
+      await prisma.bookingHold.updateMany({
+        where: { userId: { in: [custA.id, custB.id] }, status: 'ACTIVE' },
+        data: { status: 'EXPIRED' },
+      });
+
+      // MAJOR-A: người KHÔNG thuộc đội bị chặn ngay ở createHold.
+      await expect(
+        bookings.createHold(uB(), { courtId, date: DATE, slots: [720], teamId: team.id }),
+      ).rejects.toMatchObject({ response: { code: 'NOT_TEAM_MEMBER' } });
+
       // FE chỉ gửi teamId lúc giữ chỗ — payments callback KHÔNG truyền opts.teamId.
       const hold = (await bookings.createHold(uA(), {
         courtId,

@@ -84,6 +84,8 @@ describe('Teams & ExpenseShare service (integration)', () => {
   });
 
   let createdTeamId: string;
+  /** Booking đã chia tiền ở EXPENSE-1 — dùng lại cho các ca scoping MAJOR-A. */
+  let expenseBookingId!: string;
 
   it('TEAM-1: tạo team -> người tạo là CAPTAIN và thành viên ACTIVE', async () => {
     if (!dbUp) return;
@@ -181,6 +183,7 @@ describe('Teams & ExpenseShare service (integration)', () => {
         teamId: createdTeamId,
       },
     });
+    expenseBookingId = booking.id;
 
     // Chia đều 300k cho 3 người: captain, member1, member2 (mỗi người 100k)
     // Người trả là captain -> tạo 2 khoản nợ cho member1 và member2 (mỗi người 100k)
@@ -227,5 +230,88 @@ describe('Teams & ExpenseShare service (integration)', () => {
     const summaryAfter = await teams.getTeamExpenses(createdTeamId, captain);
     expect(summaryAfter.totalUnpaid).toBe(100_000); // chỉ còn member2 nợ 100k
     expect(summaryAfter.myReceivable).toBe(100_000);
+  });
+
+  it('SCOPE-A (MAJOR-A): splitBookingExpense chặn đơn không thuộc đội trên route', async () => {
+    if (!dbUp) return;
+    const otherTeam = await teams.createTeam(captain, {
+      name: 'FC Đối Thủ ' + SUFFIX,
+      sportType: SportType.FOOTBALL5,
+    });
+
+    // Captain là captain của otherTeam nên qua được gate quyền, nhưng booking
+    // thuộc createdTeamId -> phải bị chặn vì lệch đội trên route param.
+    await expect(
+      teams.splitBookingExpense(otherTeam.id, captain, {
+        bookingId: expenseBookingId,
+        memberIds: [member1.id],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'BOOKING_TEAM_MISMATCH' } });
+  });
+
+  it('SCOPE-B (MAJOR-A): chặn chia trùng cùng booking trong một đội', async () => {
+    if (!dbUp) return;
+    await expect(
+      teams.splitBookingExpense(createdTeamId, captain, {
+        bookingId: expenseBookingId,
+        memberIds: [captain.id, member1.id, member2.id],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'BOOKING_ALREADY_SPLIT' } });
+  });
+
+  it('SCOPE-C (MAJOR-A): chặn chia cho người không phải thành viên ACTIVE', async () => {
+    if (!dbUp) return;
+    // Booking mới của captain trong team, chưa từng được chia.
+    const venue = await prisma.venue.create({
+      data: {
+        name: 'Venue Scope ' + SUFFIX,
+        slug: 'venue-scope-' + SUFFIX,
+        address: '456 Scope St',
+        lat: 21.03,
+        lng: 105.84,
+        openMinute: 360,
+        closeMinute: 1320,
+        ownerId: captain.id,
+        status: 'APPROVED',
+      },
+    });
+    const court = await prisma.court.create({
+      data: {
+        venueId: venue.id,
+        name: 'Sân Scope',
+        sportType: SportType.FOOTBALL5,
+        slotMinutes: 60,
+        defaultPricePerSlot: 200_000,
+      },
+    });
+    const booking = await prisma.booking.create({
+      data: {
+        code: `CH-${SUFFIX}-SCOP`,
+        customerId: captain.id,
+        courtId: court.id,
+        date: new Date(Date.now() + 86_400_000),
+        startMinute: 720,
+        endMinute: 780,
+        subtotal: 200_000,
+        depositAmount: 200_000,
+        status: 'CONFIRMED',
+        teamId: createdTeamId,
+      },
+    });
+
+    // stranger không phải member; PENDING cũng bị chặn vì lọc status ACTIVE.
+    await expect(
+      teams.splitBookingExpense(createdTeamId, captain, {
+        bookingId: booking.id,
+        memberIds: [stranger.id],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'MEMBER_NOT_ACTIVE' } });
+
+    // Hợp lệ: chỉ chia cho các ACTIVE member thật sự.
+    const split = await teams.splitBookingExpense(createdTeamId, captain, {
+      bookingId: booking.id,
+      memberIds: [member2.id],
+    });
+    expect(split.sharesCreated).toBe(1);
   });
 });

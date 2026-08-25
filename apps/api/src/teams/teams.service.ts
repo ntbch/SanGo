@@ -304,6 +304,15 @@ export class TeamsService {
       });
     }
 
+    // MAJOR-A(2a): đơn phải thuộc đúng đội trên route param — chặn gắn khoản nợ
+    // của đội này vào booking của đội khác.
+    if (booking.teamId !== teamId) {
+      throw new BadRequestException({
+        message: 'Đơn đặt sân không thuộc đội này',
+        code: 'BOOKING_TEAM_MISMATCH',
+      });
+    }
+
     // Tính tổng tiền cần chia: tổng số tiền đã thanh toán (PAID) của đơn
     const paidAmount = booking.payments
       .filter((p) => p.status === 'PAID' && (p.type === 'DEPOSIT' || p.type === 'FULL'))
@@ -318,12 +327,37 @@ export class TeamsService {
       });
     }
 
+    // MAJOR-A(2c): mọi người được chia phải là TeamMember ACTIVE của đúng đội này.
+    const activeMembers = await this.prisma.teamMember.findMany({
+      where: { teamId, userId: { in: dto.memberIds }, status: 'ACTIVE' },
+      select: { userId: true },
+    });
+    if (activeMembers.length !== new Set(dto.memberIds).size) {
+      throw new BadRequestException({
+        message: 'Có thành viên không thuộc đội hoặc chưa ACTIVE',
+        code: 'MEMBER_NOT_ACTIVE',
+      });
+    }
+
     const sharePerPerson = Math.floor(totalToSplit / count);
 
     // Tạo các ExpenseShare cho các thành viên (loại trừ chính người trả nếu có trong danh sách)
     const debtors = dto.memberIds.filter((id) => id !== user.id);
 
     return this.prisma.$transaction(async (tx) => {
+      // MAJOR-A(2b): một booking chỉ được chia tiền MỘT lần trong đội —
+      // kiểm tra lại trong transaction để hạn chế double-submit.
+      const existingShare = await tx.expenseShare.findFirst({
+        where: { teamId, bookingId: booking.id },
+        select: { id: true },
+      });
+      if (existingShare) {
+        throw new ConflictException({
+          message: 'Đơn này đã được chia tiền trong đội rồi',
+          code: 'BOOKING_ALREADY_SPLIT',
+        });
+      }
+
       const createdShares = [];
       for (const debtorId of debtors) {
         const share = await tx.expenseShare.create({

@@ -93,7 +93,8 @@ export class BookingsService {
       });
     }
 
-    // S2-F1: đặt sân tư cách đội — chặn sớm teamId lạ để không rơi 500 ở FK.
+    // S2-F1 + MAJOR-A: đặt sân tư cách đội — team phải tồn tại và người đặt
+    // phải là TeamMember ACTIVE, nếu không ai cũng gắn đơn vào team bất kỳ.
     if (dto.teamId) {
       const team = await this.prisma.team.findUnique({
         where: { id: dto.teamId },
@@ -103,6 +104,16 @@ export class BookingsService {
         throw new NotFoundException({
           message: 'Không tìm thấy đội thể thao',
           code: 'TEAM_NOT_FOUND',
+        });
+      }
+      const membership = await this.prisma.teamMember.findFirst({
+        where: { teamId: dto.teamId, userId: user.id, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      if (!membership) {
+        throw new ForbiddenException({
+          message: 'Bạn không phải thành viên ACTIVE của đội này',
+          code: 'NOT_TEAM_MEMBER',
         });
       }
     }
