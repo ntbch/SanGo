@@ -252,9 +252,40 @@ export function TeamDetailPage(): ReactElement {
         myOwed={expenses?.myOwed ?? 0}
         myReceivable={expenses?.myReceivable ?? 0}
         loading={expensesQuery.isPending}
-        onCreateExpense={(payload) => createExpenseMutation.mutate({ teamId, ...payload })}
+        onCreateExpense={(payload) =>
+          createExpenseMutation.mutate(
+            { teamId, ...payload },
+            {
+              onSuccess: () =>
+                toast({
+                  title: 'Đã ghi nợ',
+                  description: 'Khoản chia tiền đã được ghi vào sổ quỹ.',
+                }),
+              onError: (err) =>
+                toast({
+                  variant: 'destructive',
+                  title: 'Không ghi được khoản nợ',
+                  description: friendlyApiMessage(err),
+                }),
+            },
+          )
+        }
         onUpdateStatus={(shareId, status) =>
-          updateStatusMutation.mutate({ teamId, shareId, status })
+          updateStatusMutation.mutate(
+            { teamId, shareId, status },
+            {
+              onSuccess: () =>
+                toast({
+                  title: status === 'PAID' ? 'Đã đánh dấu thanh toán' : 'Đã chuyển về chưa trả',
+                }),
+              onError: (err) =>
+                toast({
+                  variant: 'destructive',
+                  title: 'Cập nhật trạng thái thất bại',
+                  description: friendlyApiMessage(err),
+                }),
+            },
+          )
         }
         creating={createExpenseMutation.isPending}
         updating={updateStatusMutation.isPending}
@@ -357,7 +388,6 @@ interface ExpensesPanelProps {
 
 function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
   const { members, currentUserId, expenses, totalUnpaid, myOwed, myReceivable, loading } = props;
-  const { toast } = useToast();
   const [expenseOpen, setExpenseOpen] = useState(false);
 
   const form = useForm<ExpenseShareFormValues>({
@@ -375,7 +405,6 @@ function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
     });
     form.reset({ debtorId: '', amount: 100000, note: '' });
     setExpenseOpen(false);
-    toast({ title: 'Đã ghi nợ', description: 'Khoản chia tiền đã được ghi vào sổ quỹ.' });
   }
 
   return (
