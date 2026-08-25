@@ -72,7 +72,11 @@ interface VenueSpec {
 
 async function main() {
   console.log('🧹 Dọn dữ liệu cũ...');
-  // Thứ tự FK-an-toàn: con trước cha; bảng F6/F3/F8 xoá trước users.
+  // Thứ tự FK-an-toàn: con trước cha; bảng F6/F3/F8/S2 xoá trước users.
+  await prisma.expenseShare.deleteMany();
+  await prisma.teamMember.deleteMany();
+  await prisma.team.deleteMany();
+  await prisma.bookingAddOn.deleteMany();
   await prisma.voucherRedemption.deleteMany();
   await prisma.voucher.deleteMany();
   await prisma.walletLedger.deleteMany();
@@ -1374,6 +1378,114 @@ async function main() {
     });
   }
 
+  // ================================================================
+  // DEMO BUỔI BẢO VỆ 2 (Sprint 2): đội nhóm -> đặt sân tư cách đội ->
+  // chia tiền ExpenseShare (track-only) + catalog dịch vụ đi kèm.
+  // ================================================================
+
+  console.log('👥 F1: Tạo 2 đội thể thao kèm thành viên...');
+  const fcCourthub = await prisma.team.create({
+    data: {
+      name: 'FC CourtHub',
+      sportType: 'FOOTBALL5',
+      description: 'Đội bóng đá 5 người của hệ thống CourtHub — sẵn sàng cho mọi trận cầu.',
+      captainId: customer.id,
+    },
+  });
+  await prisma.teamMember.create({
+    data: { teamId: fcCourthub.id, userId: customer.id, role: 'CAPTAIN', status: 'ACTIVE' },
+  });
+  await prisma.teamMember.create({
+    data: { teamId: fcCourthub.id, userId: customer2.id, role: 'MEMBER', status: 'ACTIVE' },
+  });
+
+  const pbSaigon = await prisma.team.create({
+    data: {
+      name: 'Pickleball Saigon Club',
+      sportType: 'PICKLEBALL',
+      description: 'Câu lạc bộ Pickleball sôi động nhất Sài Gòn.',
+      captainId: customer2.id,
+    },
+  });
+  await prisma.teamMember.create({
+    data: { teamId: pbSaigon.id, userId: customer2.id, role: 'CAPTAIN', status: 'ACTIVE' },
+  });
+  await prisma.teamMember.create({
+    data: { teamId: pbSaigon.id, userId: customer.id, role: 'MEMBER', status: 'ACTIVE' },
+  });
+
+  console.log('⚽ F1: Đặt sân tư cách FC CourtHub + khoản chia tiền ExpenseShare...');
+  // Đội FC CourtHub đặt sân ngày mưa (đơn thứ 4) — captain trả trước, member bị ghi nợ 1/2.
+  const teamBookingDeposit = depositOf(450_000, 30);
+  const teamBooking = await prisma.booking.create({
+    data: {
+      code: `BK-${formatCodeDate(rainyDate)}-000${rainySeq}`,
+      customerId: customer.id,
+      courtId: football5A.id,
+      date: toDate(rainyDate),
+      startMinute: 1140, // 19:00
+      endMinute: 1200, // 20:00
+      subtotal: 450_000,
+      depositAmount: teamBookingDeposit,
+      status: 'CONFIRMED',
+      teamId: fcCourthub.id,
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      bookingId: teamBooking.id,
+      type: 'DEPOSIT',
+      method: 'MOCK',
+      amount: teamBookingDeposit,
+      txnRef: `demo-team-${teamBooking.id.slice(0, 8)}`,
+      status: 'PAID',
+      paidAt: new Date(),
+    },
+  });
+  rainySeq++;
+
+  // Chia đều tiền cọc cho thành viên còn lại (track-only qua ExpenseShare)
+  const shareAmount = Math.floor(teamBookingDeposit / 2);
+  await prisma.expenseShare.create({
+    data: {
+      teamId: fcCourthub.id,
+      bookingId: teamBooking.id,
+      payerId: customer.id,
+      debtorId: customer2.id,
+      amount: shareAmount,
+      note: `Chia tiền cọc sân ${rainyDate} 19:00-20:00 (1/2 cho mỗi thành viên)`,
+      status: 'UNPAID',
+    },
+  });
+
+  console.log('🧃 F4: Tạo menu dịch vụ đi kèm cho các cụm sân của owner...');
+  const venueOfCourt = async (court: { id: string }): Promise<string> => {
+    const row = await prisma.court.findUnique({ where: { id: court.id }, select: { venueId: true } });
+    return row?.venueId ?? '';
+  };
+  const fbVenueId = await venueOfCourt(football5A);
+  const bdVenueId = await venueOfCourt(badminton1);
+  const svcSpecs: Array<{ venueId: string; name: string; price: number; type: 'BEVERAGE' | 'EQUIPMENT' | 'OTHER' }> = [
+    { venueId: fbVenueId, name: 'Nước suối Aquafina 500ml', price: 10_000, type: 'BEVERAGE' },
+    { venueId: fbVenueId, name: 'Nước tăng lực Redbull 250ml', price: 20_000, type: 'BEVERAGE' },
+    { venueId: bdVenueId, name: 'Thuê bóng chuyền (trận)', price: 30_000, type: 'EQUIPMENT' },
+    { venueId: bdVenueId, name: 'Thuê giày cầu lông', price: 50_000, type: 'EQUIPMENT' },
+  ];
+  let svcCount = 0;
+  for (const spec of svcSpecs) {
+    if (!spec.venueId) continue;
+    await prisma.venueService.create({
+      data: {
+        venueId: spec.venueId,
+        name: spec.name,
+        price: spec.price,
+        type: spec.type,
+        isAvailable: true,
+      },
+    });
+    svcCount++;
+  }
+
   console.log('\n============================================================');
   console.log('✨ SEED DỮ LIỆU THÀNH CÔNG!');
   console.log('============================================================');
@@ -1386,9 +1498,12 @@ async function main() {
   console.log('------------------------------------------------------------');
   console.log('🎟️  Voucher F3: GIAM20-CN..GIAM20-T7 (giảm 20%, theo thứ, 06:00-22:00)');
   console.log(
-    `🌧️  Ngày mưa N2: ${rainyBookings.length} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
+    `🌧️  Ngày mưa N2: ${rainyBookings.length + 1} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
   );
   console.log('💰 Ví F6: customer & customer2 mỗi ví 500.000đ');
+  console.log('👥 F1 Teams: FC CourtHub (captain customer) + Pickleball Saigon Club (captain customer2)');
+  console.log(`💸 ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC CourtHub`);
+  console.log(`🧃 F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`);
   console.log('------------------------------------------------------------');
   console.log(
     `Tổng cộng: ${venueSpecs.length} venue (${venueSpecs.length - 1} Hà Nội phủ 12 quận, 1 TP.HCM), ${createdCourts.length} court.`,
