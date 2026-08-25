@@ -4,6 +4,11 @@ import { Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute, GuestRoute } from '../components/auth/guards';
 import { DashboardLayout } from '../components/layout/dashboard-layout';
+import {
+  BookingCalendarPageMeta,
+  PageMeta,
+  VenueDetailPageMeta,
+} from '../components/layout/page-meta';
 import { PublicLayout } from '../components/layout/public-layout';
 import { Toaster } from '../components/ui/toaster';
 import { ForgotPasswordPage } from '../features/auth/pages/forgot-password-page';
@@ -55,13 +60,51 @@ export function AppRoutes(): ReactElement {
       {/* Floating AI assistant — hiển thị toàn app (wireframe 08, §3.12) */}
       <AiChatWidget />
       <Routes>
-        {/* Khu công khai */}
+        {/* Khu công khai — guest xem được; SEO title/meta riêng từng trang (P1-F1) */}
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="venues" element={<VenuesPage />} />
-          <Route path="venues/:slug" element={<VenueDetailPage />} />
-          <Route path="venues/:slug/book" element={<BookingCalendarPage />} />
-          <Route path="matches" element={<MatchesPage />} />
+          <Route
+            path="venues"
+            element={
+              <>
+                <PageMeta
+                  title="Tìm sân thể thao gần bạn"
+                  description="Khám phá các cụm sân thể thao tại Hà Nội: lọc theo quận, môn chơi, giá và khoảng cách GPS rồi giữ chỗ online."
+                />
+                <VenuesPage />
+              </>
+            }
+          />
+          <Route
+            path="venues/:slug"
+            element={
+              <>
+                <VenueDetailPageMeta />
+                <VenueDetailPage />
+              </>
+            }
+          />
+          <Route
+            path="venues/:slug/book"
+            element={
+              <>
+                <BookingCalendarPageMeta />
+                <BookingCalendarPage />
+              </>
+            }
+          />
+          <Route
+            path="matches"
+            element={
+              <>
+                <PageMeta
+                  title="Ghép trận mở"
+                  description="Các đơn đặt sân đang công khai tìm người ghép — xem danh sách trận mở và tham gia ngay."
+                />
+                <MatchesPage />
+              </>
+            }
+          />
           <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
           <Route element={<GuestRoute />}>
             <Route path="login" element={<LoginPage />} />

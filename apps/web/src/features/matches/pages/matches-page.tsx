@@ -4,7 +4,7 @@
  */
 import { Users } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent } from '../../../components/ui/card';
@@ -105,6 +105,7 @@ export function MatchesPage(): ReactElement {
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const matchesQuery = useOpenMatches({ sportType, date });
@@ -116,7 +117,7 @@ export function MatchesPage(): ReactElement {
   const requireLogin = (): boolean => {
     if (user) return false;
     toast({ title: 'Yêu cầu đăng nhập', description: 'Đăng nhập để tham gia ghép trận.' });
-    navigate('/login?redirect=/matches');
+    navigate('/login?next=' + encodeURIComponent(location.pathname + location.search));
     return true;
   };
 

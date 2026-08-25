@@ -22,16 +22,26 @@ describe('App smoke', () => {
     resetMockSession();
   });
 
-  it('chưa đăng nhập truy cập “/” → redirect sang trang đăng nhập', async () => {
+  it('chưa đăng nhập truy cập "/" → thấy landing công khai thay vì bị đẩy sang /login', async () => {
     renderApp({ route: '/' });
 
-    expect(await screen.findByRole('heading', { name: 'Đăng nhập CourtHub' })).toBeTruthy();
+    // Hero landing hiển thị cho khách.
+    expect(await screen.findByRole('heading', { level: 1, name: /CourtHub/ })).toBeTruthy();
+    // CTA chính của landing.
+    expect(screen.getByRole('link', { name: 'Khám phá sân' })).toBeTruthy();
+    // Top sân nổi bật nạp từ GET /venues public (mock Hà Nội).
+    expect(await screen.findByText('Sân Thể Thao Quần Ngựa')).toBeTruthy();
+    // Không còn redirect sang trang đăng nhập.
+    expect(screen.queryByRole('heading', { name: 'Đăng nhập CourtHub' })).toBeNull();
   });
 
-  it('đã đăng nhập truy cập “/” → trang chủ placeholder chào mừng', async () => {
+  it('đã đăng nhập truy cập "/" → landing đổi CTA sang bảng điều khiển', async () => {
     useAuthStore.getState().setSession(sampleUser, 'token-test');
     renderApp({ route: '/' });
 
-    expect(await screen.findByRole('heading', { name: 'CourtHub' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: /CourtHub/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Vào bảng điều khiển' })).toBeTruthy();
+    // Người dùng đã đăng nhập không còn thấy CTA Đăng ký ở hero (header cũng ẩn).
+    expect(screen.queryByRole('link', { name: 'Đăng ký' })).toBeNull();
   });
 });

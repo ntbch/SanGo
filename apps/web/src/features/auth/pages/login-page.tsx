@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Trophy } from 'lucide-react';
 import { type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { APP_NAME } from '@courthub/shared';
 import { Button } from '../../../components/ui/button';
@@ -32,9 +32,16 @@ import { loginSchema, type LoginDto } from '../schemas';
 /** Tài khoản demo hiển thị khi chạy chế độ mock (VITE_USE_MOCK=true). */
 const MOCK_HINT_ACCOUNTS = ['customer@courthub.vn', 'owner@courthub.vn', 'admin@courthub.vn'];
 
+/** Chỉ nhận đích nội bộ (bắt đầu bằng '/', không phải '//') để tránh open-redirect. */
+function safeInternalTarget(raw: string | null): string | null {
+  if (raw === null || !raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}
+
 export function LoginPage(): ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);
 
   const form = useForm<LoginDto>({
@@ -50,7 +57,12 @@ export function LoginPage(): ReactElement {
         title: 'Đăng nhập thành công',
         description: 'Chào mừng trở lại, ' + user.fullName + '!',
       });
-      const target = (location.state as { from?: string } | null)?.from ?? '/dashboard';
+      // P1-F1: ?next=<đường hiện tại> từ hành động khách cần tài khoản (Giữ chỗ/
+      // Tham gia trận/AI giữ chỗ); fallback state.from của ProtectedRoute rồi /dashboard.
+      const target =
+        safeInternalTarget(searchParams.get('next')) ??
+        safeInternalTarget((location.state as { from?: string } | null)?.from ?? null) ??
+        '/dashboard';
       navigate(target, { replace: true });
     } catch (error) {
       toast({

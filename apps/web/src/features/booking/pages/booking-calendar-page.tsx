@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Calendar } from 'lucide-react';
 import { useMemo, useState, type ReactElement } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Label } from '../../../components/ui/label';
@@ -22,6 +22,7 @@ export function BookingCalendarPage(): ReactElement {
   const { slug = '' } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
 
@@ -122,9 +123,8 @@ export function BookingCalendarPage(): ReactElement {
         title: 'Yêu cầu đăng nhập',
         description: 'Vui lòng đăng nhập để tiến hành giữ chỗ và thanh toán.',
       });
-      navigate(
-        `/login?redirect=/venues/${slug}/book${activeCourt ? `?courtId=${activeCourt.id}` : ''}`,
-      );
+      // P1-F1: khách bấm Giữ chỗ -> /login?next=<đường hiện tại> để quay lại đúng trang.
+      navigate('/login?next=' + encodeURIComponent(location.pathname + location.search));
       return;
     }
 

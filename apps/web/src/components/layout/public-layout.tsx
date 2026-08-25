@@ -21,6 +21,18 @@ export function PublicLayout(): ReactElement {
             </span>
             {APP_NAME}
           </Link>
+          {/* Điều hướng public cho khách (P1-F1): xem được sân/trận trước khi đăng nhập */}
+          <nav
+            aria-label="Điều hướng công khai"
+            className="hidden items-center gap-4 text-sm font-medium text-muted-foreground md:flex"
+          >
+            <Link to="/venues" className="transition-colors hover:text-foreground">
+              Tìm sân
+            </Link>
+            <Link to="/matches" className="transition-colors hover:text-foreground">
+              Ghép trận
+            </Link>
+          </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             {user ? (
