@@ -7,7 +7,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, BookingStatus, PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
+import { NotificationType } from '@courthub/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotifyService } from '../notifications/notify.service';
+import {
+  bookingCancelledEmail,
+  bookingConfirmedEmail,
+  paymentReceiptEmail,
+} from '../notifications/mail-templates';
 import {
   CreateHoldDto,
   CreateReviewDto,
@@ -22,7 +29,10 @@ const HOLD_TTL_MINUTES = 10;
 export class BookingsService {
   private readonly logger = new Logger(BookingsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notify: NotifyService,
+  ) {}
 
   /**
    * Giữ chỗ 10 phút — spec §6.1. Toàn bộ nằm trong MỘT transaction:
@@ -176,7 +186,7 @@ export class BookingsService {
     holdId: string,
     opts: { txnRef: string; method?: PaymentMethod; amountPaid?: number; paidInFull?: boolean },
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const booking = await this.prisma.$transaction(async (tx) => {
       const hold = await tx.bookingHold.findUnique({ where: { id: holdId } });
       if (!hold)
         throw new NotFoundException({
@@ -295,6 +305,64 @@ export class BookingsService {
       this.logger.log(`Booking ${booking.code} CONFIRMED từ hold ${hold.id}`);
       return booking;
     });
+
+    // Thông báo + mail giao dịch — SAU khi tx COMMIT (đọc bằng kết nối khác
+    // không thấy bản ghi chưa commit). Lỗi ở đây không bao giờ vỡ thanh toán.
+    await this.notifyAfterConfirm(booking.id, opts.amountPaid ?? booking.depositAmount);
+    return booking;
+  }
+
+  /**
+   * Phát thông báo sau khi đơn CONFIRMED (P2-B2): khách nhận BOOKING_CONFIRMED
+   * + PAYMENT_RECEIVED (kèm 2 mail giao dịch); chủ venue nhận NEW_BOOKING_OWNER.
+   * Chạy ngoài tx gốc nên mọi lỗi chỉ log, không ảnh hưởng kết quả thanh toán.
+   */
+  private async notifyAfterConfirm(bookingId: string, amountPaid: number): Promise<void> {
+    try {
+      const d = await this.notify.bookingMailData(bookingId);
+      const link = `/bookings/${d.code}`;
+      const mailBase = {
+        code: d.code,
+        customerName: d.customerName,
+        courtName: d.courtName,
+        venueName: d.venueName,
+        venueAddress: d.venueAddress,
+        date: d.dateIso,
+        startMinute: d.startMinute,
+        endMinute: d.endMinute,
+      };
+
+      await this.notify.dispatch({
+        userId: d.customerId,
+        type: NotificationType.BOOKING_CONFIRMED,
+        title: 'Đặt sân thành công',
+        body: `Đơn ${d.code} · ${d.courtName} đã được xác nhận`,
+        link,
+        mail: bookingConfirmedEmail({ ...mailBase, amountVnd: amountPaid }),
+      });
+
+      await this.notify.dispatch({
+        userId: d.customerId,
+        type: NotificationType.PAYMENT_RECEIVED,
+        title: 'Thanh toán đã được ghi nhận',
+        body: `CourtHub đã nhận ${amountPaid.toLocaleString('vi-VN')}đ cho đơn ${d.code}`,
+        link,
+        mail: paymentReceiptEmail({ ...mailBase, amountVnd: amountPaid }),
+      });
+
+      // Chủ venue biết có đơn mới (chỉ in-app — không mail để tránh spam).
+      await this.notify.dispatch({
+        userId: d.venueOwnerId,
+        type: NotificationType.NEW_BOOKING_OWNER,
+        title: 'Có đơn đặt sân mới',
+        body: `Đơn ${d.code} · ${d.courtName} (${d.venueName}) vừa được xác nhận`,
+        link,
+      });
+    } catch (e) {
+      this.logger.warn(
+        `Không phát được thông báo xác nhận cho ${bookingId}: ${(e as Error).message}`,
+      );
+    }
   }
 
   /** Mức hoàn theo chính sách §6.2: >24h 100%, 12–24h 50%, <12h 0% (trên tiền cọc đã trả). */
@@ -345,7 +413,7 @@ export class BookingsService {
     }
     const quote = this.refundQuote(booking);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.booking.update({
         where: { id: booking.id },
         data: {
@@ -368,9 +436,6 @@ export class BookingsService {
         });
         refundPaymentId = payment.id;
       }
-      this.logger.warn(
-        `[DEV-ONLY] Email xác nhận hủy đơn ${booking.code} cho khách ${booking.customerId}: hoàn ${quote.percent}% = ${quote.refundAmount}đ`,
-      );
       return {
         booking: updated,
         refundPercent: quote.percent,
@@ -378,6 +443,55 @@ export class BookingsService {
         refundPaymentId,
       };
     });
+
+    // P2-B2: thông báo hủy SAU khi commit (thay log [DEV-ONLY] cũ).
+    await this.notifyAfterCancel(result.booking.id, result.refundAmount, reason);
+    return result;
+  }
+
+  /** Khách + chủ venue đều nhận BOOKING_CANCELLED; khách nhận thêm mail hủy đơn. */
+  private async notifyAfterCancel(
+    bookingId: string,
+    refundAmount: number,
+    reason?: string,
+  ): Promise<void> {
+    try {
+      const d = await this.notify.bookingMailData(bookingId);
+      const link = `/bookings/${d.code}`;
+      const body = reason
+        ? `Đơn ${d.code} · ${d.courtName} đã bị hủy. Lý do: ${reason}`
+        : `Đơn ${d.code} · ${d.courtName} đã bị hủy`;
+
+      await this.notify.dispatch({
+        userId: d.customerId,
+        type: NotificationType.BOOKING_CANCELLED,
+        title: 'Đơn đặt sân đã bị hủy',
+        body,
+        link,
+        mail: bookingCancelledEmail({
+          code: d.code,
+          customerName: d.customerName,
+          courtName: d.courtName,
+          venueName: d.venueName,
+          venueAddress: d.venueAddress,
+          date: d.dateIso,
+          startMinute: d.startMinute,
+          endMinute: d.endMinute,
+          amountVnd: refundAmount,
+          cancelReason: reason,
+        }),
+      });
+
+      await this.notify.dispatch({
+        userId: d.venueOwnerId,
+        type: NotificationType.BOOKING_CANCELLED,
+        title: 'Một đơn vừa bị hủy',
+        body,
+        link,
+      });
+    } catch (e) {
+      this.logger.warn(`Không phát được thông báo hủy cho ${bookingId}: ${(e as Error).message}`);
+    }
   }
 
   /* ------------------------- Cron helpers (chạy mỗi phút) ------------------------- */
@@ -634,6 +748,7 @@ export class BookingsService {
       where: { id: bookingId },
       select: {
         id: true,
+        code: true,
         customerId: true,
         status: true,
         isPublicMatch: true,
@@ -656,7 +771,7 @@ export class BookingsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${booking.id}::uuid FOR UPDATE`;
       const fresh = await tx.booking.findUniqueOrThrow({
         where: { id: booking.id },
@@ -689,11 +804,40 @@ export class BookingsService {
       await tx.booking.update({ where: { id: booking.id }, data: { matchFull } });
       return {
         bookingId: booking.id,
+        hostCustomerId: booking.customerId,
+        bookingCode: booking.code,
         joinedCount: joinedCount + 1,
         slotsNeeded: fresh.slotsNeeded,
         matchFull,
       };
     });
+
+    // P2-B2 (post-commit): báo chủ đơn có người mới tham gia ghép trận.
+    try {
+      const joinerName =
+        (
+          await this.prisma.user.findUnique({
+            where: { id: user.id },
+            select: { fullName: true },
+          })
+        )?.fullName ?? 'Một người chơi';
+      await this.notify.dispatch({
+        userId: result.hostCustomerId,
+        type: NotificationType.MATCH_JOINED,
+        title: 'Có người tham gia đơn ghép trận',
+        body: `${joinerName} vừa tham gia đơn ${result.bookingCode} (${result.joinedCount}/${result.slotsNeeded} người)`,
+        link: `/bookings/${result.bookingCode}`,
+      });
+    } catch (e) {
+      this.logger.warn(`Không gửi được MATCH_JOINED cho ${user.id}: ${(e as Error).message}`);
+    }
+
+    return {
+      bookingId: result.bookingId,
+      joinedCount: result.joinedCount,
+      slotsNeeded: result.slotsNeeded,
+      matchFull: result.matchFull,
+    };
   }
 
   /** Rời ghép trận: xóa bản ghi participant; đơn đang full sẽ tự mở lại chỗ trống. */
@@ -715,6 +859,28 @@ export class BookingsService {
         await this.prisma.booking.update({ where: { id: bookingId }, data: { matchFull: false } });
         matchFull = false;
       }
+    }
+
+    // P2-B2: chủ đơn cần biết chỗ trống lại để mời người khác.
+    const host = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { customerId: true, code: true },
+    });
+    if (host) {
+      const leaverName =
+        (
+          await this.prisma.user.findUnique({
+            where: { id: user.id },
+            select: { fullName: true },
+          })
+        )?.fullName ?? 'Một người chơi';
+      await this.notify.dispatch({
+        userId: host.customerId,
+        type: NotificationType.MATCH_LEFT,
+        title: 'Có người rời đơn ghép trận',
+        body: `${leaverName} đã rời đơn ${host.code}. Đơn mở lại chỗ trống.`,
+        link: `/bookings/${bookingId}`,
+      });
     }
     return { left: true, bookingId, matchFull };
   }

@@ -1,21 +1,25 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module'; // JwtService cho JwtAuthGuard của controller
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { NotifyService } from './notify.service';
 import { createDefaultMailer } from './mailer/mailer.factory';
 import { MAILER_PORT } from './mailer/mailer.port';
 
 // PrismaModule là @Global nên không cần imports.
 @Module({
+  imports: [AuthModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
+    NotifyService,
     {
       provide: MAILER_PORT,
       // SMTP_HOST chưa cấu hình -> console (dev/demo); cấu hình rồi -> SMTP stub.
       useFactory: () => createDefaultMailer(),
     },
   ],
-  // Export cả service + port cho Bookings/Payments/Matches gọi ở GĐ sau.
-  exports: [NotificationsService, MAILER_PORT],
+  // Export cho Bookings/Payments/Matches phát thông báo + mail giao dịch.
+  exports: [NotificationsService, NotifyService, MAILER_PORT],
 })
 export class NotificationsModule {}

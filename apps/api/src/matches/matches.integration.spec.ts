@@ -9,6 +9,8 @@ import { PrismaClient, type User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import type { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';
+import { NotifyService } from '../notifications/notify.service';
+import { ConsoleMailer } from '../notifications/mailer/console.mailer';
 import { MatchesService } from './matches.service';
 
 const SUFFIX = Date.now().toString(36);
@@ -51,7 +53,8 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
       return;
     }
     // Service dùng nguyên PrismaClient thật; cast để bỏ qua lifecycle hooks của PrismaService.
-    bookings = new BookingsService(prisma as unknown as PrismaService);
+    const notify = new NotifyService(prisma as unknown as PrismaService, new ConsoleMailer());
+    bookings = new BookingsService(prisma as unknown as PrismaService, notify);
     matches = new MatchesService(prisma as unknown as PrismaService);
 
     const hash = await bcrypt.hash('IntegrationPass1!', 4);

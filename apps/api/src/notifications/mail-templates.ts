@@ -151,6 +151,24 @@ export function bookingCancelledEmail(d: BookingMailData): MailContent {
   };
 }
 
+/** Mail NHẮC LỊCH (P2-B2) — cron bắn tại mốc T-24h và T-2h trước giờ chơi. */
+export function reminderEmail(d: BookingMailData & { markLabel: 'T-24h' | 'T-2h' }): MailContent {
+  const heading = d.markLabel === 'T-24h' ? 'Ngày mai bạn có trận! ⚽' : 'Sắp tới giờ chơi! ⏰';
+  const body = `
+    <p>Xin chào${d.customerName ? ` ${d.customerName}` : ''},</p>
+    <p>Đơn đặt sân của bạn sẽ bắt đầu ${d.markLabel === 'T-24h' ? 'trong khoảng 24 tiếng tới' : 'trong khoảng 2 tiếng tới'}. Nhớ chuẩn bị sẵn tinh thần thể thao nhé!</p>
+    ${bookingTable(d)}
+    <p style="font-size:13px;color:${MUTED};">Mang mã đơn ${d.code} để check-in nhanh tại sân.</p>`;
+  return {
+    subject: `[CourtHub] Nhắc lịch đơn ${d.code} (${d.markLabel})`,
+    html: layout(heading, body),
+    text:
+      `CourtHub: Nhắc lịch (${d.markLabel}) — đơn ${d.code}\n` +
+      `Sân: ${d.courtName} - ${d.venueName}\n` +
+      `Thời gian: ${vnDateLabel(d.date)}, ${formatMinute(d.startMinute)}-${formatMinute(d.endMinute)}`,
+  };
+}
+
 /** Mail BIÊN NHẬN THANH TOÁN — gửi sau khi cổng xác nhận Payment PAID. */
 export function paymentReceiptEmail(d: BookingMailData): MailContent {
   const body = `
