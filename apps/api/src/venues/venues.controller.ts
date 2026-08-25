@@ -19,11 +19,13 @@ import {
   ReviewsQuerySchema,
   UpdateVenueSchema,
   VenueListQuerySchema,
+  VenueMapQuerySchema,
   type CreateVenueDto,
   type OwnerVenueListQueryDto,
   type ReviewsQueryDto,
   type UpdateVenueDto,
   type VenueListQueryDto,
+  type VenueMapQueryDto,
 } from './dto/venue.dto';
 import { VenuesService } from './venues.service';
 
@@ -68,6 +70,25 @@ const venueListQueryDocs = {
 @Controller('venues')
 export class VenuesController {
   constructor(private readonly venuesService: VenuesService) {}
+
+  @Get('map')
+  @ApiOperation({
+    summary:
+      '[Public] F5 Map nâng cao: Tìm sân theo viewport bounding box (bbox=minLat,minLng,maxLat,maxLng) + aggregate priceFrom/priceTo',
+  })
+  @ApiQuery({
+    name: 'bbox',
+    required: true,
+    description: 'Tọa độ bounding box: minLat,minLng,maxLat,maxLng (ví dụ: 10.7,106.6,10.8,106.7)',
+    example: '10.7,106.6,10.8,106.7',
+  })
+  @ApiQuery({ name: 'sportType', required: false, enum: ['FOOTBALL5', 'FOOTBALL7', 'PICKLEBALL', 'BADMINTON', 'TENNIS'] })
+  @ApiQuery({ name: 'q', required: false, description: 'Tìm theo tên sân' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Số lượng tối đa (mặc định 50, tối đa 100)' })
+  @ApiResponse({ status: 200, description: '{items[], total, bounds}' })
+  map(@Query(new ZodValidationPipe(VenueMapQuerySchema)) query: VenueMapQueryDto) {
+    return this.venuesService.listMap(query);
+  }
 
   @Get()
   @ApiOperation({

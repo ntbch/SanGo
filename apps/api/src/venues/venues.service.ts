@@ -14,6 +14,7 @@ import type {
   ReviewsQueryDto,
   UpdateVenueDto,
   VenueListQueryDto,
+  VenueMapQueryDto,
 } from './dto/venue.dto';
 import type { User } from '@prisma/client';
 
@@ -146,6 +147,93 @@ export class VenuesService {
     if (!venue)
       throw new NotFoundException({ message: 'Không tìm thấy sân', code: 'VENUE_NOT_FOUND' });
     return venue;
+  }
+
+  /**
+   * F5 Map nâng cao: Tìm kiếm sân theo khung nhìn bản đồ (bounding box).
+   * Lọc venue APPROVED trong phạm vi [minLat, maxLat] và [minLng, maxLng],
+   * tính aggregate priceFrom (giá thấp nhất) và priceTo (giá cao nhất) từ các sân con ACTIVE.
+   */
+  async listMap(query: VenueMapQueryDto) {
+    const { minLat, minLng, maxLat, maxLng } = query.bounds;
+
+    const where: Prisma.VenueWhereInput = {
+      status: 'APPROVED',
+      lat: { gte: minLat, lte: maxLat },
+      lng: { gte: minLng, lte: maxLng },
+      ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
+      ...(query.sportType
+        ? { courts: { some: { sportType: query.sportType, status: 'ACTIVE' } } }
+        : {}),
+    };
+
+    const venues = await this.prisma.venue.findMany({
+      where,
+      take: query.limit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        address: true,
+        city: true,
+        district: true,
+        lat: true,
+        lng: true,
+        images: true,
+        amenities: true,
+        depositPercent: true,
+        openMinute: true,
+        closeMinute: true,
+        courts: {
+          where: {
+            status: 'ACTIVE',
+            ...(query.sportType ? { sportType: query.sportType } : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+            sportType: true,
+            slotMinutes: true,
+            defaultPricePerSlot: true,
+          },
+        },
+      },
+    });
+
+    const items = venues.map((v) => {
+      const prices = v.courts.map((c) => c.defaultPricePerSlot);
+      const priceFrom = prices.length > 0 ? Math.min(...prices) : null;
+      const priceTo = prices.length > 0 ? Math.max(...prices) : null;
+      const availableSports = Array.from(new Set(v.courts.map((c) => c.sportType)));
+
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        address: v.address,
+        city: v.city,
+        district: v.district,
+        lat: v.lat,
+        lng: v.lng,
+        images: v.images,
+        amenities: v.amenities,
+        depositPercent: v.depositPercent,
+        openMinute: v.openMinute,
+        closeMinute: v.closeMinute,
+        totalCourts: v.courts.length,
+        priceFrom,
+        priceTo,
+        availableSports,
+        courts: v.courts,
+      };
+    });
+
+    return {
+      items,
+      total: items.length,
+      bounds: query.bounds,
+    };
   }
 
   /** Danh sách venue của chính owner (mọi trạng thái, để quản lý). */

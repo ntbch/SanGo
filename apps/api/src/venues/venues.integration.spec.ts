@@ -335,4 +335,63 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
       }
     });
   });
+
+  describe('F5 Map Advanced: Viewport bounding box search', () => {
+    it('MAP-1: tìm kiếm theo bbox bao trọn venueA (21.028, 105.834) + aggregate priceFrom / priceTo đúng', async () => {
+      if (!dbUp) return;
+      // Bbox bao trọn venueA (21.028, 105.834)
+      const res = await venues.listMap({
+        bbox: '21.0200,105.8300,21.0350,105.8400',
+        bounds: { minLat: 21.02, minLng: 105.83, maxLat: 21.035, maxLng: 105.84 },
+        q: SUFFIX,
+        limit: 50,
+      });
+
+      expect(res.total).toBe(1);
+      expect(res.bounds).toEqual({ minLat: 21.02, minLng: 105.83, maxLat: 21.035, maxLng: 105.84 });
+      const item = res.items[0];
+      expect(item.id).toBe(venueA.id);
+      expect(item.lat).toBe(21.028);
+      expect(item.lng).toBe(105.834);
+      expect(item.priceFrom).toBe(400_000);
+      expect(item.priceTo).toBe(400_000);
+      expect(item.availableSports).toContain(SportType.FOOTBALL5);
+    });
+
+    it('MAP-2: lọc theo sportType trong bbox', async () => {
+      if (!dbUp) return;
+      const res = await venues.listMap({
+        bbox: '21.0200,105.8300,21.0350,105.8400',
+        bounds: { minLat: 21.02, minLng: 105.83, maxLat: 21.035, maxLng: 105.84 },
+        sportType: SportType.FOOTBALL5,
+        q: SUFFIX,
+        limit: 50,
+      });
+
+      expect(res.total).toBe(1);
+      expect(res.items[0].availableSports).toContain(SportType.FOOTBALL5);
+
+      const resOther = await venues.listMap({
+        bbox: '21.0200,105.8300,21.0350,105.8400',
+        bounds: { minLat: 21.02, minLng: 105.83, maxLat: 21.035, maxLng: 105.84 },
+        sportType: SportType.TENNIS,
+        q: SUFFIX,
+        limit: 50,
+      });
+      expect(resOther.total).toBe(0);
+    });
+
+    it('MAP-3: bbox ngoài phạm vi không trả về sân nào', async () => {
+      if (!dbUp) return;
+      // Bbox ở vùng biển/khác không có sân nào
+      const res = await venues.listMap({
+        bbox: '1.0000,1.0000,1.0100,1.0100',
+        bounds: { minLat: 1.0, minLng: 1.0, maxLat: 1.01, maxLng: 1.01 },
+        limit: 50,
+      });
+
+      expect(res.total).toBe(0);
+      expect(res.items).toEqual([]);
+    });
+  });
 });

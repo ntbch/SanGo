@@ -51,6 +51,32 @@ export type VenueListQueryDto = z.infer<typeof VenueListQuerySchema>;
 export const VenuesQuerySchema = VenueListQuerySchema;
 export type VenuesQueryDto = VenueListQueryDto;
 
+/** F5 Map nâng cao: Tìm kiếm sân theo khung nhìn bản đồ (bounding box). */
+export const VenueMapQuerySchema = z
+  .object({
+    bbox: z
+      .string({ required_error: 'bbox là bắt buộc (minLat,minLng,maxLat,maxLng)' })
+      .regex(
+        /^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/,
+        'bbox phải có định dạng minLat,minLng,maxLat,maxLng',
+      ),
+    sportType: z.nativeEnum(SportType).optional(),
+    q: z.string().trim().max(100).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .transform((data) => {
+    const [minLat, minLng, maxLat, maxLng] = data.bbox.split(',').map(Number);
+    return {
+      ...data,
+      bounds: { minLat, minLng, maxLat, maxLng },
+    };
+  })
+  .refine(
+    (d) => d.bounds.minLat <= d.bounds.maxLat && d.bounds.minLng <= d.bounds.maxLng,
+    { message: 'Tọa độ bbox không hợp lệ: minLat <= maxLat và minLng <= maxLng', path: ['bbox'] },
+  );
+export type VenueMapQueryDto = z.infer<typeof VenueMapQuerySchema>;
+
 export const OwnerVenueListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
