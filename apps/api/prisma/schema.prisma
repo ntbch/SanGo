@@ -296,14 +296,18 @@ model BookingHold {
   /// Ghép trận mở (GĐ2): giữ lựa chọn công khai từ lúc hold để copy sang Booking.
   isPublicMatch Boolean?
   slotsNeeded   Int?
+  /// S2-F1: đặt sân tư cách đội — giữ teamId từ lúc hold để confirm copy sang Booking.
+  teamId      String?           @db.Uuid
   createdAt   DateTime          @default(now())
 
   user  User  @relation(fields: [userId], references: [id])
   court Court @relation(fields: [courtId], references: [id])
+  team  Team? @relation(fields: [teamId], references: [id])
 
   @@index([courtId, date, status])
   @@index([voucherId])
   @@index([status, expiresAt])
+  @@index([teamId])
   @@map("booking_holds")
 }
 
@@ -517,6 +521,7 @@ model Team {
   captain  User           @relation("TeamCaptain", fields: [captainId], references: [id])
   members  TeamMember[]
   bookings Booking[]
+  holds    BookingHold[]
   expenseShares ExpenseShare[]
 
   @@index([captainId])

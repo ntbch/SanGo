@@ -93,6 +93,20 @@ export class BookingsService {
       });
     }
 
+    // S2-F1: đặt sân tư cách đội — chặn sớm teamId lạ để không rơi 500 ở FK.
+    if (dto.teamId) {
+      const team = await this.prisma.team.findUnique({
+        where: { id: dto.teamId },
+        select: { id: true },
+      });
+      if (!team) {
+        throw new NotFoundException({
+          message: 'Không tìm thấy đội thể thao',
+          code: 'TEAM_NOT_FOUND',
+        });
+      }
+    }
+
     const rules = await this.prisma.pricingRule.findMany({ where: { courtId: court.id } });
     let subtotal = 0;
     for (const s of starts) subtotal += priceForSlot(court, rules, date, s, s + step);
@@ -141,6 +155,8 @@ export class BookingsService {
           ...(dto.isPublicMatch
             ? { isPublicMatch: true, slotsNeeded: dto.slotsNeeded ?? null }
             : {}),
+          // S2-F1: giữ teamId trên hold để confirmFromHold copy sang Booking.
+          ...(dto.teamId ? { teamId: dto.teamId } : {}),
         },
       });
       return {
@@ -287,7 +303,8 @@ export class BookingsService {
             subtotal: hold.subtotal,
             depositAmount,
             status: BookingStatus.CONFIRMED,
-            teamId: opts.teamId || null,
+            // S2-F1: payments không biết teamId -> lấy từ hold đã giữ lúc createHold.
+            teamId: opts.teamId ?? hold.teamId ?? null,
             // Ghép trận mở (§3.11): đơn mới luôn chưa đủ người.
             ...(hold.isPublicMatch
               ? { isPublicMatch: true, slotsNeeded: hold.slotsNeeded, matchFull: false }

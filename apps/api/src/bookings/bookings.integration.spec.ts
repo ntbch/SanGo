@@ -96,6 +96,8 @@ describe('Booking engine chống double-booking (integration)', () => {
       await prisma.pricingRule.deleteMany({ where: { court: { venueId: { in: venueIds } } } });
       await prisma.court.deleteMany({ where: { venueId: { in: venueIds } } });
       await prisma.venue.deleteMany({ where: { id: { in: venueIds } } });
+      // S2-F1: đội tham chiếu captain (RESTRICT) — dọn trước khi xóa user.
+      await prisma.team.deleteMany({ where: { captainId: { in: ids } } });
       await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
     await cleanupN2().catch(() => undefined); // N2: dọn dữ liệu ví/sân của riêng bộ test này
@@ -219,6 +221,44 @@ describe('Booking engine chống double-booking (integration)', () => {
     const again = await bookings.createHold(uA(), { courtId, date: DATE, slots: [600] });
     expect(again).toMatchObject({ subtotal: 200_000 }); // 10:00 ngoài rule -> giá mặc định
     await bookings.releaseHold((again as { holdId: string }).holdId, uA());
+  });
+
+  it('S2-F1: đặt sân tư cách đội — teamId bám hold -> booking -> /bookings/me', async () => {
+    if (!dbUp) return;
+    const team = await prisma.team.create({
+      data: {
+        name: 'ITBK Team ' + SUFFIX,
+        captainId: custA.id,
+        sportType: SportType.FOOTBALL5,
+      },
+    });
+    try {
+      // FE chỉ gửi teamId lúc giữ chỗ — payments callback KHÔNG truyền opts.teamId.
+      const hold = (await bookings.createHold(uA(), {
+        courtId,
+        date: DATE,
+        slots: [660],
+        teamId: team.id,
+      })) as { holdId: string };
+
+      const booking = await bookings.confirmFromHold(hold.holdId, {
+        txnRef: 'ITBK-TEAM-' + SUFFIX,
+        paidInFull: true,
+      });
+      expect(booking.teamId).toBe(team.id);
+
+      // GET /bookings/me phải trả teamId để FE lọc lịch sử đặt sân của đội.
+      const mine = await bookings.listMine(uA(), {
+        filter: 'upcoming',
+        page: 1,
+        limit: 10,
+      });
+      const found = mine.items.find((b) => b.id === booking.id);
+      expect(found).toBeDefined();
+      expect(found?.teamId ?? null).toBe(team.id);
+    } finally {
+      await prisma.team.deleteMany({ where: { id: team.id } }).catch(() => undefined);
+    }
   });
 
   it('hold hết hạn nhả slot; cron chuyển EXPIRED', async () => {
