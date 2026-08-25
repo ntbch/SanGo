@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type {
   CourtRow,
+  DeleteServiceResponse,
   OwnerAnalyticsResponse,
   OwnerBooking,
   OwnerVenue,
   Paginated,
   PricingRule,
+  ServiceFormPayload,
+  VenueServiceRow,
   VoucherFormPayload,
   VoucherUpdatePayload,
 } from './types';
@@ -14,9 +17,12 @@ import type {
 import {
   cancelBookingAsOwner,
   createOwnerVoucher,
+  createVenueService,
   deleteOwnerVoucher,
+  deleteVenueService,
   fetchOwnerAnalytics,
   fetchOwnerVouchers,
+  fetchVenueServices,
   checkInByCode,
   createCourt,
   createVenue,
@@ -31,6 +37,7 @@ import {
   updateCourt,
   updateOwnerVoucher,
   updateVenue,
+  updateVenueService,
   type CourtFormPayload,
   type OwnerBookingsFilters,
   type VenueFormPayload,
@@ -207,5 +214,49 @@ export function useDeleteOwnerVoucher() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['owner', 'vouchers'] });
     },
+  });
+}
+
+/* ===================== F4: Menu dịch vụ ===================== */
+
+/** Menu dịch vụ của một cụm sân — venueId rỗng thì không gọi API. */
+export function useVenueServices(venueId: string | undefined) {
+  return useQuery<VenueServiceRow[]>({
+    queryKey: ['owner', 'services', venueId],
+    queryFn: () => fetchVenueServices(venueId as string),
+    enabled: Boolean(venueId),
+  });
+}
+
+function useInvalidateServices(): () => void {
+  const qc = useQueryClient();
+  // Menu public cho khách cũng phải làm mới theo thay đổi của chủ sân.
+  return () => {
+    void qc.invalidateQueries({ queryKey: ['owner', 'services'] });
+    void qc.invalidateQueries({ queryKey: ['venue-services'] });
+  };
+}
+
+export function useCreateVenueService(venueId: string) {
+  const invalidate = useInvalidateServices();
+  return useMutation<VenueServiceRow, Error, ServiceFormPayload>({
+    mutationFn: (payload) => createVenueService(venueId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateVenueService(venueId: string) {
+  const invalidate = useInvalidateServices();
+  return useMutation<VenueServiceRow, Error, { id: string; patch: Partial<ServiceFormPayload> }>({
+    mutationFn: ({ id, patch }) => updateVenueService(venueId, id, patch),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteVenueService(venueId: string) {
+  const invalidate = useInvalidateServices();
+  return useMutation<DeleteServiceResponse, Error, string>({
+    mutationFn: (id) => deleteVenueService(venueId, id),
+    onSuccess: invalidate,
   });
 }

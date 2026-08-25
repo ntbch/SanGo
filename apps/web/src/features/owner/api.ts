@@ -3,12 +3,15 @@ import { endpoints } from '../../lib/api/endpoints';
 
 import type {
   CourtRow,
+  DeleteServiceResponse,
   OwnerAnalyticsResponse,
   OwnerBooking,
   OwnerVenue,
   OwnerVoucher,
   Paginated,
   PricingRule,
+  ServiceFormPayload,
+  VenueServiceRow,
   VoucherFormPayload,
   VoucherUpdatePayload,
 } from './types';
@@ -144,4 +147,44 @@ export function updateOwnerVoucher(id: string, patch: VoucherUpdatePayload): Pro
 /** [OWNER] Xoá voucher. */
 export function deleteOwnerVoucher(id: string): Promise<void> {
   return apiFetch<void>(endpoints.vouchers.remove(id), { method: 'DELETE' });
+}
+
+/* ===================== F4: Menu dịch vụ ===================== */
+
+/** [OWNER] Toàn bộ menu dịch vụ của cụm sân (kể cả món đã tắt bán). */
+export function fetchVenueServices(venueId: string): Promise<VenueServiceRow[]> {
+  return apiFetch<VenueServiceRow[]>(endpoints.services.byVenue(venueId));
+}
+
+/** [OWNER] Thêm món mới vào menu (nước uống / đồ thuê / khác). */
+export function createVenueService(
+  venueId: string,
+  payload: ServiceFormPayload,
+): Promise<VenueServiceRow> {
+  return apiFetch<VenueServiceRow>(endpoints.services.byVenue(venueId), {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+/** [OWNER] Cập nhật tên/giá/loại hoặc bật-tắt bán. */
+export function updateVenueService(
+  venueId: string,
+  id: string,
+  patch: Partial<ServiceFormPayload>,
+): Promise<VenueServiceRow> {
+  return apiFetch<VenueServiceRow>(endpoints.services.item(venueId, id), {
+    method: 'PATCH',
+    body: patch,
+  });
+}
+
+/** [OWNER] Xoá dịch vụ; backend tự chuyển sang 'tắt bán' nếu đã phát sinh đơn. */
+export function deleteVenueService(
+  venueId: string,
+  id: string,
+): Promise<DeleteServiceResponse> {
+  return apiFetch<DeleteServiceResponse>(endpoints.services.item(venueId, id), {
+    method: 'DELETE',
+  });
 }

@@ -243,4 +243,21 @@ export const endpoints = {
     updateExpenseStatus: (id: string, shareId: string): string =>
       '/teams/' + seg(id) + '/expenses/' + seg(shareId) + '/status',
   },
+
+  services: {
+    /** [OWNER] Menu dịch vụ của một cụm sân (kể cả đã tắt) — GET/POST. */
+    byVenue: (venueId: string): string => '/owner/venues/' + seg(venueId) + '/services',
+    /** [OWNER] Cập nhật giá/tên/trạng thái hoặc xoá-tắt một dịch vụ. */
+    item: (venueId: string, id: string): string =>
+      '/owner/venues/' + seg(venueId) + '/services/' + seg(id),
+    /** [Public] Menu đang mở bán của cụm sân — khách chọn kèm lúc gọi thêm. */
+    publicByVenue: (venueId: string): string => '/venues/' + seg(venueId) + '/services',
+    /** Danh sách dịch vụ đã đặt của đơn + số tiền chưa trả (F4). */
+    bookingAddOns: (bookingId: string): string => '/bookings/' + seg(bookingId) + '/addons',
+    /** Chọn mua/thuê dịch vụ cho đơn CONFIRMED/CHECKED_IN. */
+    addBookingAddOns: (bookingId: string): string => '/bookings/' + seg(bookingId) + '/addons',
+    /** Tạo lệnh thanh toán riêng type ADD_ON cho phần chưa trả. */
+    checkoutBookingAddOns: (bookingId: string): string =>
+      '/bookings/' + seg(bookingId) + '/addons/checkout',
+  },
 } as const;

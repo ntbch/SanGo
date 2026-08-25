@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   MapPinned,
   ShieldCheck,
+  ShoppingBag,
   UserRound,
   Users,
   Wallet,
@@ -35,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard/bookings', label: 'Đơn đặt', icon: CalendarDays, roles: [UserRole.OWNER] },
   { to: '/dashboard/statistics', label: 'Thống kê', icon: BarChart3, roles: [UserRole.OWNER] },
   { to: '/dashboard/vouchers', label: 'Voucher', icon: TicketPercent, roles: [UserRole.OWNER] },
+  { to: '/dashboard/services', label: 'Dịch vụ', icon: ShoppingBag, roles: [UserRole.OWNER] },
   {
     to: '/dashboard/admin',
     label: 'Quản trị hệ thống',

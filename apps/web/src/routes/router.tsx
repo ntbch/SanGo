@@ -36,6 +36,7 @@ import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
 import { OwnerVouchersPage } from '../features/owner/pages/owner-vouchers-page';
+import { VenueServicesPage } from '../features/owner/pages/venue-services-page';
 import { useAuthStore } from '../lib/auth/auth-store';
 
 import { DashboardPage } from '../pages/dashboard-page';
@@ -190,6 +191,15 @@ export function AppRoutes(): ReactElement {
             element={
               <ProtectedRoute roles={[UserRole.OWNER]}>
                 <OwnerVouchersPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* F4 Dịch vụ — menu nước uống/đồ thuê của từng cụm sân */}
+          <Route
+            path="services"
+            element={
+              <ProtectedRoute roles={[UserRole.OWNER]}>
+                <VenueServicesPage />
               </ProtectedRoute>
             }
           />

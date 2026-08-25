@@ -135,3 +135,50 @@ export interface PaginatedCustomerBookings {
   page: number;
   pages: number;
 }
+
+/* ---------------- F4: Dịch vụ đi kèm của đơn ---------------- */
+
+export type VenueServiceTypeValue = 'BEVERAGE' | 'EQUIPMENT' | 'OTHER';
+
+/** Một dòng menu dịch vụ đang mở bán của cụm sân (GET /venues/:venueId/services). */
+export interface PublicVenueService {
+  id: string;
+  venueId: string;
+  name: string;
+  /** Đơn giá VND (số nguyên). */
+  price: number;
+  type: VenueServiceTypeValue;
+  isAvailable: boolean;
+}
+
+/** Một dòng dịch vụ đã đặt trong đơn — kèm snapshot giá lúc đặt. */
+export interface BookingAddOnItem {
+  id: string;
+  bookingId: string;
+  serviceId: string;
+  quantity: number;
+  unitPrice: number;
+  service?: PublicVenueService;
+}
+
+/** GET/POST /bookings/:id/addons — tổng tiền đã đặt và phần chưa thanh toán. */
+export interface BookingAddOnsResponse {
+  bookingId: string;
+  items: BookingAddOnItem[];
+  totalCost: number;
+  paidAmount: number;
+  unpaidAmount: number;
+}
+
+export interface AddBookingAddOnsPayload {
+  items: Array<{ serviceId: string; quantity: number }>;
+}
+
+/** POST /bookings/:id/addons/checkout — lệnh thanh toán riêng type ADD_ON. */
+export interface AddonCheckoutResponse {
+  txnRef: string;
+  amount: number;
+  type: 'ADD_ON';
+  mode: 'vnpay' | 'mock';
+  paymentUrl: string;
+}

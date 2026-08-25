@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Plus, Star, Loader2, UsersRound } from 'lucide-react';
+import { Calendar, Clock, Plus, ShoppingBag, Star, Loader2, UsersRound } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -26,6 +26,7 @@ import {
 } from '../queries';
 import { formatJoinedCount } from '../../matches/match-utils';
 import { useMatchParticipants } from '../../matches/queries';
+import { AddOnsDialog } from '../components/addons-dialog';
 import type { CustomerBooking } from '../types';
 
 type TabFilter = 'upcoming' | 'history' | 'cancelled';
@@ -71,6 +72,9 @@ export function MyCustomerBookingsPage(): ReactElement {
     undefined,
   );
   const participantsQuery = useMatchParticipants(participantsTarget?.id);
+
+  // Modal Gọi thêm dịch vụ (F4) — đơn CONFIRMED/CHECKED_IN mua nước/bóng kèm.
+  const [addonTarget, setAddonTarget] = useState<CustomerBooking | undefined>(undefined);
 
   const bookings = bookingsQuery.data?.items ?? [];
 
@@ -172,6 +176,8 @@ export function MyCustomerBookingsPage(): ReactElement {
             const badge = STATUS_BADGES[b.status] ?? { label: b.status, variant: 'secondary' };
             const canCancel = b.status === 'CONFIRMED';
             const canReview = b.status === 'COMPLETED' && !b.hasReviewed;
+            // F4: gọi thêm dịch vụ ngay sau khi đơn được xác nhận (kể cả đã check-in).
+            const canOrderAddOns = b.status === 'CONFIRMED' || b.status === 'CHECKED_IN';
 
             return (
               <Card
@@ -273,6 +279,17 @@ export function MyCustomerBookingsPage(): ReactElement {
                         }}
                       >
                         <Star className="mr-1 size-3.5 fill-amber-400 text-amber-400" /> Đánh giá
+                      </Button>
+                    ) : null}
+
+                    {canOrderAddOns ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid="order-addons"
+                        onClick={() => setAddonTarget(b)}
+                      >
+                        <ShoppingBag className="mr-1 size-3.5" aria-hidden /> Gọi thêm dịch vụ
                       </Button>
                     ) : null}
 
@@ -491,6 +508,15 @@ export function MyCustomerBookingsPage(): ReactElement {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* Modal Gọi thêm dịch vụ (F4) — chọn nước/bóng/giày rồi thanh toán ADD_ON riêng */}
+      <AddOnsDialog
+        key={addonTarget?.id ?? 'no-addon-target'}
+        booking={addonTarget}
+        onOpenChange={(open) => {
+          if (!open) setAddonTarget(undefined);
+        }}
+      />
     </div>
   );
 }

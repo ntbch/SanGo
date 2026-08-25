@@ -1,19 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { MyBookingsQuery } from '../../lib/api/endpoints';
 import {
+  addBookingAddOns,
   applyVoucherToHold,
   cancelCustomerBooking,
+  checkoutBookingAddOns,
   checkoutPayment,
   createBookingHold,
   deleteBookingHold,
+  fetchBookingAddOns,
   fetchBookingHold,
   fetchCourtSlots,
   fetchMyCustomerBookings,
   fetchRefundPreview,
+  fetchVenueServices,
   submitBookingReview,
 } from './api';
 import type {
+  AddBookingAddOnsPayload,
+  AddonCheckoutResponse,
   ApplyVoucherResponse,
+  BookingAddOnsResponse,
   BookingHold,
   CheckoutPayload,
   CheckoutResponse,
@@ -21,6 +28,7 @@ import type {
   CreateHoldPayload,
   CreateHoldResponse,
   PaginatedCustomerBookings,
+  PublicVenueService,
   RefundPreview,
 } from './types';
 
@@ -114,5 +122,45 @@ export function useApplyVoucher(holdId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['booking-hold', holdId] });
     },
+  });
+}
+
+/* ===================== F4: Gọi thêm dịch vụ ===================== */
+
+/** Menu dịch vụ đang mở bán của cụm sân — venueId rỗng thì không gọi API. */
+export function useVenueServices(venueId: string | undefined) {
+  return useQuery<PublicVenueService[]>({
+    queryKey: ['venue-services', venueId],
+    queryFn: () => fetchVenueServices(venueId as string),
+    enabled: Boolean(venueId),
+  });
+}
+
+/** Dịch vụ đã đặt của một đơn + tổng tiền chưa trả. */
+export function useBookingAddOns(bookingId: string | undefined) {
+  return useQuery<BookingAddOnsResponse>({
+    queryKey: ['booking-addons', bookingId],
+    queryFn: () => fetchBookingAddOns(bookingId as string),
+    enabled: Boolean(bookingId),
+  });
+}
+
+function invalidateAddOns(qc: ReturnType<typeof useQueryClient>): void {
+  void qc.invalidateQueries({ queryKey: ['booking-addons'] });
+}
+
+/** Thêm dịch vụ vào đơn (upsert theo serviceId ở backend). */
+export function useAddBookingAddOns(bookingId: string) {
+  const qc = useQueryClient();
+  return useMutation<BookingAddOnsResponse, Error, AddBookingAddOnsPayload>({
+    mutationFn: (payload) => addBookingAddOns(bookingId, payload),
+    onSuccess: () => invalidateAddOns(qc),
+  });
+}
+
+/** Tạo lệnh thanh toán ADD_ON cho phần chưa trả. */
+export function useCheckoutBookingAddOns() {
+  return useMutation<AddonCheckoutResponse, Error, string>({
+    mutationFn: (bookingId) => checkoutBookingAddOns(bookingId),
   });
 }

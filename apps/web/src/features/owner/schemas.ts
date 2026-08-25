@@ -86,3 +86,28 @@ export const voucherFormSchema = z
   });
 
 export type VoucherFormValues = z.infer<typeof voucherFormSchema>;
+
+/* ---------------- F4: Form thêm/sửa dịch vụ ---------------- */
+
+export const SERVICE_TYPE_LABELS: Record<string, string> = {
+  BEVERAGE: 'Nước uống',
+  EQUIPMENT: 'Đồ thuê',
+  OTHER: 'Khác',
+};
+
+/** Khớp CreateVenueServiceSchema của backend (giá VND nguyên, 1.000đ–10.000.000đ). */
+export const serviceFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Tên dịch vụ không được để trống')
+    .max(100, 'Tên dịch vụ tối đa 100 ký tự'),
+  price: z.coerce
+    .number()
+    .int('Giá phải là số nguyên')
+    .min(1000, 'Giá tối thiểu 1.000đ')
+    .max(10_000_000, 'Giá tối đa 10.000.000đ'),
+  type: z.enum(['BEVERAGE', 'EQUIPMENT', 'OTHER']),
+  isAvailable: z.boolean(),
+});
+
+export type ServiceFormValues = z.infer<typeof serviceFormSchema>;

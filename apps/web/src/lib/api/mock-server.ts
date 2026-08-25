@@ -71,6 +71,8 @@ export function resetMockSession(): void {
   resetMockVouchers();
   // Teams dựng lại từ seed — thành viên/quỹ cách ly giữa các test (F1).
   resetMockTeams();
+  // Dịch vụ đi kèm dựng lại từ seed — menu/addon cách ly giữa các test (F4).
+  resetMockVenueServices();
 }
 
 function toAuthUser(account: MockAccount): AuthUser {
@@ -2253,6 +2255,45 @@ function resetMockVouchers(): void {
   for (const v of MOCK_VOUCHERS) v._count = { redemptions: v.id === 'vc-1' ? 3 : 12 };
 }
 
+/* ===================== VENUE SERVICE mock (F4) =====================
+   Contract backend: /owner/venues/:venueId/services (OWNER CRUD),
+   /venues/:venueId/services (menu public), /bookings/:id/addons (+/checkout).
+   Mock không phân quyền owner — mọi session OWNER coi như chủ sân demo. */
+
+interface MockVenueService {
+  id: string;
+  venueId: string;
+  name: string;
+  price: number;
+  type: 'BEVERAGE' | 'EQUIPMENT' | 'OTHER';
+  isAvailable: boolean;
+}
+
+/** Seed demo: nước uống + đồ thuê cho hai cụm sân, có một món đang tắt bán. */
+let MOCK_VENUE_SERVICES: MockVenueService[] = [
+  { id: 'svc-1', venueId: 'v-1', name: 'Nước suối 500ml', price: 10000, type: 'BEVERAGE', isAvailable: true },
+  { id: 'svc-2', venueId: 'v-1', name: 'Thuê vợt Pickleball', price: 50000, type: 'EQUIPMENT', isAvailable: true },
+  { id: 'svc-3', venueId: 'v-1', name: 'Nước tăng lực', price: 20000, type: 'BEVERAGE', isAvailable: false },
+  { id: 'svc-4', venueId: 'v-2', name: 'Quả cầu lông (hộp)', price: 25000, type: 'EQUIPMENT', isAvailable: true },
+  { id: 'svc-5', venueId: 'v-2', name: 'Thuê giày cầu lông', price: 30000, type: 'EQUIPMENT', isAvailable: true },
+];
+
+const SEED_SERVICE_IDS = ['svc-1', 'svc-2', 'svc-3', 'svc-4', 'svc-5'];
+
+/** Dịch vụ đã gọi trong từng đơn — dùng tính tổng chưa trả của booking (F4). */
+const MOCK_BOOKING_ADDONS: Array<{
+  bookingId: string;
+  serviceId: string;
+  quantity: number;
+  unitPrice: number;
+  paid: boolean;
+}> = [];
+
+function resetMockVenueServices(): void {
+  MOCK_VENUE_SERVICES = MOCK_VENUE_SERVICES.filter((s) => SEED_SERVICE_IDS.includes(s.id));
+  MOCK_BOOKING_ADDONS.length = 0;
+}
+
 interface MockCustomerBookingItem {
   id: string;
   code: string;
@@ -3251,6 +3292,140 @@ export async function handleMockRequest<T>(
       subtotal: hold.subtotal,
       discountAmount,
       finalAmount,
+    } as T;
+  }
+
+  /* ===================== VENUE SERVICE mock (F4) ===================== */
+
+  // GET/POST /owner/venues/:venueId/services — menu của owner (kể cả món đã tắt).
+  if (
+    (method === 'GET' || method === 'POST') &&
+    /^\/owner\/venues\/[^/]+\/services$/.test(rawPath0)
+  ) {
+    const venueId = rawPath0.split('/')[3];
+    if (!MOCK_VENUES.some((v) => v.id === venueId)) {
+      throw new ApiError(404, 'Không tìm thấy cụm sân', 'VENUE_NOT_FOUND');
+    }
+    if (method === 'GET') {
+      return MOCK_VENUE_SERVICES.filter((s) => s.venueId === venueId) as T;
+    }
+    const name = requireString(payload, 'name');
+    const price = Number(payload.price);
+    if (!Number.isInteger(price) || price < 1000 || price > 10_000_000) {
+      throw new ApiError(400, 'Giá dịch vụ phải nguyên trong khoảng 1.000đ–10.000.000đ', 'SERVICE_BAD_PRICE');
+    }
+    const created: MockVenueService = {
+      id: 'svc-' + Date.now().toString(36),
+      venueId,
+      name,
+      price,
+      type: (payload.type as MockVenueService['type']) ?? 'OTHER',
+      isAvailable: payload.isAvailable === undefined ? true : Boolean(payload.isAvailable),
+    };
+    MOCK_VENUE_SERVICES.push(created);
+    return created as T;
+  }
+
+  // PATCH/DELETE /owner/venues/:venueId/services/:id — cập nhật hoặc xoá-tắt.
+  if (
+    (method === 'PATCH' || method === 'DELETE') &&
+    /^\/owner\/venues\/[^/]+\/services\/[^/]+$/.test(rawPath0)
+  ) {
+    const parts = rawPath0.split('/');
+    const service = MOCK_VENUE_SERVICES.find(
+      (s) => s.id === parts[5] && s.venueId === parts[3],
+    );
+    if (service === undefined) {
+      throw new ApiError(404, 'Không tìm thấy dịch vụ', 'SERVICE_NOT_FOUND');
+    }
+    if (method === 'PATCH') {
+      if (payload.name !== undefined) service.name = requireString(payload, 'name');
+      if (payload.price !== undefined) service.price = Number(payload.price);
+      if (payload.type !== undefined) service.type = payload.type as MockVenueService['type'];
+      if (payload.isAvailable !== undefined) service.isAvailable = Boolean(payload.isAvailable);
+      return service as T;
+    }
+    // Demo không có lịch sử addon gắn với món seed -> xoá thẳng, khớp nhánh deleted.
+    MOCK_VENUE_SERVICES = MOCK_VENUE_SERVICES.filter((s) => s.id !== service.id);
+    return { id: service.id, deleted: true, disabled: false } as T;
+  }
+
+  // GET /venues/:venueId/services — menu đang mở bán cho khách (trước handler public chung).
+  if (method === 'GET' && /^\/venues\/[^/]+\/services$/.test(rawPath0)) {
+    const venueId = rawPath0.split('/')[2];
+    return MOCK_VENUE_SERVICES.filter((s) => s.venueId === venueId && s.isAvailable) as T;
+  }
+
+  // GET/POST /bookings/:id/addons và POST .../checkout — gọi thêm dịch vụ trong đơn.
+  if (/^\/bookings\/[^/]+\/addons$/.test(rawPath0) && (method === 'GET' || method === 'POST')) {
+    const bookingId = rawPath0.split('/')[2];
+    const booking = MOCK_CUSTOMER_BOOKINGS.find((b) => b.id === bookingId);
+    if (booking === undefined) {
+      throw new ApiError(404, 'Không tìm thấy đơn đặt sân', 'BOOKING_NOT_FOUND');
+    }
+    if (method === 'POST') {
+      if (booking.status !== 'CONFIRMED' && booking.status !== 'CHECKED_IN') {
+        throw new ApiError(409, 'Chỉ có thể thêm dịch vụ cho đơn đã xác nhận', 'BOOKING_NOT_CONFIRMED');
+      }
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      for (const item of items) {
+        const service = MOCK_VENUE_SERVICES.find((s) => s.id === item.serviceId);
+        if (service === undefined || service.venueId !== booking.venueId || !service.isAvailable) {
+          throw new ApiError(400, 'Dịch vụ không khả dụng', 'SERVICE_UNAVAILABLE');
+        }
+        const existing = MOCK_BOOKING_ADDONS.find(
+          (a) => a.bookingId === bookingId && a.serviceId === service.id,
+        );
+        if (existing === undefined) {
+          MOCK_BOOKING_ADDONS.push({
+            bookingId,
+            serviceId: service.id,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: service.price,
+            paid: false,
+          });
+        } else {
+          existing.quantity += Number(item.quantity) || 1;
+          existing.unitPrice = service.price;
+        }
+      }
+    }
+    const rows = MOCK_BOOKING_ADDONS.filter((a) => a.bookingId === bookingId);
+    const totalCost = rows.reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
+    const paidAmount = rows.filter((a) => a.paid).reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
+    return {
+      bookingId,
+      items: rows.map((a) => ({
+        id: bookingId + ':' + a.serviceId,
+        bookingId,
+        serviceId: a.serviceId,
+        quantity: a.quantity,
+        unitPrice: a.unitPrice,
+        service: MOCK_VENUE_SERVICES.find((s) => s.id === a.serviceId),
+      })),
+      totalCost,
+      paidAmount,
+      unpaidAmount: Math.max(0, totalCost - paidAmount),
+    } as T;
+  }
+
+  // POST /bookings/:id/addons/checkout — mock gateway: đánh dấu đã trả rồi trả URL kết quả.
+  if (method === 'POST' && /^\/bookings\/[^/]+\/addons\/checkout$/.test(rawPath0)) {
+    const bookingId = rawPath0.split('/')[2];
+    const rows = MOCK_BOOKING_ADDONS.filter((a) => a.bookingId === bookingId);
+    const unpaidAmount = rows
+      .filter((a) => !a.paid)
+      .reduce((sum, a) => sum + a.quantity * a.unitPrice, 0);
+    if (unpaidAmount <= 0) {
+      throw new ApiError(409, 'Tất cả dịch vụ đi kèm đã được thanh toán', 'NO_UNPAID_ADDONS');
+    }
+    for (const row of rows) row.paid = true;
+    return {
+      txnRef: bookingId + '.ADD_ON.mock',
+      amount: unpaidAmount,
+      type: 'ADD_ON',
+      mode: 'mock',
+      paymentUrl: '/thanh-toan/ket-qua?status=SUCCESS&type=ADD_ON&amount=' + unpaidAmount,
     } as T;
   }
 

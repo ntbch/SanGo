@@ -135,3 +135,33 @@ export interface VoucherFormPayload {
 export type VoucherUpdatePayload = Partial<Omit<VoucherFormPayload, 'code'>> & {
   active?: boolean;
 };
+
+/* ---------------- F4: Menu dịch vụ của cụm sân ---------------- */
+
+export type VenueServiceTypeValue = 'BEVERAGE' | 'EQUIPMENT' | 'OTHER';
+
+/** Một dòng menu dịch vụ — khớp model VenueService của backend (F4). */
+export interface VenueServiceRow {
+  id: string;
+  venueId: string;
+  name: string;
+  /** Đơn giá VND (số nguyên). */
+  price: number;
+  type: VenueServiceTypeValue;
+  isAvailable: boolean;
+}
+
+/** Payload tạo/sửa dịch vụ — khớp CreateVenueServiceSchema (partial khi sửa). */
+export interface ServiceFormPayload {
+  name: string;
+  price: number;
+  type: VenueServiceTypeValue;
+  isAvailable: boolean;
+}
+
+/** DELETE /owner/venues/:venueId/services/:id — xoá hẳn hoặc tự tắt nếu đã có đơn dùng. */
+export interface DeleteServiceResponse {
+  id: string;
+  deleted: boolean;
+  disabled: boolean;
+}

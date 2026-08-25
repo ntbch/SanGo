@@ -87,3 +87,40 @@ export function applyVoucherToHold(holdId: string, code: string): Promise<ApplyV
     body: { code },
   });
 }
+
+/* ===================== F4: Gọi thêm dịch vụ ===================== */
+
+import type {
+  AddBookingAddOnsPayload,
+  AddonCheckoutResponse,
+  BookingAddOnsResponse,
+  PublicVenueService,
+} from './types';
+
+/** Menu dịch vụ đang mở bán của cụm sân — dùng cho modal gọi thêm dịch vụ. */
+export function fetchVenueServices(venueId: string): Promise<PublicVenueService[]> {
+  return apiFetch<PublicVenueService[]>(endpoints.services.publicByVenue(venueId));
+}
+
+/** Danh sách dịch vụ đã đặt của đơn + số tiền chưa trả. */
+export function fetchBookingAddOns(bookingId: string): Promise<BookingAddOnsResponse> {
+  return apiFetch<BookingAddOnsResponse>(endpoints.services.bookingAddOns(bookingId));
+}
+
+/** Chọn mua/thuê dịch vụ cho đơn CONFIRMED/CHECKED_IN — trả lại tổng mới. */
+export function addBookingAddOns(
+  bookingId: string,
+  payload: AddBookingAddOnsPayload,
+): Promise<BookingAddOnsResponse> {
+  return apiFetch<BookingAddOnsResponse>(endpoints.services.addBookingAddOns(bookingId), {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+/** Tạo lệnh thanh toán ADD_ON cho phần chưa trả — trả paymentUrl để redirect. */
+export function checkoutBookingAddOns(bookingId: string): Promise<AddonCheckoutResponse> {
+  return apiFetch<AddonCheckoutResponse>(endpoints.services.checkoutBookingAddOns(bookingId), {
+    method: 'POST',
+  });
+}
