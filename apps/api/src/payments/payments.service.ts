@@ -329,7 +329,11 @@ export class PaymentsService {
     const { id, type } = parsed;
 
     if (await this.isAlreadyPaid(txnRef)) {
-      return this.frontendRedirect('SUCCESS', { txnRef }); // idempotent theo spec
+      // PA(chốt A): VNPay retry sau khi đã paid — giữ type cho luồng ADD_ON.
+      return this.frontendRedirect('SUCCESS', {
+        txnRef,
+        ...(parsed.type === 'ADD_ON' ? { type: 'ADD_ON' } : {}),
+      }); // idempotent theo spec
     }
     const expected = await this.expectedAmountFor(id, type);
     if (Number(query.vnp_Amount) !== expected * 100) {
