@@ -14,7 +14,7 @@ import { useAuthStore } from '../../../lib/auth/auth-store';
 import { formatVnd, minutesToTime } from '../../public/format';
 
 import { useAiChat, useCreateAiHold } from '../queries';
-import type { AiChatResponse, AiSlotsResult, AiVenueCard } from '../types';
+import type { AiChatHistoryItem, AiChatResponse, AiSlotsResult, AiVenueCard } from '../types';
 
 interface ChatMessage {
   id: number;
@@ -92,7 +92,12 @@ export function AiChatWidget(): ReactElement {
     setInput('');
     append({ id: nextId(), role: 'user', text });
     try {
-      const res: AiChatResponse = await chatMutation.mutateAsync(text);
+      // Đa lượt: gửi kèm hội thoại gần nhất (bỏ bubble hold/cần đăng nhập) để agent hiểu "sân đó", "mai"...
+      const history: AiChatHistoryItem[] = messages
+        .filter((m) => m.holdId === undefined && m.needLogin !== true)
+        .slice(-8)
+        .map((m) => ({ role: m.role, content: m.text }));
+      const res: AiChatResponse = await chatMutation.mutateAsync({ message: text, history });
       append({
         id: nextId(),
         role: 'assistant',

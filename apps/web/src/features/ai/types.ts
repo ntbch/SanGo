@@ -5,6 +5,12 @@
 
 export type AiSportType = 'FOOTBALL5' | 'FOOTBALL7' | 'PICKLEBALL' | 'BADMINTON' | 'TENNIS';
 
+/** Một lượt hội thoại gửi kèm /ai/chat để agent nhớ ngữ cảnh (tối đa 8 gần nhất). */
+export interface AiChatHistoryItem {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 /** Card sân trả về cho bubble chat (wireframe 08). */
 export interface AiVenueCard {
   venueId: string;

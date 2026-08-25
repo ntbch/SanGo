@@ -1,19 +1,27 @@
 import { ApiError } from '../../lib/api/api-error';
 import { apiFetch } from '../../lib/api/client';
 import { endpoints } from '../../lib/api/endpoints';
-import type { AiChatResponse, AiHoldResponse, SuggestedSlotsResponse } from './types';
+import type {
+  AiChatHistoryItem,
+  AiChatResponse,
+  AiHoldResponse,
+  SuggestedSlotsResponse,
+} from './types';
 
 /** §6.4: timeout 15s cho provider AI — quá hạn báo 'hệ thống gợi ý bận'. */
 const AI_CHAT_TIMEOUT_MS = 15_000;
 
-/** POST /ai/chat — một tin nhắn mỗi lần gọi (server stateless, client giữ hội thoại). */
-export async function sendAiChat(message: string): Promise<AiChatResponse> {
+/** POST /ai/chat — kèm history để agent hiểu ngữ cảnh đa lượt (server stateless). */
+export async function sendAiChat(
+  message: string,
+  history: AiChatHistoryItem[] = [],
+): Promise<AiChatResponse> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AI_CHAT_TIMEOUT_MS);
   try {
     return await apiFetch<AiChatResponse>(endpoints.ai.chat(), {
       method: 'POST',
-      body: { message },
+      body: { message, history },
       signal: controller.signal,
     });
   } catch (err) {

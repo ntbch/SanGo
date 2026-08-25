@@ -1,12 +1,15 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import type { SuggestedSlotsResponse } from './types';
+import type { AiChatHistoryItem, SuggestedSlotsResponse } from './types';
 
 import { createAiHold, fetchAiSuggestedSlots, sendAiChat } from './api';
 
 /** Mutation chat AI — component tự quản lý lịch sử hội thoại phía client. */
 export function useAiChat() {
-  return useMutation({ mutationFn: (message: string) => sendAiChat(message) });
+  return useMutation({
+    mutationFn: (input: { message: string; history: AiChatHistoryItem[] }) =>
+      sendAiChat(input.message, input.history),
+  });
 }
 
 /** Dải gợi ý giờ chơi AI-2 — chỉ bật khi có courtId đang xem. */
