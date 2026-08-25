@@ -113,7 +113,12 @@ export function ForgotPasswordPage(): ReactElement {
                 </Link>
               </p>
             ) : null}
-            <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setSentTo(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg"
+              onClick={() => setSentTo(null)}
+            >
               Gửi lại cho email khác
             </Button>
           </div>

@@ -115,9 +115,7 @@ export function MyCustomerBookingsPage(): ReactElement {
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-            Đơn đặt sân của tôi
-          </h1>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Đơn đặt sân của tôi</h1>
           <p className="text-sm text-muted-foreground">
             Theo dõi các trận đấu sắp diễn ra, lịch sử chơi và đánh giá.
           </p>

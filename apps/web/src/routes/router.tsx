@@ -111,14 +111,16 @@ export function AppRoutes(): ReactElement {
             }
           />
           <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
-          <Route element={<GuestRoute />}>
-            <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
-            {/* Quên/đặt lại mật khẩu (P1-F2): slug tiếng Việt là chính, giữ alias cũ. */}
-            <Route path="quen-mat-khau" element={<ForgotPasswordPage />} />
-            <Route path="dat-lai-mat-khau" element={<ResetPasswordPage />} />
-            <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          </Route>
+        </Route>
+
+        {/* Auth fullscreen (A5) — ngoài PublicLayout: không navbar/footer, AuthShell phủ viewport */}
+        <Route element={<GuestRoute />}>
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          {/* Quên/đặt lại mật khẩu (P1-F2): slug tiếng Việt là chính, giữ alias cũ. */}
+          <Route path="quen-mat-khau" element={<ForgotPasswordPage />} />
+          <Route path="dat-lai-mat-khau" element={<ResetPasswordPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
         {/* Thanh toán checkout yêu cầu đăng nhập */}

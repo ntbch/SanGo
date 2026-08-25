@@ -143,12 +143,24 @@ export function OwnerBookingsPage(): ReactElement {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Mã đơn</TableHead>
-                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Khách</TableHead>
-                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Ngày & giờ chơi</TableHead>
-                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Thanh toán</TableHead>
-                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Trạng thái</TableHead>
-                  <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">Hành động</TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">
+                    Mã đơn
+                  </TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">
+                    Khách
+                  </TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">
+                    Ngày & giờ chơi
+                  </TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">
+                    Thanh toán
+                  </TableHead>
+                  <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">
+                    Trạng thái
+                  </TableHead>
+                  <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">
+                    Hành động
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

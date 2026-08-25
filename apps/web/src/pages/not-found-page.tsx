@@ -12,10 +12,7 @@ export function NotFoundPage(): ReactElement {
       <div className="w-full max-w-3xl space-y-8 text-center">
         {/* Khối đồ hoạ — dùng đúng bộ gradient fallback ảnh trống của spec, không thêm hex mới */}
         <div className="relative isolate flex aspect-[2/1] w-full items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-emerald-200 via-emerald-100 to-teal-200 shadow-[0_12px_30px_rgba(15,23,42,0.1)] dark:border-border dark:from-emerald-900 dark:via-emerald-950 dark:to-teal-900 md:aspect-[3/1]">
-          <House
-            className="absolute size-40 -rotate-12 opacity-10 sm:size-56"
-            aria-hidden
-          />
+          <House className="absolute size-40 -rotate-12 opacity-10 sm:size-56" aria-hidden />
           <p className="relative z-10 text-7xl font-extrabold tracking-tighter text-primary drop-shadow-md sm:text-8xl lg:text-9xl">
             404
           </p>

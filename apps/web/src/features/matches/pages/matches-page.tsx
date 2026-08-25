@@ -38,8 +38,8 @@ function estimatePerPerson(item: OpenMatchItem): number {
   return heads > 0 ? Math.round(item.subtotal / heads) : item.subtotal;
 }
 
-/** Grid danh sách trận: dừng ở lg:grid-cols-3 vì card dày thông tin (giờ + giá + CTA). */
-const MATCH_GRID = 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3';
+/** Grid danh sách trận: card dày thông tin nên chỉ mở thêm 1 cột ở màn ≥1536px. */
+const MATCH_GRID = 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4';
 
 function MatchCard(options: {
   item: OpenMatchItem;
@@ -97,7 +97,9 @@ function MatchCard(options: {
             data-testid="joined-count"
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-score text-xs font-semibold uppercase tracking-wide',
-              joined ? 'bg-accent text-accent-foreground' : 'bg-secondary text-secondary-foreground',
+              joined
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-secondary text-secondary-foreground',
             )}
           >
             <Users className="size-3.5" aria-hidden />
@@ -230,11 +232,7 @@ export function MatchesPage(): ReactElement {
       </div>
 
       {matchesQuery.isPending ? (
-        <div
-          className={MATCH_GRID}
-          aria-busy="true"
-          aria-label="Đang tải trận mở"
-        >
+        <div className={MATCH_GRID} aria-busy="true" aria-label="Đang tải trận mở">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-56 w-full rounded-xl" />
           ))}

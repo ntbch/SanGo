@@ -195,10 +195,18 @@ function TopCourtsTable(options: {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10 font-score text-[11px] font-semibold uppercase tracking-widest">#</TableHead>
-              <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">Sân con</TableHead>
-              <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">Lượt đặt</TableHead>
-              <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">Doanh thu</TableHead>
+              <TableHead className="w-10 font-score text-[11px] font-semibold uppercase tracking-widest">
+                #
+              </TableHead>
+              <TableHead className="font-score text-[11px] font-semibold uppercase tracking-widest">
+                Sân con
+              </TableHead>
+              <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">
+                Lượt đặt
+              </TableHead>
+              <TableHead className="text-right font-score text-[11px] font-semibold uppercase tracking-widest">
+                Doanh thu
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

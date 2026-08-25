@@ -15,7 +15,7 @@ import { useVenues } from '../queries';
 function SkeletonGrid(): ReactElement {
   return (
     <div
-      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
       role="status"
       aria-busy="true"
       aria-label="Đang tải danh sách sân"
@@ -42,7 +42,7 @@ interface VenuesPageProps {
 const RADIUS_OPTIONS = [3, 5, 10, 20] as const;
 
 /** Chuỗi container chuẩn Athletic Synergy (đặc tả §3). */
-const SHELL_CONTAINER = 'mx-auto w-full max-w-[1280px] px-4 md:px-6';
+const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
 
 /** Trang danh sách sân: hero tìm kiếm + lọc quận + GPS Gần tôi + sidebar lọc + lưới kết quả phân trang. */
 export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
@@ -431,7 +431,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
 
           {items.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {items.map((venue) => (
                   <VenueCard key={venue.id} venue={venue} />
                 ))}

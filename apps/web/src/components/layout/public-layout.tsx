@@ -16,7 +16,7 @@ import { Button } from '../ui/button';
 import { useAuthStore } from '../../lib/auth/auth-store';
 
 /** Container chuẩn của design "Athletic Synergy": tối đa 1280px, gutter 16/24px. */
-const SHELL_CONTAINER = 'mx-auto w-full max-w-[1280px] px-4 md:px-6';
+const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
 
 /**
  * Khung trang công khai: header trong suốt mờ (docked) + footer navy full-bleed.
@@ -53,10 +53,7 @@ export function PublicLayout(): ReactElement {
               {APP_NAME}
             </Link>
             {/* Điều hướng public cho khách (P1-F1): xem được sân/trận trước khi đăng nhập */}
-            <nav
-              aria-label="Điều hướng công khai"
-              className="hidden items-center gap-5 md:flex"
-            >
+            <nav aria-label="Điều hướng công khai" className="hidden items-center gap-5 md:flex">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -115,15 +112,25 @@ export function PublicLayout(): ReactElement {
             {user ? <NotificationBell /> : null}
             <ThemeToggle />
             {isStaff ? (
-              <Button asChild className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]">
+              <Button
+                asChild
+                className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
+              >
                 <Link to="/dashboard">Bảng điều khiển</Link>
               </Button>
             ) : user ? null : (
               <>
-                <Button variant="ghost" asChild className="font-semibold text-muted-foreground hover:text-primary">
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="font-semibold text-muted-foreground hover:text-primary"
+                >
                   <Link to="/login">Đăng nhập</Link>
                 </Button>
-                <Button asChild className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]">
+                <Button
+                  asChild
+                  className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
+                >
                   <Link to="/register">Đăng ký</Link>
                 </Button>
               </>
@@ -144,7 +151,9 @@ export function PublicLayout(): ReactElement {
 
       {/* Footer navy full-bleed — nền phủ toàn viewport, nội dung vẫn nằm trong container 1280px */}
       <footer className="bg-navy text-white/70">
-        <div className={`${SHELL_CONTAINER} flex flex-col justify-between gap-6 py-10 md:flex-row md:items-center`}>
+        <div
+          className={`${SHELL_CONTAINER} flex flex-col justify-between gap-6 py-10 md:flex-row md:items-center`}
+        >
           <div>
             <div className="mb-1 flex items-center gap-2 text-lg font-extrabold tracking-tight text-turf-bright">
               <span className="flex size-8 items-center justify-center rounded-lg bg-turf/15">
@@ -156,7 +165,10 @@ export function PublicLayout(): ReactElement {
               © 2026 {APP_NAME} · Đồ án tốt nghiệp — hệ thống đặt và quản lý sân thể thao trực tuyến
             </p>
           </div>
-          <nav aria-label="Liên kết chân trang" className="flex flex-wrap gap-x-8 gap-y-2 text-sm font-medium">
+          <nav
+            aria-label="Liên kết chân trang"
+            className="flex flex-wrap gap-x-8 gap-y-2 text-sm font-medium"
+          >
             <Link to="/venues" className="transition-colors duration-200 hover:text-turf-bright">
               Tìm sân
             </Link>

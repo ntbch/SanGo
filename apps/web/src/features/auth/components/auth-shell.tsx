@@ -14,7 +14,8 @@ export const AUTH_CARD_CLASS =
 
 export function AuthShell({ children }: { children: ReactElement }): ReactElement {
   return (
-    <section className="relative isolate overflow-hidden rounded-xl bg-navy">
+    // Route auth nằm ngoài PublicLayout nên section này tự chiếm trọn viewport.
+    <section className="relative isolate min-h-screen overflow-hidden bg-navy">
       {/* Nền nhiều lớp thay ảnh Stitch: quầng sáng cỏ nhân tạo + vệt chéo khí chất thể thao */}
       <div
         aria-hidden
@@ -31,7 +32,7 @@ export function AuthShell({ children }: { children: ReactElement }): ReactElemen
         className="absolute inset-y-0 right-[-6%] -z-10 hidden w-1/4 rotate-12 bg-[repeating-linear-gradient(115deg,rgba(46,204,113,0.07)_0px,rgba(46,204,113,0.07)_14px,transparent_14px,transparent_36px)] lg:block"
       />
 
-      <div className="flex flex-col items-center px-4 py-12 md:px-10 md:py-16">
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14 sm:px-6 md:py-20 lg:px-10">
         {/* Brand trên nền navy — cùng ngôn ngữ footer public-layout */}
         <p className="mb-6 flex items-center gap-2 text-lg font-extrabold tracking-tight text-turf-bright">
           <span className="flex size-8 items-center justify-center rounded-lg bg-turf/15">

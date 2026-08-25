@@ -1,6 +1,14 @@
 import { UserRole } from '@courthub/shared';
 import { useQueries } from '@tanstack/react-query';
-import { ArrowRight, BarChart3, Calendar, Clock, MapPinned, QrCode, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  Calendar,
+  Clock,
+  MapPinned,
+  QrCode,
+  ShieldCheck,
+} from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -348,10 +356,7 @@ function AdminApprovalSection(): ReactElement {
             { key: 'REJECTED', label: 'Từ chối' },
           ] as const
         ).map((row) => (
-          <Card
-            key={row.key}
-            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
-          >
+          <Card key={row.key} className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
             <CardHeader className="pb-2">
               <CardDescription className="text-xs font-semibold uppercase tracking-wide">
                 {row.label}

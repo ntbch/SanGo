@@ -166,7 +166,12 @@ export function VenueDetailPage(): ReactElement {
                   <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                   {venue.address}
                 </p>
-                <Button asChild variant="outline" size="sm" className="gap-1.5 rounded-full font-bold">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 rounded-full font-bold"
+                >
                   <a
                     href={buildGoogleMapsUrl(venue.lat, venue.lng, venue.address)}
                     target="_blank"

@@ -2849,7 +2849,7 @@ export async function handleMockRequest<T>(
     const account =
       sessionEmail === null
         ? accounts[0]
-        : accounts.find((a) => a.email === sessionEmail) ?? accounts[0];
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
     const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
     const mine = MOCK_NOTIFICATIONS.filter((n) => n.userId === account.id).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -2870,7 +2870,7 @@ export async function handleMockRequest<T>(
     const account =
       sessionEmail === null
         ? accounts[0]
-        : accounts.find((a) => a.email === sessionEmail) ?? accounts[0];
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
     let updated = 0;
     const now = new Date().toISOString();
     for (const n of MOCK_NOTIFICATIONS) {
@@ -2887,7 +2887,7 @@ export async function handleMockRequest<T>(
     const account =
       sessionEmail === null
         ? accounts[0]
-        : accounts.find((a) => a.email === sessionEmail) ?? accounts[0];
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
     const id = rawPath0.split('/')[2];
     const row = MOCK_NOTIFICATIONS.find((n) => n.id === id && n.userId === account.id);
     if (row === undefined) {

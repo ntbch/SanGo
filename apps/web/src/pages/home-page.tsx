@@ -28,7 +28,7 @@ const sportEntries = Object.entries(SPORT_TYPE_LABELS) as [SportType, string][];
 const TOP_VENUES_COUNT = 6;
 
 /** Container chuẩn 1280px của shell public (khớp PublicLayout). */
-const SHELL_CONTAINER = 'mx-auto w-full max-w-[1280px] px-4 md:px-6';
+const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
 
 /**
  * Landing công khai tại "/" (đề bài P1-F1) — diện mạo "Athletic Synergy":
@@ -162,18 +162,33 @@ export function HomePage(): ReactElement {
             </Button>
             {user ? (
               user.role !== UserRole.CUSTOMER ? (
-                <Button size="lg" variant="outline" asChild className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  asChild
+                  className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white"
+                >
                   {/* Chủ sân / quản trị: vào thẳng bảng điều khiển */}
                   <Link to="/dashboard">Bảng điều khiển</Link>
                 </Button>
               ) : (
-                <Button size="lg" variant="outline" asChild className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  asChild
+                  className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white"
+                >
                   {/* Customer đã đăng nhập: về đơn của mình, không lộ khái niệm dashboard */}
                   <Link to="/dashboard/my-bookings">Đơn đặt sân</Link>
                 </Button>
               )
             ) : (
-              <Button size="lg" variant="outline" asChild className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white">
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white"
+              >
                 <Link to="/register">Đăng ký</Link>
               </Button>
             )}
@@ -213,7 +228,12 @@ export function HomePage(): ReactElement {
               Những cụm sân đang được đặt nhiều nhất tuần này.
             </p>
           </div>
-          <Button variant="ghost" size="sm" asChild className="gap-1 font-bold text-primary hover:bg-accent">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="gap-1 font-bold text-primary hover:bg-accent"
+          >
             <Link to="/venues">
               Xem tất cả sân
               <ArrowRight className="size-4" aria-hidden />
@@ -223,7 +243,7 @@ export function HomePage(): ReactElement {
 
         {topVenuesQuery.isPending ? (
           <div
-            className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
             aria-busy="true"
             aria-label="Đang tải sân nổi bật"
           >
@@ -232,7 +252,7 @@ export function HomePage(): ReactElement {
             ))}
           </div>
         ) : topVenues.length > 0 ? (
-          <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {topVenues.map((venue) => (
               <VenueCard key={venue.id} venue={venue} />
             ))}
@@ -252,14 +272,20 @@ export function HomePage(): ReactElement {
             className="absolute -right-6 top-1/2 size-56 -translate-y-1/2 opacity-15 md:size-72"
           />
           <div className="relative z-10 max-w-2xl">
-            <h2 id="matches-banner-heading" className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2
+              id="matches-banner-heading"
+              className="text-2xl font-bold tracking-tight sm:text-3xl"
+            >
               Thiếu Người Chơi? Ghép Trận Ngay
             </h2>
             <p className="mt-2 leading-relaxed text-white/90">
               Các đơn đặt sân đang công khai tìm người tham gia — xem danh sách trận mở và tham gia
               chỉ trong vài chạm.
             </p>
-            <Button asChild className="mt-6 rounded-lg bg-turf px-6 py-3 font-bold text-navy-deep hover:bg-turf-bright">
+            <Button
+              asChild
+              className="mt-6 rounded-lg bg-turf px-6 py-3 font-bold text-navy-deep hover:bg-turf-bright"
+            >
               <Link to="/matches" className="gap-2">
                 Xem trận mở
                 <ArrowRight className="size-4" aria-hidden />

@@ -75,9 +75,7 @@ export function LoginPage(): ReactElement {
             <LogIn className="size-5" aria-hidden />
           </span>
           <div className="space-y-1">
-            <CardTitle className="text-xl font-bold tracking-tight">
-              Đăng nhập {APP_NAME}
-            </CardTitle>
+            <CardTitle className="text-xl font-bold tracking-tight">Đăng nhập {APP_NAME}</CardTitle>
             <p className="text-sm text-muted-foreground">
               Đặt sân nhanh, giữ chỗ an toàn, check-in bằng mã QR.
             </p>
@@ -154,7 +152,8 @@ export function LoginPage(): ReactElement {
         {env.useMock && (
           <div className="mt-4 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Chế độ demo (mock)</p>
-            Đăng nhập thử với mật khẩu <code className="font-score text-primary">Courthub@2026</code>:
+            Đăng nhập thử với mật khẩu{' '}
+            <code className="font-score text-primary">Courthub@2026</code>:
             <ul className="mt-1 list-inside list-disc">
               {MOCK_HINT_ACCOUNTS.map((account) => (
                 <li key={account} className="font-score">

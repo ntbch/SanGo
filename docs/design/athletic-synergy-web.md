@@ -76,11 +76,13 @@ Quy tắc:
 
 ## 3. Luật layout — 5 archetype
 
-Hằng số container dùng lại đúng chuỗi golden:
+Hằng số container dùng lại đúng chuỗi golden (**fluid fullscreen** — cập nhật 2025-08-25 theo yêu cầu dùng trọn chiều ngang màn hình):
 
 ```
-SHELL_CONTAINER = 'mx-auto w-full max-w-[1280px] px-4 md:px-6'
+SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10'
 ```
+
+Nguyên tắc đi kèm: không gian ngang lớn được lấp bằng CỘT (grid thêm tầng `xl:4`, `2xl:5`) chứ không phải khoảng trắng; chỉ cap chiều đọc cho khối văn bản (`max-w-2xl`) và form/auth (A5).
 
 ### A1 — Landing full-bleed
 - Section hero `relative isolate overflow-hidden bg-navy` **full-bleed**, nội dung bên trong bọc `SHELL_CONTAINER` (`py-16 md:py-24`, căn giữa).
@@ -109,6 +111,7 @@ SHELL_CONTAINER = 'mx-auto w-full max-w-[1280px] px-4 md:px-6'
 - Biến thể đăng nhập (mockup): card chia đôi `max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden` — form trái, panel ảnh/navy phải; vẫn căn giữa viewport.
 - Input auth: `pl-10` có icon lucide trái, focus `focus:border-primary focus:ring-4 focus:ring-primary/20`.
 - Nền quanh thẻ: navy gradient (radial turf như hero, nhẹ hơn) hoặc `bg-background`; chọn 1 trong 2 per-route, không trộn.
+- Panel navy full-bleed (AuthShell): route auth render **ngoài PublicLayout** (không navbar/footer) nên section tự chiếm viewport với `min-h-screen`; cấm mount auth vào layout public hay dùng margin âm bù gutter.
 
 ---
 
@@ -167,11 +170,11 @@ Tất cả dựng từ component có sẵn `src/components/ui/*` (button, card, 
 
 ## 5. Checklist CHỐNG LỆCH (reviewer tick trước khi approve diff)
 
-1. ☐ Container đúng `mx-auto w-full max-w-[1280px] px-4 md:px-6` — không max-w-7xl/6xl/container tự chế.
-2. ☐ Full-bleed chỉ cho NỀN (hero navy, footer navy); toàn bộ nội dung vẫn nằm trong container 1280.
+1. ☐ Container đúng `w-full px-4 sm:px-6 lg:px-10` (fluid) — cấm quay lại max-w-[1280px]/6xl/7xl trừ khối form/auth có cap riêng trong spec.
+2. ☐ Màn rộng ≥1280px: lưới phải có tầng `xl:`/`2xl:` tương ứng (xl:4, 2xl:5 cho lưới sân); không để dải trắng hai bên.
 3. ☐ Grep diff: không có hex/rgba mới ngoài bảng §1.1 và 3 ngoại lệ được phép.
 4. ☐ Chỉ dùng token/utility đã có (background/card/primary/…/navy/turf/oxygen/ocean) + palette Tailwind chuẩn cho warning amber-*; không invent `color-mint`…
-5. ☐ Grid danh sách đủ tầng responsive: `sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6` (hoặc có lý do rõ khi dừng ở lg).
+5. ☐ Grid danh sách đủ tầng responsive: `sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6` (hoặc có lý do rõ khi dừng sớm).
 6. ☐ Chi tiết 2 cột: `lg:grid-cols-12`, 8/4, card phải `sticky top-28`; mobile 1 cột.
 7. ☐ Dashboard: main đã `ml-64` thì KHÔNG `mx-auto`/max-w chồng lên; sidebar `fixed w-64 hidden md:flex`.
 8. ☐ Dark mode song song: mọi class custom có cặp `dark:` hợp lý; `text-white*` chỉ xuất hiện trên navy/turf/gradient.
