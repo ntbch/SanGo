@@ -17,6 +17,11 @@ import {
   UserMinus,
   AlarmClock,
   Store,
+  Wallet,
+  Trophy,
+  TicketPercent,
+  Users,
+  Wrench,
 } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +49,12 @@ const TYPE_ICON: Record<NotificationType, { Icon: typeof Bell; className: string
   [NotificationType.MATCH_JOINED]: { Icon: UserPlus, className: 'text-violet-500' },
   [NotificationType.MATCH_LEFT]: { Icon: UserMinus, className: 'text-amber-500' },
   [NotificationType.REMINDER]: { Icon: AlarmClock, className: 'text-orange-500' },
+  // F8 wave-1 (roadmap v5): ví/voucher/dịch vụ/đội/giải đấu.
+  [NotificationType.WALLET]: { Icon: Wallet, className: 'text-emerald-500' },
+  [NotificationType.VOUCHER]: { Icon: TicketPercent, className: 'text-pink-500' },
+  [NotificationType.SERVICE]: { Icon: Wrench, className: 'text-sky-500' },
+  [NotificationType.TEAM]: { Icon: Users, className: 'text-violet-500' },
+  [NotificationType.TOURNAMENT]: { Icon: Trophy, className: 'text-amber-500' },
 };
 
 /** Một dòng thông báo trong dropdown — bấm để đọc + điều hướng. */
