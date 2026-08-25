@@ -196,8 +196,42 @@ export function calculateHaversineDistanceKm(
 }
 
 /**
- * Tạo URL mở Google Maps chỉ đường trực tiếp tới tọa độ sân.
+ * Kiểm tra cặp tọa độ có dùng được cho bản đồ/chỉ đường không.
+ * Coi 0/0 hoặc NaN/undefined là "thiếu dữ liệu" (EC-06 trong BRD GEO).
  */
-export function buildGoogleMapsUrl(lat: number, lng: number, _address?: string): string {
+export function hasUsableCoords(lat?: number, lng?: number): boolean {
+  return (
+    typeof lat === 'number' &&
+    Number.isFinite(lat) &&
+    lat !== 0 &&
+    typeof lng === 'number' &&
+    Number.isFinite(lng) &&
+    lng !== 0
+  );
+}
+
+/**
+ * Tạo URL mở Google Maps chỉ đường tới sân.
+ * - Có tọa độ hợp lệ -> Directions URL chuẩn (AC-04.2).
+ * - Thiếu/tọa độ 0 (EC-06) -> fallback tìm kiếm theo địa chỉ chuỗi;
+ *   không có địa chỉ thì tìm kiếm mặc định tại Hà Nội.
+ */
+export function buildGoogleMapsUrl(lat?: number, lng?: number, address?: string): string {
+  if (!hasUsableCoords(lat, lng)) {
+    const query =
+      address !== undefined && address.trim() !== '' ? address.trim() : 'Hà Nội, Việt Nam';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+}
+
+/**
+ * Định dạng khoảng cách hiển thị trên badge (AC-03.3):
+ * < 1 km -> mét ('650 m'); >= 1 km -> 1 chữ số thập phân ('2.4 km').
+ * Trả về null khi không có khoảng cách hợp lệ để UI ẩn badge.
+ */
+export function formatDistance(km: number | null | undefined): string | null {
+  if (typeof km !== 'number' || !Number.isFinite(km) || km < 0) return null;
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
 }

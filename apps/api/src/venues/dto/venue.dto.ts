@@ -41,8 +41,7 @@ export const VenueListQuerySchema = z
   })
   .refine(
     (q) =>
-      q.radiusKm === undefined ||
-      (typeof q.userLat === 'number' && typeof q.userLng === 'number'),
+      q.radiusKm === undefined || (typeof q.userLat === 'number' && typeof q.userLng === 'number'),
     {
       message: 'RADIUS_REQUIRES_COORDS: radiusKm yêu cầu phải cung cấp đầy đủ userLat và userLng',
       path: ['radiusKm'],

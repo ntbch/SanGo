@@ -294,7 +294,12 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
   describe('GEO & District Integration (DB thật)', () => {
     it('GEO-DB-1: lọc danh sách sân theo district cụ thể', async () => {
       if (!dbUp) return;
-      const res = await venues.listPublic({ city: 'Hà Nội', district: 'Cầu Giấy', page: 1, limit: 10 });
+      const res = await venues.listPublic({
+        city: 'Hà Nội',
+        district: 'Cầu Giấy',
+        page: 1,
+        limit: 10,
+      });
       expect(res.total).toBeGreaterThanOrEqual(1);
       expect(res.items.every((v) => v.district === 'Cầu Giấy')).toBe(true);
       expect(res.items.every((v) => v.city === 'Hà Nội')).toBe(true);
@@ -330,5 +335,4 @@ describe('Venues/Courts/Pricing + admin duyệt sân (integration)', () => {
       }
     });
   });
-
 });

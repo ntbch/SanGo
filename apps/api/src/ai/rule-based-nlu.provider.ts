@@ -124,7 +124,10 @@ export class RuleBasedNluProvider implements NluProvider {
 
     for (const { alias, standard } of ALL_LOCATION_ALIASES) {
       // Khớp nguyên từ / ranh giới từ để tránh lỗi substring (vd: 'san trong nha dong nguoi')
-      const regex = new RegExp('(^|[^a-zà-ỹ0-9_])' + escapeRegex(alias) + '([^a-zà-ỹ0-9_]|$)', 'gi');
+      const regex = new RegExp(
+        '(^|[^a-zà-ỹ0-9_])' + escapeRegex(alias) + '([^a-zà-ỹ0-9_]|$)',
+        'gi',
+      );
       let match: RegExpExecArray | null;
       while ((match = regex.exec(lower)) !== null) {
         const prefixLen = match[1].length;

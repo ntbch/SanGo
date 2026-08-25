@@ -3,7 +3,7 @@
  * Mô phỏng đúng hợp đồng REST của module auth (đặc tả §3.1) và shape lỗi
  * thống nhất { statusCode, message, code } để UI chạy đứng yên không lỗi.
  */
-import { UserRole } from '@courthub/shared';
+import { calculateHaversineDistanceKm, UserRole } from '@courthub/shared';
 
 import { ApiError } from './api-error';
 import { type AuthUser } from './types';
@@ -92,6 +92,8 @@ interface MockVenue {
   rejectReason?: string | null;
   ownerId?: string;
   address: string;
+  city?: string;
+  district?: string;
   lat: number;
   lng: number;
   images: string[];
@@ -127,6 +129,8 @@ export const MOCK_VENUES: MockVenue[] = [
     ownerId: 'u-owner',
     name: 'Sân Pickleball Saigon',
     slug: 'san-pickleball-saigon',
+    city: 'TP.HCM',
+    district: 'Gò Vấp',
     address: '12 Nguyễn Văn Bảo, P.4, Q. Gò Vấp, TP.HCM',
     lat: 10.8205,
     lng: 106.6894,
@@ -155,7 +159,7 @@ export const MOCK_VENUES: MockVenue[] = [
       {
         id: 'c-3',
         name: 'Sân 3',
-        sportType: 'FOOTBALL_5',
+        sportType: 'FOOTBALL5',
         slotMinutes: 90,
         defaultPricePerSlot: 400000,
       },
@@ -183,6 +187,8 @@ export const MOCK_VENUES: MockVenue[] = [
     ownerId: 'u-owner',
     name: 'Cụm Cầu lông Thủ Đức',
     slug: 'cum-cau-long-thu-duc',
+    city: 'TP.HCM',
+    district: 'Thủ Đức',
     address: '456 Võ Văn Ngân, P. Bình Thọ, TP. Thủ Đức, TP.HCM',
     lat: 10.8539,
     lng: 106.7614,
@@ -233,6 +239,8 @@ export const MOCK_VENUES: MockVenue[] = [
     ownerId: 'u-owner',
     name: 'Tennis Bình Thạnh',
     slug: 'tennis-binh-thanh',
+    city: 'TP.HCM',
+    district: 'Bình Thạnh',
     address: '78 Ngo Sĩ Liên, P.11, Q. Bình Thạnh, TP.HCM',
     lat: 10.8017,
     lng: 106.7066,
@@ -251,6 +259,1274 @@ export const MOCK_VENUES: MockVenue[] = [
       },
     ],
     reviews: [],
+  },
+  {
+    id: 'v-hn-1',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân Thể Thao Quần Ngựa',
+    slug: 'san-the-thao-quan-ngua',
+    city: 'Hà Nội',
+    district: 'Ba Đình',
+    address: '30 Văn Cao, Liễu Giai, Ba Đình, Hà Nội',
+    lat: 21.0384,
+    lng: 105.8152,
+    images: [
+      'https://picsum.photos/seed/quan-ngua-1/800/500',
+      'https://picsum.photos/seed/quan-ngua-2/800/500',
+    ],
+    amenities: ['Bãi đỗ xe', 'Phòng thay đồ', 'Căng tin', 'Wifi'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.5,
+    ratingCount: 15,
+    courts: [
+      {
+        id: 'c-hn-101',
+        name: 'Sân Pickleball Quần Ngựa 1',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 130000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-102',
+        name: 'Sân Cầu Lông Quần Ngựa',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 100000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-103',
+        name: 'Sân Tennis Quần Ngựa',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 350000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-1',
+        author: 'Nguyễn Văn A',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Ba Đình.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-2',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Bóng Đá Hoàng Hoa Thám',
+    slug: 'cum-san-bong-da-hoang-hoa-tham',
+    city: 'Hà Nội',
+    district: 'Ba Đình',
+    address: '250 Hoàng Hoa Thám, Thụy Khuê, Ba Đình, Hà Nội',
+    lat: 21.0421,
+    lng: 105.8236,
+    images: ['https://picsum.photos/seed/hoang-hoa-tham-1/800/500'],
+    amenities: ['Bãi xe máy', 'Đèn chiếu sáng ban đêm', 'Nước uống'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.6,
+    ratingCount: 18,
+    courts: [
+      {
+        id: 'c-hn-104',
+        name: 'Sân 5 Hoàng Hoa Thám A',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 450000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-105',
+        name: 'Sân 7 Hoàng Hoa Thám B',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 850000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-2',
+        author: 'Nguyễn Văn B',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Ba Đình.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-3',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Tổ Hợp Thể Thao Cầu Giấy',
+    slug: 'to-hop-the-thao-cau-giay',
+    city: 'Hà Nội',
+    district: 'Cầu Giấy',
+    address: '35 Trần Quý Kiên, Dịch Vọng, Cầu Giấy, Hà Nội',
+    lat: 21.0368,
+    lng: 105.7925,
+    images: [
+      'https://picsum.photos/seed/to-hop-cau-giay-1/800/500',
+      'https://picsum.photos/seed/to-hop-cau-giay-2/800/500',
+    ],
+    amenities: ['Bãi xe ô tô', 'Phòng tắm nóng lạnh', 'Cho thuê vợt', 'Wifi'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1410,
+    ratingAvg: 4.7,
+    ratingCount: 21,
+    courts: [
+      {
+        id: 'c-hn-106',
+        name: 'Sân Cầu Lông Số 1',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-107',
+        name: 'Sân Cầu Lông Số 2',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-108',
+        name: 'Sân Pickleball Cầu Giấy',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 130000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-109',
+        name: 'Sân Tennis Cầu Giấy',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 320000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-3',
+        author: 'Nguyễn Văn C',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Cầu Giấy.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-4',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân Bóng Đá & Pickleball Trung Kính',
+    slug: 'san-bong-da-pickleball-trung-kinh',
+    city: 'Hà Nội',
+    district: 'Cầu Giấy',
+    address: '218 Trung Kính, Yên Hòa, Cầu Giấy, Hà Nội',
+    lat: 21.0182,
+    lng: 105.7938,
+    images: ['https://picsum.photos/seed/trung-kinh-1/800/500'],
+    amenities: ['Bãi đỗ xe', 'Căng tin', 'Tủ đồ'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.8,
+    ratingCount: 24,
+    courts: [
+      {
+        id: 'c-hn-110',
+        name: 'Sân Bóng Đá 5 Trung Kính',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 420000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-111',
+        name: 'Sân Pickleball Trung Kính',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-4',
+        author: 'Nguyễn Văn D',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Cầu Giấy.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-5',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân thể thao Ngọc Khánh',
+    slug: 'san-the-thao-ngoc-khanh',
+    city: 'Hà Nội',
+    district: 'Đống Đa',
+    address: 'Số 12 Nguyễn Chí Thanh, Láng Thượng, Đống Đa, Hà Nội',
+    lat: 21.0283,
+    lng: 105.8142,
+    images: [
+      'https://picsum.photos/seed/courthub-ngoc-khanh-1/800/500',
+      'https://picsum.photos/seed/courthub-ngoc-khanh-2/800/500',
+    ],
+    amenities: ['Phòng thay đồ', 'Bãi xe miễn phí', 'Nước uống miễn phí', 'Wifi'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1410,
+    ratingAvg: 4.9,
+    ratingCount: 27,
+    courts: [
+      {
+        id: 'c-hn-112',
+        name: 'Sân bóng đá 5 người A',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-113',
+        name: 'Sân bóng đá 5 người B',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-114',
+        name: 'Sân Pickleball trong nhà',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-5',
+        author: 'Nguyễn Văn E',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Đống Đa.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-6',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Thể Thao Hoàng Cầu',
+    slug: 'cum-san-the-thao-hoang-cau',
+    city: 'Hà Nội',
+    district: 'Đống Đa',
+    address: 'Số 1 Ngõ 69 Hoàng Cầu, Ô Chợ Dừa, Đống Đa, Hà Nội',
+    lat: 21.0185,
+    lng: 105.8234,
+    images: ['https://picsum.photos/seed/hoang-cau-1/800/500'],
+    amenities: ['Ven hồ thoáng mát', 'Bãi xe', 'Căng tin giải khát'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.5,
+    ratingCount: 30,
+    courts: [
+      {
+        id: 'c-hn-115',
+        name: 'Sân Cầu Lông Hoàng Cầu',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 95000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-116',
+        name: 'Sân Tennis Hoàng Cầu',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 300000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-117',
+        name: 'Sân Bóng Đá 5 Hoàng Cầu',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-6',
+        author: 'Nguyễn Văn F',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Đống Đa.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-7',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Thể Thao Bách Khoa',
+    slug: 'cum-san-the-thao-bach-khoa',
+    city: 'Hà Nội',
+    district: 'Hai Bà Trưng',
+    address: 'Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội',
+    lat: 21.0068,
+    lng: 105.8452,
+    images: ['https://picsum.photos/seed/bach-khoa-1/800/500'],
+    amenities: ['Bãi đỗ xe lớn', 'Khán đài', 'Phòng thay đồ'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.6,
+    ratingCount: 33,
+    courts: [
+      {
+        id: 'c-hn-118',
+        name: 'Sân 5 Bách Khoa 1',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-119',
+        name: 'Sân 7 Bách Khoa Pro',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 800000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-120',
+        name: 'Sân Cầu Lông Nhà Thi Đấu BK',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 85000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-7',
+        author: 'Nguyễn Văn G',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hai Bà Trưng.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-8',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'CLB Pickleball & Tennis Tuổi Trẻ',
+    slug: 'clb-pickleball-tennis-tuoi-tre',
+    city: 'Hà Nội',
+    district: 'Hai Bà Trưng',
+    address: 'Công viên Tuổi Trẻ, Võ Thị Sáu, Thanh Nhàn, Hai Bà Trưng, Hà Nội',
+    lat: 21.0041,
+    lng: 105.8562,
+    images: ['https://picsum.photos/seed/tuoi-tre-1/800/500'],
+    amenities: ['Không gian xanh', 'Bãi xe ô tô', 'Huấn luyện viên'],
+    depositPercent: 25,
+    openMinute: 360,
+    closeMinute: 1350,
+    ratingAvg: 4.7,
+    ratingCount: 36,
+    courts: [
+      {
+        id: 'c-hn-121',
+        name: 'Sân Pickleball Tuổi Trẻ 1',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 110000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-122',
+        name: 'Sân Pickleball Tuổi Trẻ 2',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 110000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-123',
+        name: 'Sân Tennis Tuổi Trẻ',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 280000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-8',
+        author: 'Nguyễn Văn H',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hai Bà Trưng.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-9',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân Thể Thao Phúc Tân',
+    slug: 'san-the-thao-phuc-tan',
+    city: 'Hà Nội',
+    district: 'Hoàn Kiếm',
+    address: 'Khu thể thao Phúc Tân, Phúc Tân, Hoàn Kiếm, Hà Nội',
+    lat: 21.0315,
+    lng: 105.8592,
+    images: ['https://picsum.photos/seed/phuc-tan-1/800/500'],
+    amenities: ['Bãi xe máy', 'Gần phố cổ', 'Nước uống'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.8,
+    ratingCount: 39,
+    courts: [
+      {
+        id: 'c-hn-124',
+        name: 'Sân Bóng Đá 5 Phúc Tân',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 420000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-125',
+        name: 'Sân Cầu Lông Phúc Tân',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 95000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-9',
+        author: 'Nguyễn Văn I',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hoàn Kiếm.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-10',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Trung Tâm Thể Thao Hàng Chiếu',
+    slug: 'trung-tam-the-thao-hang-chieu',
+    city: 'Hà Nội',
+    district: 'Hoàn Kiếm',
+    address: '42 Hàng Chiếu, Đồng Xuân, Hoàn Kiếm, Hà Nội',
+    lat: 21.0378,
+    lng: 105.8515,
+    images: ['https://picsum.photos/seed/hang-chieu-1/800/500'],
+    amenities: ['Trung tâm phố cổ', 'Điều hòa', 'Tủ đồ an toàn'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1320,
+    ratingAvg: 4.9,
+    ratingCount: 42,
+    courts: [
+      {
+        id: 'c-hn-126',
+        name: 'Sân Pickleball Phố Cổ',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 140000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-127',
+        name: 'Sân Cầu Lông Hàng Chiếu',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 110000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-10',
+        author: 'Nguyễn Văn J',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hoàn Kiếm.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-11',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Không Quân Lê Trọng Tấn',
+    slug: 'cum-san-khong-quan-le-trong-tan',
+    city: 'Hà Nội',
+    district: 'Thanh Xuân',
+    address: '168 Lê Trọng Tấn, Khương Mai, Thanh Xuân, Hà Nội',
+    lat: 20.9985,
+    lng: 105.8285,
+    images: ['https://picsum.photos/seed/khong-quan-1/800/500'],
+    amenities: ['Bãi xe ô tô cực rộng', 'Căng tin', 'Hệ thống đèn tiêu chuẩn'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1410,
+    ratingAvg: 4.5,
+    ratingCount: 45,
+    courts: [
+      {
+        id: 'c-hn-128',
+        name: 'Sân Bóng Đá 5 Không Quân',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 420000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-129',
+        name: 'Sân Bóng Đá 7 Không Quân',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 850000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-130',
+        name: 'Sân Tennis Phòng Không',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 300000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-11',
+        author: 'Nguyễn Văn K',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Thanh Xuân.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-12',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'CLB Pickleball & Cầu Lông Thanh Xuân',
+    slug: 'clb-pickleball-cau-long-thanh-xuan',
+    city: 'Hà Nội',
+    district: 'Thanh Xuân',
+    address: '15 Khuất Duy Tiến, Nhân Chính, Thanh Xuân, Hà Nội',
+    lat: 20.9952,
+    lng: 105.8012,
+    images: ['https://picsum.photos/seed/thanh-xuan-1/800/500'],
+    amenities: ['Mặt thảm chuẩn thi đấu', 'Phòng thay đồ', 'Wifi tốc độ cao'],
+    depositPercent: 25,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.6,
+    ratingCount: 48,
+    courts: [
+      {
+        id: 'c-hn-131',
+        name: 'Sân Pickleball Thanh Xuân A',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-132',
+        name: 'Sân Pickleball Thanh Xuân B',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-133',
+        name: 'Sân Cầu Lông Thanh Xuân 1',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-12',
+        author: 'Nguyễn Văn L',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Thanh Xuân.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-13',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'D-Sports Quảng An',
+    slug: 'd-sports-quang-an',
+    city: 'Hà Nội',
+    district: 'Tây Hồ',
+    address: '50 Đặng Thai Mai, Quảng An, Tây Hồ, Hà Nội',
+    lat: 21.0645,
+    lng: 105.8282,
+    images: ['https://picsum.photos/seed/quang-an-1/800/500'],
+    amenities: ['View Hồ Tây', 'Cafe sang trọng', 'Phòng tắm nóng lạnh', 'Bãi xe ô tô'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.7,
+    ratingCount: 51,
+    courts: [
+      {
+        id: 'c-hn-134',
+        name: 'Sân Pickleball View Hồ',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 150000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-135',
+        name: 'Sân Pickleball Pro Tây Hồ',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 150000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-136',
+        name: 'Sân Tennis D-Sports',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 380000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-13',
+        author: 'Nguyễn Văn M',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Tây Hồ.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-14',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Thể Thao An Dương',
+    slug: 'cum-san-the-thao-an-duong',
+    city: 'Hà Nội',
+    district: 'Tây Hồ',
+    address: 'Ngõ 76 An Dương, Yên Phụ, Tây Hồ, Hà Nội',
+    lat: 21.0512,
+    lng: 105.8395,
+    images: ['https://picsum.photos/seed/an-duong-1/800/500'],
+    amenities: ['Bãi xe máy rộng', 'Đèn LED cao cấp', 'Nước ngọt'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.8,
+    ratingCount: 54,
+    courts: [
+      {
+        id: 'c-hn-137',
+        name: 'Sân 5 An Dương 1',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-138',
+        name: 'Sân 7 An Dương',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 800000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-139',
+        name: 'Sân Cầu Lông An Dương',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-14',
+        author: 'Nguyễn Văn N',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Tây Hồ.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-15',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Trung tâm cầu lông & Pickleball Hoàng Mai',
+    slug: 'cau-long-pickleball-hoang-mai',
+    city: 'Hà Nội',
+    district: 'Hoàng Mai',
+    address: 'KĐT Linh Đàm, Hoàng Liệt, Hoàng Mai, Hà Nội',
+    lat: 20.9845,
+    lng: 105.8541,
+    images: [
+      'https://picsum.photos/seed/courthub-hoang-mai-1/800/500',
+      'https://picsum.photos/seed/courthub-hoang-mai-2/800/500',
+    ],
+    amenities: ['Phòng thay đồ', 'Bãi xe có mái che', 'Thuê vợt/cầu'],
+    depositPercent: 25,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.9,
+    ratingCount: 57,
+    courts: [
+      {
+        id: 'c-hn-140',
+        name: 'Sân cầu lông 1',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-141',
+        name: 'Sân cầu lông 2',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 90000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-142',
+        name: 'Sân bóng đá 7 người',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 800000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-143',
+        name: 'Sân Pickleball ngoài trời',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 100000,
+        status: 'MAINTENANCE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-15',
+        author: 'Nguyễn Văn O',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hoàng Mai.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-16',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân Bóng Đá Định Công',
+    slug: 'san-bong-da-dinh-cong',
+    city: 'Hà Nội',
+    district: 'Hoàng Mai',
+    address: 'Định Công Thượng, Định Công, Hoàng Mai, Hà Nội',
+    lat: 20.9852,
+    lng: 105.8341,
+    images: ['https://picsum.photos/seed/dinh-cong-1/800/500'],
+    amenities: ['Bãi xe máy & ô tô', 'Khán đài mini', 'Căng tin'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.5,
+    ratingCount: 60,
+    courts: [
+      {
+        id: 'c-hn-144',
+        name: 'Sân 5 Định Công A',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 380000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-145',
+        name: 'Sân 7 Định Công B',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 750000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-16',
+        author: 'Nguyễn Văn P',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hoàng Mai.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-17',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Thể Thao Bồ Đề',
+    slug: 'cum-san-the-thao-bo-de',
+    city: 'Hà Nội',
+    district: 'Long Biên',
+    address: 'Phố Hồng Tiến, Bồ Đề, Long Biên, Hà Nội',
+    lat: 21.0385,
+    lng: 105.8752,
+    images: ['https://picsum.photos/seed/bo-de-1/800/500'],
+    amenities: ['Bãi xe ô tô', 'Sân cỏ nhân tạo mới', 'Hệ thống đèn LED', 'Wifi'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1410,
+    ratingAvg: 4.6,
+    ratingCount: 63,
+    courts: [
+      {
+        id: 'c-hn-146',
+        name: 'Sân Bóng Đá 5 Bồ Đề',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-147',
+        name: 'Sân Pickleball Bồ Đề',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 110000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-148',
+        name: 'Sân Tennis Bồ Đề',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 290000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-17',
+        author: 'Nguyễn Văn Q',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Long Biên.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-18',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Trung Tâm Pickleball & Cầu Lông Việt Hưng',
+    slug: 'trung-tam-pickleball-cau-long-viet-hung',
+    city: 'Hà Nội',
+    district: 'Long Biên',
+    address: 'KĐT Việt Hưng, Giang Biên, Long Biên, Hà Nội',
+    lat: 21.0615,
+    lng: 105.9085,
+    images: ['https://picsum.photos/seed/viet-hung-1/800/500'],
+    amenities: ['Nhà thi đấu có máy lạnh', 'Phòng tắm sạch', 'Cho thuê dụng cụ'],
+    depositPercent: 25,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.7,
+    ratingCount: 66,
+    courts: [
+      {
+        id: 'c-hn-149',
+        name: 'Sân Pickleball Việt Hưng 1',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-150',
+        name: 'Sân Pickleball Việt Hưng 2',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-151',
+        name: 'Sân Cầu Lông Việt Hưng',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 85000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-18',
+        author: 'Nguyễn Văn R',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Long Biên.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-19',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Thể Thao Văn Quán',
+    slug: 'cum-san-the-thao-van-quan',
+    city: 'Hà Nội',
+    district: 'Hà Đông',
+    address: 'KĐT Văn Quán, Văn Quán, Hà Đông, Hà Nội',
+    lat: 20.9785,
+    lng: 105.7892,
+    images: ['https://picsum.photos/seed/van-quan-1/800/500'],
+    amenities: ['Ven hồ Văn Quán', 'Bãi xe ô tô', 'Căng tin đồ uống', 'Tủ đồ'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1410,
+    ratingAvg: 4.8,
+    ratingCount: 69,
+    courts: [
+      {
+        id: 'c-hn-152',
+        name: 'Sân Bóng Đá 5 Văn Quán',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 380000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-153',
+        name: 'Sân Pickleball Văn Quán',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 110000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-154',
+        name: 'Sân Cầu Lông Văn Quán',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 80000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-19',
+        author: 'Nguyễn Văn S',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hà Đông.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-20',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân Tennis & Pickleball Dương Nội',
+    slug: 'san-tennis-pickleball-duong-noi',
+    city: 'Hà Nội',
+    district: 'Hà Đông',
+    address: 'KĐT Dương Nội, Dương Nội, Hà Đông, Hà Nội',
+    lat: 20.9652,
+    lng: 105.7525,
+    images: ['https://picsum.photos/seed/duong-noi-1/800/500'],
+    amenities: ['Bãi đỗ xe', 'Hệ thống đèn LED', 'Nước uống'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1350,
+    ratingAvg: 4.9,
+    ratingCount: 72,
+    courts: [
+      {
+        id: 'c-hn-155',
+        name: 'Sân Tennis Dương Nội 1',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 270000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-156',
+        name: 'Sân Pickleball Dương Nội',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 100000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-20',
+        author: 'Nguyễn Văn T',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Hà Đông.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-21',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Tân Mỹ - Mỹ Đình',
+    slug: 'cum-san-tan-my-my-dinh',
+    city: 'Hà Nội',
+    district: 'Nam Từ Liêm',
+    address: 'Đường Tân Mỹ, Mỹ Đình 1, Nam Từ Liêm, Hà Nội',
+    lat: 21.0252,
+    lng: 105.7685,
+    images: ['https://picsum.photos/seed/tan-my-1/800/500'],
+    amenities: ['Gần SVĐ Quốc Gia', 'Bãi xe cực lớn', 'Cỏ nhân tạo đạt chuẩn', 'Wifi'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1410,
+    ratingAvg: 4.5,
+    ratingCount: 75,
+    courts: [
+      {
+        id: 'c-hn-157',
+        name: 'Sân Bóng Đá 5 Tân Mỹ 1',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-158',
+        name: 'Sân Bóng Đá 7 Tân Mỹ Pro',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 850000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-159',
+        name: 'Sân Pickleball Mỹ Đình',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-21',
+        author: 'Nguyễn Văn U',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Nam Từ Liêm.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-22',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Sân Bóng Đá & Cầu Lông Mễ Trì',
+    slug: 'san-bong-da-cau-long-me-tri',
+    city: 'Hà Nội',
+    district: 'Nam Từ Liêm',
+    address: 'Đường Mễ Trì Hạ, Mễ Trì, Nam Từ Liêm, Hà Nội',
+    lat: 21.0112,
+    lng: 105.7815,
+    images: ['https://picsum.photos/seed/me-tri-1/800/500'],
+    amenities: ['Bãi đỗ xe máy & ô tô', 'Phòng thay đồ', 'Căng tin'],
+    depositPercent: 25,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.6,
+    ratingCount: 78,
+    courts: [
+      {
+        id: 'c-hn-160',
+        name: 'Sân Bóng Đá 5 Mễ Trì',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 400000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-161',
+        name: 'Sân Cầu Lông Mễ Trì',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 85000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-22',
+        author: 'Nguyễn Văn V',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Nam Từ Liêm.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-23',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'Cụm Sân Thể Thao Cổ Nhuế',
+    slug: 'cum-san-the-thao-co-nhue',
+    city: 'Hà Nội',
+    district: 'Bắc Từ Liêm',
+    address: 'Đường Cổ Nhuế, Cổ Nhuế 2, Bắc Từ Liêm, Hà Nội',
+    lat: 21.0685,
+    lng: 105.7725,
+    images: ['https://picsum.photos/seed/co-nhue-1/800/500'],
+    amenities: ['Bãi đỗ xe', 'Hệ thống đèn LED', 'Nước uống'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.7,
+    ratingCount: 81,
+    courts: [
+      {
+        id: 'c-hn-162',
+        name: 'Sân Bóng Đá 5 Cổ Nhuế',
+        sportType: 'FOOTBALL5',
+        slotMinutes: 60,
+        defaultPricePerSlot: 380000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-163',
+        name: 'Sân Bóng Đá 7 Cổ Nhuế',
+        sportType: 'FOOTBALL7',
+        slotMinutes: 90,
+        defaultPricePerSlot: 750000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-164',
+        name: 'Sân Cầu Lông Cổ Nhuế',
+        sportType: 'BADMINTON',
+        slotMinutes: 60,
+        defaultPricePerSlot: 80000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-23',
+        author: 'Nguyễn Văn W',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Bắc Từ Liêm.',
+        createdAt: '20/08/2026',
+      },
+    ],
+  },
+  {
+    id: 'v-hn-24',
+    status: 'APPROVED',
+    ownerId: 'u-owner-hn',
+    name: 'CLB Pickleball & Tennis Xuân Đỉnh',
+    slug: 'clb-pickleball-tennis-xuan-dinh',
+    city: 'Hà Nội',
+    district: 'Bắc Từ Liêm',
+    address: 'Đường Xuân Đỉnh, Xuân Đỉnh, Bắc Từ Liêm, Hà Nội',
+    lat: 21.0745,
+    lng: 105.7885,
+    images: ['https://picsum.photos/seed/xuan-dinh-1/800/500'],
+    amenities: ['Khuôn viên rộng', 'Bãi xe ô tô', 'HLV chuyên nghiệp', 'Phòng tắm nóng lạnh'],
+    depositPercent: 30,
+    openMinute: 360,
+    closeMinute: 1380,
+    ratingAvg: 4.8,
+    ratingCount: 84,
+    courts: [
+      {
+        id: 'c-hn-165',
+        name: 'Sân Pickleball Xuân Đỉnh 1',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-166',
+        name: 'Sân Pickleball Xuân Đỉnh 2',
+        sportType: 'PICKLEBALL',
+        slotMinutes: 60,
+        defaultPricePerSlot: 120000,
+        status: 'ACTIVE',
+      },
+      {
+        id: 'c-hn-167',
+        name: 'Sân Tennis Xuân Đỉnh',
+        sportType: 'TENNIS',
+        slotMinutes: 90,
+        defaultPricePerSlot: 300000,
+        status: 'ACTIVE',
+      },
+    ],
+    reviews: [
+      {
+        id: 'rv-hn-24',
+        author: 'Nguyễn Văn X',
+        rating: 5,
+        comment: 'Cụm sân đẹp, vị trí thuận tiện tại Bắc Từ Liêm.',
+        createdAt: '20/08/2026',
+      },
+    ],
   },
 ];
 
@@ -1073,7 +2349,9 @@ export async function handleMockRequest<T>(
   if (method === 'GET' && rawPath0 === '/venues/mine') {
     const page = Math.max(1, Number(search0.get('page') ?? '1') || 1);
     const limit = Math.max(1, Number(search0.get('limit') ?? '20') || 20);
-    const rows = MOCK_VENUES.map((venue) => ({ ...toOwnerVenue(venue) }));
+    const rows = MOCK_VENUES.filter((venue) => venue.ownerId === 'u-owner').map((venue) => ({
+      ...toOwnerVenue(venue),
+    }));
     return {
       items: rows.slice((page - 1) * limit, page * limit),
       total: rows.length,
@@ -1336,19 +2614,73 @@ export async function handleMockRequest<T>(
     if (rawPath === '/venues') {
       const q = (search.get('q') ?? '').trim().toLowerCase();
       const sportType = search.get('sportType');
+      const district = search.get('district')?.trim().toLowerCase();
+      const city = search.get('city')?.trim().toLowerCase();
+      const userLatParam = search.get('userLat');
+      const userLngParam = search.get('userLng');
+      const radiusKmParam = search.get('radiusKm');
+      const sortBy = search.get('sortBy') ?? search.get('sort');
+      const userLat = userLatParam ? Number(userLatParam) : undefined;
+      const userLng = userLngParam ? Number(userLngParam) : undefined;
+      const radiusKm = radiusKmParam ? Number(radiusKmParam) : undefined;
       const page = Math.max(1, Number(search.get('page') ?? '1') || 1);
-      const limit = Math.max(1, Number(search.get('limit') ?? '9') || 9);
-      const filtered = MOCK_VENUES.filter((venue) => {
+      const limit = Math.max(1, Number(search.get('limit') ?? '12') || 12);
+
+      const hasUserGps =
+        typeof userLat === 'number' &&
+        !isNaN(userLat) &&
+        typeof userLng === 'number' &&
+        !isNaN(userLng);
+      const hasRadius = typeof radiusKm === 'number' && !isNaN(radiusKm) && hasUserGps;
+
+      // Public list: chỉ sân APPROVED. Mặc định chỉ công bố cụm sân Hà Nội;
+      // truyền ?city= để xem thành phố khác (vd TP.HCM).
+      let filtered = MOCK_VENUES.filter((venue) => {
+        const matchStatus = venue.status === 'APPROVED';
         const matchQ =
           q === '' ||
           venue.name.toLowerCase().includes(q) ||
-          venue.address.toLowerCase().includes(q);
+          venue.address.toLowerCase().includes(q) ||
+          (venue.district !== undefined && venue.district.toLowerCase().includes(q));
+        const matchDistrict =
+          !district || (venue.district !== undefined && venue.district.toLowerCase() === district);
+        const matchCityScope = city
+          ? venue.city !== undefined && venue.city.toLowerCase() === city
+          : venue.city === 'Hà Nội';
         const matchSport =
           sportType === null ||
           sportType === '' ||
           venue.courts.some((court) => court.sportType === sportType);
-        return matchQ && matchSport;
+        return matchStatus && matchQ && matchDistrict && matchCityScope && matchSport;
+      }).map((venue) => {
+        let distanceKm: number | undefined = undefined;
+        if (hasUserGps) {
+          distanceKm = calculateHaversineDistanceKm(userLat!, userLng!, venue.lat, venue.lng);
+        }
+        return {
+          ...venue,
+          distanceKm,
+        };
       });
+
+      if (hasRadius) {
+        filtered = filtered.filter(
+          (venue) => venue.distanceKm !== undefined && venue.distanceKm <= radiusKm!,
+        );
+      }
+
+      if (sortBy === 'distance' && hasUserGps) {
+        filtered.sort((a, b) => (a.distanceKm ?? 999999) - (b.distanceKm ?? 999999));
+      } else if (sortBy === 'price_asc' || sortBy === 'price-asc') {
+        const priceOf = (v: (typeof filtered)[0]) =>
+          Math.min(...v.courts.map((c) => c.defaultPricePerSlot), Number.MAX_SAFE_INTEGER);
+        filtered.sort((a, b) => priceOf(a) - priceOf(b));
+      } else if (sortBy === 'price_desc' || sortBy === 'price-desc') {
+        const priceOf = (v: (typeof filtered)[0]) =>
+          Math.min(...v.courts.map((c) => c.defaultPricePerSlot), 0);
+        filtered.sort((a, b) => priceOf(b) - priceOf(a));
+      }
+
       const start = (page - 1) * limit;
       return {
         items: filtered.slice(start, start + limit),
@@ -1362,7 +2694,8 @@ export async function handleMockRequest<T>(
     // segments: ['venues', slugOrId, ('reviews')?]
     const slugOrId = segments[1];
     const venue = MOCK_VENUES.find((item) => item.slug === slugOrId || item.id === slugOrId);
-    if (venue === undefined) {
+    // Chi tiết public chỉ lộ sân APPROVED (ẩn PENDING/REJECTED như backend).
+    if (venue === undefined || venue.status !== 'APPROVED') {
       throw new ApiError(404, 'Không tìm thấy sân', 'VENUE_NOT_FOUND');
     }
     if (segments[2] === 'reviews') {

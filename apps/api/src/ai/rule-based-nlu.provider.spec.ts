@@ -74,7 +74,9 @@ describe('RuleBasedNluProvider (AI-1 & GEO-4 & GEO-FIX1)', () => {
     expect((await nlu.parse('san quang an')).entities.location).toBe('tây hồ');
 
     // 8. Hoàng Mai
-    expect((await nlu.parse('cho mình sân cầu lông ở hoàng mai')).entities.location).toBe('hoàng mai');
+    expect((await nlu.parse('cho mình sân cầu lông ở hoàng mai')).entities.location).toBe(
+      'hoàng mai',
+    );
     expect((await nlu.parse('san pickleball hoang mai')).entities.location).toBe('hoàng mai');
     expect((await nlu.parse('san hm')).entities.location).toBe('hoàng mai');
 
@@ -89,7 +91,9 @@ describe('RuleBasedNluProvider (AI-1 & GEO-4 & GEO-FIX1)', () => {
     expect((await nlu.parse('san hd')).entities.location).toBe('hà đông');
 
     // 11. Nam Từ Liêm
-    expect((await nlu.parse('tìm sân pickleball ở nam từ liêm')).entities.location).toBe('nam từ liêm');
+    expect((await nlu.parse('tìm sân pickleball ở nam từ liêm')).entities.location).toBe(
+      'nam từ liêm',
+    );
     expect((await nlu.parse('san bong nam tu liem')).entities.location).toBe('nam từ liêm');
     expect((await nlu.parse('san pickleball ntl')).entities.location).toBe('nam từ liêm');
     expect((await nlu.parse('sân bóng mỹ đình')).entities.location).toBe('nam từ liêm');

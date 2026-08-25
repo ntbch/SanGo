@@ -33,8 +33,29 @@ describe('VenueDetailPage (mock data)', () => {
     });
   });
 
+  it('hiển thị nút Chỉ đường trên Google Maps trỏ đúng URL chuẩn', async () => {
+    renderApp({ route: '/venues/san-pickleball-saigon' });
+    await waitFor(() => {
+      const mapBtn = screen.getByRole('link', { name: 'Chỉ đường trên Google Maps' });
+      expect(mapBtn).toBeTruthy();
+      const href = mapBtn.getAttribute('href');
+      expect(href).toContain(
+        'https://www.google.com/maps/dir/?api=1&destination=10.8205,106.6894&travelmode=driving',
+      );
+      expect(mapBtn.getAttribute('target')).toBe('_blank');
+      expect(mapBtn.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+  });
+
   it('404 hiển thị thông báo và nút về danh sách', async () => {
     renderApp({ route: '/venues/khong-co-san' });
+    await waitFor(() => {
+      expect(screen.getByText('Không tìm thấy cụm sân này.')).toBeTruthy();
+    });
+  });
+
+  it('sân chưa APPROVED (PENDING) trả 404 như backend public', async () => {
+    renderApp({ route: '/venues/cum-cau-long-thu-duc' }); // v-2 PENDING TP.HCM
     await waitFor(() => {
       expect(screen.getByText('Không tìm thấy cụm sân này.')).toBeTruthy();
     });

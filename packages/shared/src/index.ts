@@ -113,3 +113,4 @@ export function vnToday(now: Date = new Date()): string {
 }
 
 export * from './schemas';
+export * from './geo';

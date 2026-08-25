@@ -18,6 +18,8 @@ interface VenueBase {
   name: string;
   slug: string;
   address: string;
+  city?: string;
+  district?: string;
   lat: number;
   lng: number;
   images: string[];
@@ -28,6 +30,8 @@ interface VenueBase {
   openMinute: number;
   closeMinute: number;
   courts: CourtCardInfo[];
+  /** Khoảng cách GPS tính theo Haversine (km) khi có toạ độ người dùng */
+  distanceKm?: number;
 }
 
 export interface VenueListItem extends VenueBase {

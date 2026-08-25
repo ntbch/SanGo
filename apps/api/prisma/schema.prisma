@@ -145,6 +145,8 @@ model Venue {
   name           String
   slug           String      @unique
   address        String
+  city           String      @default("Hà Nội")
+  district       String      @default("Cầu Giấy")
   lat            Float
   lng            Float
   openMinute     Int
@@ -162,6 +164,7 @@ model Venue {
   reviews Review[]
 
   @@index([status])
+  @@index([city, district])
   @@map("venues")
 }
 

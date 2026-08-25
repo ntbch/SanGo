@@ -1,13 +1,14 @@
-import { ArrowLeft, Banknote, Clock, MapPin, Star } from 'lucide-react';
+import { ArrowLeft, Banknote, Clock, MapPin, Navigation, Star } from 'lucide-react';
 import { Suspense, lazy, useState, type ReactElement } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { buildGoogleMapsUrl, hasUsableCoords } from '@courthub/shared';
 
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Skeleton } from '../../../components/ui/skeleton';
 
-import { minutesToTime, formatVnd } from '../format';
+import { minutesToTime, formatVnd, formatReviewDate } from '../format';
 import { StarRating } from '../components/star-rating';
 import { useVenue, useVenueReviews } from '../queries';
 
@@ -68,6 +69,11 @@ export function VenueDetailPage(): ReactElement {
         </Button>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold sm:text-3xl">{venue.name}</h1>
+          {venue.district ? (
+            <Badge variant="secondary" className="text-xs">
+              {venue.district}
+            </Badge>
+          ) : null}
           {venue.ratingAvg !== undefined ? (
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <StarRating value={venue.ratingAvg} size="md" />
@@ -115,10 +121,26 @@ export function VenueDetailPage(): ReactElement {
         {/* Thông tin */}
         <Card>
           <CardContent className="space-y-4 p-5">
-            <p className="flex items-start gap-2 text-sm">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-              {venue.address}
-            </p>
+            <div className="space-y-2">
+              <p className="flex items-start gap-2 text-sm">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                {venue.address}
+              </p>
+              <Button asChild variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto">
+                <a
+                  href={buildGoogleMapsUrl(venue.lat, venue.lng, venue.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Chỉ đường trên Google Maps"
+                >
+                  <Navigation
+                    className="size-3.5 text-emerald-600 dark:text-emerald-400"
+                    aria-hidden
+                  />
+                  Chỉ đường trên Google Maps
+                </a>
+              </Button>
+            </div>
             <p className="flex items-center gap-2 text-sm">
               <Clock className="size-4 shrink-0 text-primary" aria-hidden />
               Mở cửa {minutesToTime(venue.openMinute)} – {minutesToTime(venue.closeMinute)} hằng
@@ -140,9 +162,22 @@ export function VenueDetailPage(): ReactElement {
                 </ul>
               </div>
             ) : null}
-            <Suspense fallback={<Skeleton className="h-80 w-full rounded-xl" />}>
-              <VenueMap lat={venue.lat} lng={venue.lng} name={venue.name} address={venue.address} />
-            </Suspense>
+            {/* EC-06: thiếu/0 tọa độ -> không render bản đồ, hiển thị ghi chú thay thế. */}
+            {hasUsableCoords(venue.lat, venue.lng) ? (
+              <Suspense fallback={<Skeleton className="h-80 w-full rounded-xl" />}>
+                <VenueMap
+                  lat={venue.lat}
+                  lng={venue.lng}
+                  name={venue.name}
+                  address={venue.address}
+                />
+              </Suspense>
+            ) : (
+              <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Cụm sân chưa có tọa độ bản đồ. Vui lòng dùng nút “Chỉ đường trên Google Maps” phía
+                trên để tìm theo địa chỉ.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -207,7 +242,9 @@ export function VenueDetailPage(): ReactElement {
                   <span className="text-sm font-semibold">
                     {review.customer?.fullName ?? review.author ?? 'Khách hàng'}
                   </span>
-                  <span className="text-xs text-muted-foreground">{review.createdAt}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatReviewDate(review.createdAt)}
+                  </span>
                 </div>
                 <StarRating value={review.rating} className="mt-1" />
                 {review.comment !== undefined && review.comment !== '' ? (

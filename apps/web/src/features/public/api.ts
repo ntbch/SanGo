@@ -7,6 +7,12 @@ import type { PaginatedReviews, PaginatedVenues, VenueDetail } from './types';
 export interface VenueFilters {
   q?: string;
   sportType?: string;
+  city?: string;
+  district?: string;
+  userLat?: number;
+  userLng?: number;
+  radiusKm?: number;
+  sortBy?: string;
   page?: number;
 }
 

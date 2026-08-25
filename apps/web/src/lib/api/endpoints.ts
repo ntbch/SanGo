@@ -24,6 +24,11 @@ function seg(value: string | number): string {
 export interface VenueListQuery {
   sportType?: string;
   q?: string;
+  city?: string;
+  district?: string;
+  userLat?: number;
+  userLng?: number;
+  radiusKm?: number;
   date?: string;
   startMinute?: number;
   endMinute?: number;
@@ -31,6 +36,7 @@ export interface VenueListQuery {
   /** Danh sách tiện ích, vd 'parking,shower'. */
   amenities?: string;
   sort?: string;
+  sortBy?: string;
   page?: number;
 }
 
