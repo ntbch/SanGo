@@ -17,6 +17,7 @@ import {
   UserMinus,
 } from 'lucide-react';
 import { useMemo, useState, type ReactElement } from 'react';
+import { formatDate } from '../../../lib/date-utils';
 import { useForm } from 'react-hook-form';
 import { Link, useParams } from 'react-router-dom';
 
@@ -413,7 +414,7 @@ export function TeamDetailPage(): ReactElement {
                     )}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground">
-                    {new Date(log.createdAt).toLocaleDateString('vi-VN')}
+                    {formatDate(log.createdAt)}
                   </TableCell>
                 </TableRow>
               ))}

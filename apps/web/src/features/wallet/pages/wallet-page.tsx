@@ -29,6 +29,7 @@ import {
 } from '../../../components/ui/table';
 import { toast } from '../../../components/ui/use-toast';
 import { formatVnd } from '../../public/format';
+import { formatDateTime } from '../../../lib/date-utils';
 import { useMyWallet, useWalletTopup } from '../queries';
 import { TopupFormSchema, type TopupFormValues } from '../schemas';
 import type { WalletLedgerEntry } from '../types';
@@ -46,16 +47,6 @@ const TYPE_META: Record<string, { label: string; isCredit: boolean }> = {
   EXPENSE_SHARE: { label: 'Chia tiền sân', isCredit: false },
   ADDON_PAYMENT: { label: 'Dịch vụ thêm', isCredit: false },
 };
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function WalletRow({ entry }: { entry: WalletLedgerEntry }): ReactElement {
   const isCredit = entry.direction === 'CREDIT';

@@ -59,9 +59,11 @@ function useSessionBootstrap(): void {
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
-    void restoreSession().then((session) => {
-      if (session) useAuthStore.getState().setSession(session.user, session.accessToken);
-    });
+    if (!useAuthStore.getState().user) {
+      void restoreSession().then((session) => {
+        if (session) useAuthStore.getState().setSession(session.user, session.accessToken);
+      });
+    }
   }, []);
 }
 
@@ -260,6 +262,17 @@ export function AppRoutes(): ReactElement {
           }
         />
 
+        {/* Legacy redirect aliases từ /dashboard/* cho CUSTOMER */}
+        <Route path="/dashboard/my-bookings" element={<Navigate to="/bookings" replace />} />
+        <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
+        <Route path="/dashboard/notifications" element={<Navigate to="/notifications" replace />} />
+        <Route path="/dashboard/teams" element={<Navigate to="/teams" replace />} />
+        <Route path="/dashboard/teams/new" element={<Navigate to="/teams/new" replace />} />
+        <Route path="/dashboard/teams/join" element={<Navigate to="/teams/join" replace />} />
+        <Route path="/dashboard/teams/:teamId" element={<Navigate to="/teams" replace />} />
+        <Route path="/dashboard/ranking" element={<Navigate to="/ranking" replace />} />
+        <Route path="/dashboard/profile" element={<Navigate to="/profile" replace />} />
+
         {/* Dashboard dành riêng cho OWNER và ADMIN (DashboardLayout có sidebar quản trị) */}
         <Route
           path="/dashboard"
@@ -354,17 +367,6 @@ export function AppRoutes(): ReactElement {
             }
           />
         </Route>
-
-        {/* Legacy redirect aliases từ /dashboard/* cho CUSTOMER */}
-        <Route path="/dashboard/my-bookings" element={<Navigate to="/bookings" replace />} />
-        <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
-        <Route path="/dashboard/notifications" element={<Navigate to="/notifications" replace />} />
-        <Route path="/dashboard/teams" element={<Navigate to="/teams" replace />} />
-        <Route path="/dashboard/teams/new" element={<Navigate to="/teams/new" replace />} />
-        <Route path="/dashboard/teams/join" element={<Navigate to="/teams/join" replace />} />
-        <Route path="/dashboard/teams/:teamId" element={<Navigate to="/teams" replace />} />
-        <Route path="/dashboard/ranking" element={<Navigate to="/ranking" replace />} />
-        <Route path="/dashboard/profile" element={<Navigate to="/profile" replace />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

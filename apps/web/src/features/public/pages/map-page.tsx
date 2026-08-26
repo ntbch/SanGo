@@ -1,12 +1,16 @@
 import { useState, useMemo, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Activity,
   Calendar,
   ChevronRight,
   Crosshair,
+  Disc,
+  Flame,
   Loader2,
   Search,
   X,
+  Zap,
 } from 'lucide-react';
 import { usePageMeta } from '../../../lib/seo';
 import { InteractiveVenuesMap } from '../components/interactive-venues-map';
@@ -202,13 +206,14 @@ export function MapPage(): ReactElement {
                     setSportFilter('FOOTBALL');
                   }
                 }}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200 ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200 ${
                   isFootballActive
                     ? 'bg-primary text-primary-foreground shadow-xs font-bold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
                 }`}
               >
-                ⚽ Bóng đá
+                <Activity className="size-3.5" />
+                <span>Bóng đá</span>
               </button>
 
               {/* Sub-options Sân 5 & Sân 7 dàn sang ngang */}
@@ -255,39 +260,42 @@ export function MapPage(): ReactElement {
             <button
               type="button"
               onClick={() => setSportFilter(sportFilter === 'BADMINTON' ? '' : 'BADMINTON')}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 sportFilter === 'BADMINTON'
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold scale-[1.02]'
                   : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/70'
               }`}
             >
-              🏸 Cầu lông
+              <Zap className="size-3.5" />
+              <span>Cầu lông</span>
             </button>
 
             {/* Pickleball */}
             <button
               type="button"
               onClick={() => setSportFilter(sportFilter === 'PICKLEBALL' ? '' : 'PICKLEBALL')}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 sportFilter === 'PICKLEBALL'
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold scale-[1.02]'
                   : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/70'
               }`}
             >
-              🏓 Pickleball
+              <Disc className="size-3.5" />
+              <span>Pickleball</span>
             </button>
 
             {/* Tennis */}
             <button
               type="button"
               onClick={() => setSportFilter(sportFilter === 'TENNIS' ? '' : 'TENNIS')}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 sportFilter === 'TENNIS'
                   ? 'bg-primary text-primary-foreground shadow-xs font-bold scale-[1.02]'
                   : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/70'
               }`}
             >
-              🎾 Tennis
+              <Flame className="size-3.5" />
+              <span>Tennis</span>
             </button>
           </div>
 

@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { Label } from '../../../components/ui/label';
 import { Input } from '../../../components/ui/input';
 import { cn } from '../../../lib/utils';
-import { Calendar, DollarSign, Filter, RotateCcw } from 'lucide-react';
+import { Activity, Calendar, Disc, DollarSign, Filter, Flame, RotateCcw, Trophy, Zap } from 'lucide-react';
 
 export type VenueSort = 'newest' | 'price-asc' | 'price-desc' | 'distance';
 
@@ -119,7 +119,7 @@ export function FilterSidebar({
             )}
             onClick={() => onSportTypeChange(undefined)}
           >
-            <span>🏆</span>
+            <Trophy className="size-3.5" />
             <span>Tất cả môn</span>
           </button>
 
@@ -133,7 +133,7 @@ export function FilterSidebar({
             )}
             onClick={() => onSportTypeChange(isFootball ? undefined : 'FOOTBALL')}
           >
-            <span>⚽</span>
+            <Activity className="size-3.5" />
             <span>Bóng đá</span>
           </button>
 
@@ -149,7 +149,7 @@ export function FilterSidebar({
               onSportTypeChange(sportType === SportType.BADMINTON ? undefined : SportType.BADMINTON)
             }
           >
-            <span>🏸</span>
+            <Zap className="size-3.5" />
             <span>Cầu lông</span>
           </button>
 
@@ -165,7 +165,7 @@ export function FilterSidebar({
               onSportTypeChange(sportType === SportType.PICKLEBALL ? undefined : SportType.PICKLEBALL)
             }
           >
-            <span>🏓</span>
+            <Disc className="size-3.5" />
             <span>Pickleball</span>
           </button>
 
@@ -181,7 +181,7 @@ export function FilterSidebar({
               onSportTypeChange(sportType === SportType.TENNIS ? undefined : SportType.TENNIS)
             }
           >
-            <span>🎾</span>
+            <Flame className="size-3.5" />
             <span>Tennis</span>
           </button>
         </div>
@@ -360,12 +360,15 @@ export function FilterSidebar({
           <span>Thời gian & Slot</span>
           <Calendar className="size-3.5 text-primary" />
         </Label>
-        <Input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => onDateChange?.(e.target.value)}
-          className="h-8 rounded-lg text-xs"
-        />
+        <div className="relative">
+          <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => onDateChange?.(e.target.value)}
+            className="h-8 rounded-lg text-xs pl-8"
+          />
+        </div>
         <div className="grid grid-cols-3 gap-1 pt-1">
           {[
             { id: 'morning', label: 'Sáng (6-12h)' },

@@ -41,7 +41,7 @@ import { useRefundPreview } from '../../booking/queries';
 import type { AdminBookingItem, AdminBookingStatus } from '../types';
 import { formatActivityTime } from '../format';
 import { useAdminBookings, useAdminCancelBooking } from '../queries';
-import { formatVnd } from '../../public/format';
+import { formatVnd, formatDate } from '../../public/format';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 
 const PAGE_SIZE = 10;
@@ -275,7 +275,7 @@ export function AdminBookingsPage(): ReactElement {
                           {formatVnd(booking.totalPriceVnd)}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {formatActivityTime(booking.createdAt).split(' ')[0]}
+                          {formatDate(booking.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
                           {CANCELLABLE_STATUSES.has(booking.status) ? (

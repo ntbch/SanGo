@@ -20,7 +20,7 @@ import {
 import { Input } from '../../../components/ui/input';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
-import { formatVnd, minutesToTime } from '../../public/format';
+import { formatVnd, minutesToTime, formatReviewDate as formatDate } from '../../public/format';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { apiFetch } from '../../../lib/api/client';
 import { endpoints } from '../../../lib/api/endpoints';
@@ -163,7 +163,7 @@ export function CheckoutHoldPage(): ReactElement {
             <div className="space-y-1 border-b pb-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Ngày chơi:</span>
-                <span className="font-medium">{hold.date}</span>
+                <span className="font-medium">{formatDate(hold.date)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Khung giờ:</span>

@@ -1,7 +1,9 @@
+import { formatDate } from '../../lib/date-utils';
+
 /**
  * Định dạng thời gian tương đối kiểu Việt Nam cho danh sách thông báo:
  * 'vừa xong', '5 phút trước', '2 giờ trước', '3 ngày trước',
- * quá 7 ngày thì rơi về ngày tuyệt đối dd/mm/yyyy.
+ * quá 7 ngày thì rơi về ngày tuyệt đối dd/MM/yyyy.
  * Hàm thuần (pure) — nhận now để unit test deterministic.
  */
 
@@ -27,9 +29,5 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
     const days = Math.floor(diffSeconds / DAY);
     return days + ' ngày trước';
   }
-  return new Date(iso).toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  return formatDate(iso);
 }

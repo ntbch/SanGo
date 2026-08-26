@@ -1,3 +1,7 @@
+import { formatDate } from '../../lib/date-utils';
+
+export { formatDate, formatDateTime, formatDateShort, formatTime, toInputDateFormat } from '../../lib/date-utils';
+
 /** Định dạng số nguyên VND kiểu Việt Nam, vd 120000 -> '120.000₫'. */
 export function formatVnd(value: number): string {
   return new Intl.NumberFormat('vi-VN').format(value) + '₫';
@@ -11,19 +15,9 @@ export function minutesToTime(minutes: number): string {
 }
 
 /**
- * Ngày đánh giá theo định dạng Việt Nam (dd/mm/yyyy).
- * ISO timestamp (backend) -> 'dd/mm/yyyy'; chuỗi đã định dạng sẵn -> giữ nguyên.
+ * Ngày đánh giá theo định dạng Việt Nam (dd/MM/yyyy).
+ * ISO timestamp (backend) -> 'dd/MM/yyyy'; chuỗi đã định dạng sẵn -> giữ nguyên.
  */
 export function formatReviewDate(value: string): string {
-  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-    }
-  }
-  return value;
+  return formatDate(value);
 }

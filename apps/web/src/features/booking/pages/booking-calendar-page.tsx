@@ -17,6 +17,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
 import { formatVnd, minutesToTime } from '../../public/format';
+import { formatDate, toInputDateFormat } from '../../../lib/date-utils';
 import { useVenue } from '../../public/queries';
 import { useAuthStore } from '../../../lib/auth/auth-store';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
@@ -51,7 +52,7 @@ export function BookingCalendarPage(): ReactElement {
 
   // Ngày bắt đầu tuần (mặc định hôm nay YYYY-MM-DD)
   const [fromDate, setFromDate] = useState<string>(() => {
-    return new Date().toISOString().slice(0, 10);
+    return toInputDateFormat(new Date());
   });
 
   const slotsQuery = useCourtWeeklySlots(activeCourt?.id, fromDate);
@@ -76,7 +77,7 @@ export function BookingCalendarPage(): ReactElement {
     const [y, m, d] = fromDate.split('-').map(Number);
     const curr = new Date(y, m - 1, d);
     curr.setDate(curr.getDate() + offsetDays);
-    setFromDate(curr.toISOString().slice(0, 10));
+    setFromDate(toInputDateFormat(curr));
     setSelectedSlots([]);
   };
 
@@ -281,7 +282,7 @@ export function BookingCalendarPage(): ReactElement {
             <span>
               Bắt đầu:{' '}
               <span className="font-score">
-                {fromDate.slice(8, 10)}/{fromDate.slice(5, 7)}/{fromDate.slice(0, 4)}
+                {formatDate(fromDate)}
               </span>
             </span>
           </div>

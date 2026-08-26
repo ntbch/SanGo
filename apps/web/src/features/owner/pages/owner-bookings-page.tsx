@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '../../../components/ui/table';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
-import { minutesToTime, formatVnd } from '../../public/format';
+import { minutesToTime, formatVnd, formatDate } from '../../public/format';
 import {
   useCancelBookingAsOwner,
   useCheckIn,
@@ -174,7 +174,7 @@ export function OwnerBookingsPage(): ReactElement {
                       </TableCell>
                       <TableCell>{booking.customerName}</TableCell>
                       <TableCell className="whitespace-nowrap font-score text-xs">
-                        {booking.date} · {minutesToTime(booking.startMinute)}–
+                        {formatDate(booking.date)} · {minutesToTime(booking.startMinute)}–
                         {minutesToTime(booking.endMinute)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-score text-xs tabular-nums">

@@ -432,7 +432,7 @@ export function ProfilePage(): ReactElement {
                 </div>
                 <div>
                   <h4 className="font-bold text-xs">Đồng Đội Mẫu Mực</h4>
-                  <p className="text-[10px] text-muted-foreground">Được 20+ người chơi đánh giá 5⭐</p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">Được 20+ người chơi đánh giá 5<Star className="inline size-3 text-amber-500 fill-amber-500" /></p>
                 </div>
               </div>
             </div>

@@ -16,7 +16,7 @@ import {
 } from '../../../components/ui/dialog';
 import { useToast } from '../../../components/ui/use-toast';
 import { cn } from '../../../lib/utils';
-import { formatVnd, minutesToTime } from '../../public/format';
+import { formatVnd, minutesToTime, formatReviewDate as formatDate } from '../../public/format';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { StarRating } from '../../public/components/star-rating';
 import {
@@ -218,7 +218,7 @@ export function MyCustomerBookingsPage(): ReactElement {
                       </p>
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="size-3.5" aria-hidden />{' '}
-                        <span className="font-score">{b.date}</span> ·{' '}
+                        <span className="font-score">{formatDate(b.date)}</span> ·{' '}
                         <Clock className="ml-1 size-3.5" aria-hidden />{' '}
                         <span className="font-score">
                           {minutesToTime(b.startMinute)} – {minutesToTime(b.endMinute)}

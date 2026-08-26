@@ -28,7 +28,7 @@ import {
 } from '../../../components/ui/table';
 import { toast } from '../../../components/ui/use-toast';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
-import { minutesToTime } from '../../public/format';
+import { minutesToTime, formatDate } from '../../public/format';
 import { hhmmToMinutes, voucherFormSchema, type VoucherFormValues } from '../schemas';
 import {
   useCreateOwnerVoucher,
@@ -334,7 +334,7 @@ export function OwnerVouchersPage(): ReactElement {
                     </TableCell>
                     <TableCell>
                       {voucher.expiresAt
-                        ? new Date(voucher.expiresAt).toLocaleDateString('vi-VN')
+                        ? formatDate(voucher.expiresAt)
                         : 'Không hạn'}
                     </TableCell>
                     <TableCell>

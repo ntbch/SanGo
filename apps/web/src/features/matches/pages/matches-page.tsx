@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from '../../../components/ui/use-toast';
 import { useAuthStore } from '../../../lib/auth/auth-store';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
-import { formatVnd, minutesToTime } from '../../public/format';
+import { formatVnd, minutesToTime, formatDate } from '../../public/format';
 import { HANOI_DISTRICTS } from '@sango/shared';
 
 import { hostInitial } from '../match-utils';
@@ -108,7 +108,7 @@ function MatchCard(options: {
           <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
             <Clock className="size-3.5 shrink-0 text-primary" />
             <span>
-              {item.date} · <strong className="text-foreground">{minutesToTime(item.startMinute)} – {minutesToTime(item.endMinute)}</strong>
+              {formatDate(item.date)} · <strong className="text-foreground">{minutesToTime(item.startMinute)} – {minutesToTime(item.endMinute)}</strong>
             </span>
           </div>
         </div>
@@ -420,7 +420,7 @@ export function MatchesPage(): ReactElement {
               <span>Trao đổi kèo {commentTarget?.courtName}</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Chủ kèo: {commentTarget?.hostName} · Ngày {commentTarget?.date} ({minutesToTime(commentTarget?.startMinute ?? 0)}–{minutesToTime(commentTarget?.endMinute ?? 0)})
+              Chủ kèo: {commentTarget?.hostName} · Ngày {formatDate(commentTarget?.date)} ({minutesToTime(commentTarget?.startMinute ?? 0)}–{minutesToTime(commentTarget?.endMinute ?? 0)})
             </DialogDescription>
           </DialogHeader>
 

@@ -169,7 +169,7 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
 
   it('GET /matches/open: chỉ đơn công khai chưa đầy, lọc sportType/date, joinedCount đúng', async () => {
     if (!dbUp) return console.warn('[integration] skip');
-    const res = await matches.listOpen({ page: 1 });
+    const res = await matches.listOpen({ page: 1, limit: 10 });
     const mine = res.items.filter(
       (i) => i.bookingId === publicBookingId || i.bookingId === directBookingId,
     );
@@ -184,12 +184,13 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
         joinedCount: 0,
       });
     }
-    const tennisOnly = await matches.listOpen({ page: 1, sportType: 'TENNIS' });
+    const tennisOnly = await matches.listOpen({ page: 1, limit: 10, sportType: 'TENNIS' });
     expect(tennisOnly.items.some((i) => i.bookingId === publicBookingId)).toBe(false);
-    const byDate = await matches.listOpen({ page: 1, date: DATE });
+    const byDate = await matches.listOpen({ page: 1, limit: 10, date: DATE });
     expect(byDate.items.some((i) => i.bookingId === publicBookingId)).toBe(true);
     const otherDate = await matches.listOpen({
       page: 1,
+      limit: 10,
       date: new Date(new Date(DATE + 'T00:00:00.000Z').getTime() + 86_400_000)
         .toISOString()
         .slice(0, 10),

@@ -1,6 +1,7 @@
 /**
  * Helper thuần cho Ghép trận mở (§3.11) — tách khỏi component để unit test.
  */
+export { formatDate, formatDateTime, formatDateShort, formatTime, toInputDateFormat } from '../../lib/date-utils';
 
 /** Giới hạn số người cần ghép trên mỗi đơn — khớp CreateHoldSchema backend. */
 export const MIN_SLOTS_NEEDED = 1;
