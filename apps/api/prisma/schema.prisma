@@ -575,7 +575,7 @@ model ExpenseShare {
 
   @@index([teamId, status])
   @@index([debtorId, status])
-  /// MAJOR dọn nợ S2: (teamId, bookingId) là UNIQUE khi bookingId != null —
+  /// MAJOR dọn nợ S2: (teamId, bookingId, debtorId) là UNIQUE khi bookingId != null —
   /// enforce bằng PARTIAL UNIQUE INDEX trong migration (Prisma DSL chưa hỗ trợ
   /// partial unique); bookingId null (ghi nợ thủ công) được phép lặp.
   /// App-level vẫn giữ check BOOKING_ALREADY_SPLIT để trả lỗi thân thiện.
