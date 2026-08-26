@@ -15,6 +15,9 @@
     "typecheck": "pnpm -r typecheck",
     "dev:api": "pnpm --filter @sango/api start:dev",
     "dev:web": "pnpm --filter @sango/web dev",
+    "up": "docker compose up --build",
+    "up:d": "docker compose up --build -d",
+    "down": "docker compose down",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down"
   },

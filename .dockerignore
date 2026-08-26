@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.git
+.git
+.agent-teams
+.npm-cache
+.tooling-cache
+.tmp-screens
+.codegraph
+docs
+apps/web/tests
+*.md
+.github
+render.yaml

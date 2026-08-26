@@ -1,3 +1,12 @@
+# SanGo — chạy toàn bộ dự án bằng MỘT lệnh:
+#   docker compose up --build
+# Web:  http://localhost:8080   (nginx + SPA, proxy /api -> api:4000)
+# API:  http://localhost:4000/api/v1
+# DB:   localhost:5432 (sango/sango/sango)
+#
+# Lần đầu chạy tự migrate + seed dữ liệu demo (SEED_ON_START=true).
+# Muốn tắt seed khi restart: đặt SEED_ON_START=false cho service api.
+
 services:
   db:
     image: postgres:16-alpine
@@ -13,9 +22,43 @@ services:
       - sango_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U sango -d sango']
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: sango-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://sango:sango@db:5432/sango?schema=public
+      PORT: 4000
+      JWT_SECRET: dev-only-access-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: dev-only-refresh-secret-do-not-use-in-prod
+      # Demo qua HTTP trên localhost:8080 nên cookie không bật Secure
+      COOKIE_SECURE: 'false'
+      PAYMENT_MODE: mock
+      FRONTEND_URL: http://localhost:8080
+      LLM_PROVIDER: none
+      SEED_ON_START: 'true'
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '4000:4000'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: sango-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
 
 volumes:
   sango_pgdata:

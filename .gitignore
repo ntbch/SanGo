@@ -15,3 +15,7 @@ coverage/
 .npm-cache/
 .tooling-cache/
 .tmp-screens/
+
+# runtime dev logs
+api-dev.log
+*.log

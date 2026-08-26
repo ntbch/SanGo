@@ -37,6 +37,26 @@ sango/
 
 ## 3. Hướng dẫn cài đặt và chạy (Quickstart)
 
+### ⚡ Một lệnh chạy toàn bộ dự án (Docker — khuyên dùng)
+
+```bash
+docker compose up --build
+# hoặc chạy ngầm: pnpm up:d
+```
+
+Lệnh này dựng đủ 3 service:
+
+| Service | URL | Ghi chú |
+| --- | --- | --- |
+| **web** | http://localhost:8080 | nginx phục vụ SPA + proxy `/api` về API |
+| **api** | http://localhost:4000/api/v1 | tự `migrate deploy`, lần đầu tự seed demo |
+| **db** | localhost:5432 | PostgreSQL 16 (`sango/sango/sango`) |
+
+- Tắt auto-seed khi restart: đặt `SEED_ON_START=false` cho service `api` trong `docker-compose.yml`.
+- Dừng toàn bộ: `pnpm down`.
+
+### Cài đặt thủ công (không Docker)
+
 ### Yêu cầu hệ thống
 - **Node.js**: `>= 22.0.0`
 - **pnpm**: `>= 10.0.0`
