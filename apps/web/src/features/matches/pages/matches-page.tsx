@@ -315,6 +315,10 @@ export function MatchesPage(): ReactElement {
             >
               <option value="">Tất cả môn</option>
               <option value="FOOTBALL">Bóng đá</option>
+              <optgroup label="Bóng đá chi tiết">
+                <option value="FOOTBALL5">Bóng đá 5</option>
+                <option value="FOOTBALL7">Bóng đá 7</option>
+              </optgroup>
               <option value="BADMINTON">Cầu lông</option>
               <option value="PICKLEBALL">Pickleball</option>
               <option value="TENNIS">Tennis</option>

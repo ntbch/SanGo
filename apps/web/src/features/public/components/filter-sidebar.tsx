@@ -143,6 +143,40 @@ export function FilterSidebar({
             🎾 Tennis
           </Button>
         </div>
+
+        {/* Chọn Bóng đá -> bung ra 2 mục con sân 5 / sân 7 */}
+        {isFootball ? (
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 pl-1 text-xs">
+            <span className="text-[11px] font-semibold text-muted-foreground">Loại sân:</span>
+            <button
+              type="button"
+              onClick={() => onSportTypeChange('FOOTBALL5')}
+              className={cn(
+                'rounded-lg border px-2 py-0.5 text-xs transition',
+                sportType === 'FOOTBALL5'
+                  ? 'border-primary bg-primary font-bold text-primary-foreground'
+                  : 'border-border bg-muted/50 text-foreground hover:bg-muted',
+              )}
+            >
+              ⚽ Bóng đá 5
+            </button>
+            <button
+              type="button"
+              onClick={() => onSportTypeChange('FOOTBALL7')}
+              className={cn(
+                'rounded-lg border px-2 py-0.5 text-xs transition',
+                sportType === 'FOOTBALL7'
+                  ? 'border-primary bg-primary font-bold text-primary-foreground'
+                  : 'border-border bg-muted/50 text-foreground hover:bg-muted',
+              )}
+            >
+              ⚽ Bóng đá 7
+            </button>
+            {sportType === undefined || sportType === 'FOOTBALL' ? (
+              <span className="text-[10px] text-muted-foreground">(đang lọc cả 2 loại)</span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* Địa điểm Thành phố & Quận */}
