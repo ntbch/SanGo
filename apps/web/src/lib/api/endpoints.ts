@@ -260,4 +260,11 @@ export const endpoints = {
     checkoutBookingAddOns: (bookingId: string): string =>
       '/bookings/' + seg(bookingId) + '/addons/checkout',
   },
+
+  reputation: {
+    /** Điểm uy tín + badge của tôi — compute-on-read, cache 5 phút (F2). */
+    me: (): string => '/reputation/me',
+    /** Bảng xếp hạng theo score giảm dần (F2). */
+    leaderboard: (limit = 20): string => '/reputation/leaderboard' + qs({ limit }),
+  },
 } as const;

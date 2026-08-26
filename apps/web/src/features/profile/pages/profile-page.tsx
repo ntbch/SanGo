@@ -35,6 +35,8 @@ import { profileFormSchema } from '../schemas';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { useAuthStore } from '../../../lib/auth/auth-store';
 import { usePageMeta } from '../../../lib/seo';
+import { useMyReputation } from '../../reputation/queries';
+import { ReputationCard } from '../../reputation/components/reputation-card';
 
 export function ProfilePage(): ReactElement {
   const user = useAuthStore((state) => state.user);
@@ -49,6 +51,9 @@ export function ProfilePage(): ReactElement {
     'Hồ sơ cá nhân',
     'Xem và cập nhật thông tin cá nhân, đổi mật khẩu tài khoản CourtHub.',
   );
+
+  // S3-F2: điểm uy tín + badge (compute-on-read từ Booking).
+  const reputationQuery = useMyReputation();
 
   const profileForm = useForm<{
     fullName: string;
@@ -131,6 +136,9 @@ export function ProfilePage(): ReactElement {
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
       </header>
+
+      {/* S3-F2: Thẻ điểm uy tín + huy hiệu */}
+      <ReputationCard reputation={reputationQuery.data} loading={reputationQuery.isPending} />
 
       {/* Thông tin cá nhân */}
       <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">

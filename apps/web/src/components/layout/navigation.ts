@@ -11,6 +11,7 @@ import {
   Wallet,
   Bell,
   TicketPercent,
+  Medal,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard/wallet', label: 'Ví của tôi', icon: Wallet, roles: ALL_ROLES },
   { to: '/dashboard/notifications', label: 'Thông báo', icon: Bell, roles: ALL_ROLES },
   { to: '/dashboard/teams', label: 'Đội nhóm', icon: Users, roles: ALL_ROLES },
+  { to: '/dashboard/ranking', label: 'Bảng xếp hạng', icon: Medal, roles: ALL_ROLES },
   { to: '/dashboard/profile', label: 'Hồ sơ', icon: UserRound, roles: ALL_ROLES },
   { to: '/matches', label: 'Ghép trận', icon: Users, roles: ALL_ROLES },
   { to: '/dashboard/manage', label: 'Quản lý sân', icon: MapPinned, roles: [UserRole.OWNER] },

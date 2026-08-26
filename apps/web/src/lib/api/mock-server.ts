@@ -3472,6 +3472,105 @@ export async function handleMockRequest<T>(
     } as T;
   }
 
+  /* ===================== REPUTATION mock (S3-F2) ===================== */
+
+  // Bảng điểm tĩnh demo — sort-on-read theo score giảm dần.
+  const MOCK_LEADERBOARD: Array<{
+    userId: string;
+    fullName: string;
+    avatarUrl: string | null;
+    score: number;
+    breakdown: { onTimeCheckIns: number; lateCancels: number; noShows: number };
+  }> = [
+    {
+      userId: 'u-customer-02',
+      fullName: 'Lê Thị Mai',
+      avatarUrl: null,
+      score: 92,
+      breakdown: { onTimeCheckIns: 14, lateCancels: 0, noShows: 0 },
+    },
+    {
+      userId: 'u-customer-01',
+      fullName: 'Nguyễn Văn Bình',
+      avatarUrl: null,
+      score: 85,
+      breakdown: { onTimeCheckIns: 11, lateCancels: 1, noShows: 0 },
+    },
+    {
+      userId: 'u-runner-01',
+      fullName: 'Phạm Minh Quân',
+      avatarUrl: null,
+      score: 78,
+      breakdown: { onTimeCheckIns: 9, lateCancels: 1, noShows: 1 },
+    },
+    {
+      userId: 'u-owner-01',
+      fullName: 'Trần Thị Cẩm Lan',
+      avatarUrl: null,
+      score: 74,
+      breakdown: { onTimeCheckIns: 8, lateCancels: 2, noShows: 0 },
+    },
+    {
+      userId: 'u-admin-01',
+      fullName: 'Phạm Quốc Dũng',
+      avatarUrl: null,
+      score: 66,
+      breakdown: { onTimeCheckIns: 7, lateCancels: 2, noShows: 1 },
+    },
+  ];
+
+  /** Hai badge đầu tiên của F2 — khớp computeBadges phía BE. */
+  function mockReputationBadges(onTimeCheckIns: number, totalBookings: number) {
+    return [
+      {
+        code: 'ON_TIME_10',
+        name: 'Đúng giờ 10 lần',
+        unlocked: onTimeCheckIns >= 10,
+        current: Math.min(onTimeCheckIns, 10),
+        target: 10,
+      },
+      {
+        code: 'BOOKING_10',
+        name: '10 lần đặt sân',
+        unlocked: totalBookings >= 10,
+        current: Math.min(totalBookings, 10),
+        target: 10,
+      },
+    ];
+  }
+
+  // GET /reputation/me — điểm + badge của user đăng nhập (mặc định tài khoản đầu).
+  if (method === 'GET' && rawPath0 === '/reputation/me') {
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    const row = MOCK_LEADERBOARD.find((r) => r.userId === account.id);
+    const breakdown = row?.breakdown ?? { onTimeCheckIns: 0, lateCancels: 0, noShows: 0 };
+    return {
+      score: row?.score ?? 80, // chưa có dữ liệu -> trung tính
+      breakdown,
+      badges: mockReputationBadges(
+        breakdown.onTimeCheckIns,
+        breakdown.onTimeCheckIns + breakdown.lateCancels,
+      ),
+    } as T;
+  }
+
+  // GET /reputation/leaderboard?limit=N — sort score desc, đánh dấu dòng của tôi.
+  if (method === 'GET' && rawPath0 === '/reputation/leaderboard') {
+    const limit = Math.max(1, Number(search0.get('limit') ?? '20') || 20);
+    const account =
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    const items = [...MOCK_LEADERBOARD]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((row) => ({ ...row, isMe: row.userId === account.id }));
+    return { items } as unknown as T;
+  }
+
   /* ===================== WALLET mock (F6) ===================== */
 
   // GET /wallet/me — số dư + lịch sử phân trang của user đăng nhập.

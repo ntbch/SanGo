@@ -32,6 +32,7 @@ import { MyTeamsPage } from '../features/teams/pages/my-teams-page';
 import { CreateTeamPage } from '../features/teams/pages/create-team-page';
 import { TeamDetailPage } from '../features/teams/pages/team-detail-page';
 import { TeamJoinPage } from '../features/teams/pages/team-join-page';
+import { RankingPage } from '../features/reputation/pages/ranking-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
@@ -161,6 +162,8 @@ export function AppRoutes(): ReactElement {
           {/* S2-F1: trang đích link mời — tĩnh, xếp trước :teamId (RRv6 tự ưu tiên) */}
           <Route path="teams/join" element={<TeamJoinPage />} />
           <Route path="teams/:teamId" element={<TeamDetailPage />} />
+          {/* S3-F2: bảng xếp hạng uy tín (mọi vai trò) */}
+          <Route path="ranking" element={<RankingPage />} />
           <Route
             path="manage"
             element={
