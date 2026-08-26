@@ -32,6 +32,8 @@ enum VenueStatus {
   PENDING
   APPROVED
   REJECTED
+  /// Treo bởi ADMIN: ẩn khỏi tìm kiếm public, không đặt được.
+  SUSPENDED
 }
 
 enum SportType {
@@ -115,6 +117,8 @@ enum NotificationType {
   SERVICE
   TEAM
   TOURNAMENT
+  MATCH_REQUEST
+  FUND_DRIVE
 }
 
 /// Vai trò thành viên đội (S2-F1): CAPTAIN tạo/quản lý đội, MEMBER tham gia.
@@ -127,6 +131,46 @@ enum TeamMemberRole {
 enum TeamMemberStatus {
   ACTIVE
   PENDING
+}
+
+/// Cấp độ trận / tự đánh giá trình độ (P6, P7)
+enum MatchLevel {
+  FRIENDLY
+  CASUAL
+  SCRIM
+  SEMI_PRO
+}
+
+/// Chân thuận (P7)
+enum PreferredFoot {
+  LEFT
+  RIGHT
+  BOTH
+}
+
+/// Trạng thái yêu cầu tham gia kèo (P6)
+enum MatchJoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Phạm vi đợt thu quỹ (P5)
+enum FundDriveScope {
+  MONTHLY
+  MATCH
+}
+
+/// Trạng thái đợt thu quỹ (P5)
+enum FundDriveStatus {
+  ACTIVE
+  CLOSED
+}
+
+/// Loại giao dịch quỹ đội (P5)
+enum TeamFundEntryType {
+  INCOME
+  EXPENSE
 }
 
 /// Trạng thái khoản chia tiền đội (S2-F1, TRACK-ONLY — không liên quan WalletLedger cá nhân).
@@ -151,6 +195,17 @@ model User {
   fullName     String
   phone        String?
   avatarUrl    String?
+  bannerUrl    String?
+  bio          String?
+  favoriteSports SportType[]
+  preferredPositions String[]
+  preferredFoot PreferredFoot?
+  selfLevel    MatchLevel?
+  bankName     String?
+  bankAccountNumber String?
+  bankAccountName String?
+  notifyEmail  Boolean    @default(true)
+  notifyInApp  Boolean    @default(true)
   role         UserRole   @default(CUSTOMER)
   status       UserStatus @default(ACTIVE)
   createdAt    DateTime   @default(now())
@@ -174,6 +229,10 @@ model User {
   expenseSharesPaid ExpenseShare[]     @relation("ExpenseSharePayer")
   expenseSharesOwed ExpenseShare[]     @relation("ExpenseShareDebtor")
   tournamentsCreated Tournament[]
+  matchJoinRequests  MatchJoinRequest[]
+  matchComments      MatchComment[]
+  fundContributions  FundContribution[]
+  teamExpensesLogged TeamExpense[]
 
   @@map("users")
 }
@@ -326,10 +385,13 @@ model Booking {
   status        BookingStatus @default(CONFIRMED)
   cancelledAt   DateTime?
   cancelReason  String?
-  /// Ghép trận mở (GĐ2): chủ đơn công khai "cần ghép slotsNeeded người".
+  /// Ghép trận mở (GĐ2 & P6): chủ đơn công khai "cần ghép slotsNeeded người".
   isPublicMatch Boolean?
   slotsNeeded   Int?
   matchFull     Boolean?
+  matchLevel    MatchLevel? @default(FRIENDLY)
+  targetPositions String[]
+  costPerPerson Int?
   /// P2-B2: mốc chống gửi trùng nhắc lịch (null = chưa nhắc ở mốc đó).
   remindedAt24h DateTime?
   remindedAt2h  DateTime?
@@ -347,6 +409,9 @@ model Booking {
   participants MatchParticipant[]
   addOns       BookingAddOn[]
   expenseShares ExpenseShare[]
+  matchJoinRequests MatchJoinRequest[]
+  matchComments     MatchComment[]
+  fundDrives        FundDrive[]
 
   @@index([courtId, date])
   @@index([customerId, date])
@@ -524,6 +589,8 @@ model Team {
   bookings Booking[]
   holds    BookingHold[]
   expenseShares ExpenseShare[]
+  fundDrives    FundDrive[]
+  fundExpenses  TeamExpense[]
   tournamentEntries TournamentTeam[]
   championOf   Tournament[]      @relation("TournamentChampion")
   matchHome    TournamentMatch[] @relation("MatchHome")
@@ -737,4 +804,101 @@ model TournamentMatch {
   @@unique([tournamentId, round, position])
   @@index([tournamentId, status])
   @@map("tournament_matches")
+}
+
+// ---------------------------------------------------------------- P5: Team Treasury
+
+/// Đợt thu quỹ đội (P5): theo tháng hoặc theo trận đặt sân
+model FundDrive {
+  id          String          @id @default(uuid()) @db.Uuid
+  teamId      String          @db.Uuid
+  title       String
+  description String?
+  scope       FundDriveScope  @default(MONTHLY)
+  targetAmount Int            // Tổng tiền kỳ vọng thu được
+  amountPerMember Int         // Số tiền mỗi thành viên cần đóng
+  status      FundDriveStatus @default(ACTIVE)
+  bookingId   String?         @db.Uuid
+  deadline    DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  booking       Booking?           @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  contributions FundContribution[]
+
+  @@index([teamId, status])
+  @@map("fund_drives")
+}
+
+/// Đóng quỹ của thành viên — trừ trực tiếp qua module ví cá nhân
+model FundContribution {
+  id          String   @id @default(uuid()) @db.Uuid
+  fundDriveId String   @db.Uuid
+  userId      String   @db.Uuid
+  amount      Int      // Số tiền đã đóng (VND)
+  paidAt      DateTime @default(now())
+  note        String?
+
+  fundDrive FundDrive @relation(fields: [fundDriveId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([fundDriveId])
+  @@index([userId])
+  @@map("fund_contributions")
+}
+
+/// Nhật ký thu - chi quỹ đội kèm ảnh hóa đơn
+model TeamExpense {
+  id          String            @id @default(uuid()) @db.Uuid
+  teamId      String            @db.Uuid
+  type        TeamFundEntryType @default(EXPENSE)
+  amount      Int               // Số tiền (VND, luôn dương)
+  reason      String            // Lý do chi / nguồn thu
+  receiptUrl  String?           // Link ảnh hóa đơn/chứng từ
+  recordedBy  String            @db.Uuid // Người ghi nhận
+  occurredAt  DateTime          @default(now()) // Thời điểm phát sinh thực tế
+  createdAt   DateTime          @default(now())
+
+  team    Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  recorder User @relation(fields: [recordedBy], references: [id], onDelete: Cascade)
+
+  @@index([teamId, occurredAt])
+  @@map("team_expenses")
+}
+
+// ---------------------------------------------------------------- P6: Matchmaking Hub
+
+/// Yêu cầu xin tham gia kèo ghép trận (P6)
+model MatchJoinRequest {
+  id        String                 @id @default(uuid()) @db.Uuid
+  bookingId String                 @db.Uuid
+  userId    String                 @db.Uuid
+  position  String?                // Vị trí sở trường đăng ký chơi
+  message   String?                // Lời nhắn cho chủ kèo
+  status    MatchJoinRequestStatus @default(PENDING)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, userId])
+  @@index([bookingId, status])
+  @@map("match_join_requests")
+}
+
+/// Bình luận/trao đổi trong kèo ghép trận (P6)
+model MatchComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  bookingId String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+  @@map("match_comments")
 }

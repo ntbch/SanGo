@@ -305,10 +305,7 @@ export class VenuesService {
     if (dto.city !== undefined || dto.district !== undefined) {
       const mergedCity = dto.city ?? venue.city;
       const mergedDistrict = dto.district ?? venue.district;
-      if (
-        isSupportedCity(mergedCity) &&
-        !isValidDistrictForCity(mergedCity, mergedDistrict)
-      ) {
+      if (isSupportedCity(mergedCity) && !isValidDistrictForCity(mergedCity, mergedDistrict)) {
         throw new BadRequestException({
           message: `DISTRICT_NOT_IN_CITY: "${mergedDistrict}" không thuộc thành phố "${mergedCity}"`,
           code: 'DISTRICT_NOT_IN_CITY',

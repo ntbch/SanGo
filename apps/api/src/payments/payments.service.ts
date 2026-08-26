@@ -400,6 +400,78 @@ export class PaymentsService {
    * S0 fix: route VÔ HIỆU khi PAYMENT_MODE≠mock và amount là BẮT BUỘC phải khớp
    * hold/booking — không còn luồng nào xác nhận đơn khi thiếu/thiếu đối chiếu số tiền.
    */
+  async processMockCallback(params: { txnRef?: string; amount?: string }) {
+    if (PaymentsService.resolveMode() !== 'mock') {
+      throw new ForbiddenException({
+        message: 'Mock callback chỉ khả dụng khi PAYMENT_MODE=mock',
+        code: 'PAYMENT_MOCK_DISABLED',
+      });
+    }
+    const txnRef = params.txnRef ?? '';
+    const parsed = this.parseTxnRef(txnRef);
+    if (!parsed) {
+      throw new BadRequestException({ message: 'txnRef không hợp lệ', code: 'PAYMENT_BAD_TXNREF' });
+    }
+    const { id, type } = parsed;
+
+    if (await this.isAlreadyPaid(txnRef)) {
+      return { success: true, txnRef, type, alreadyPaid: true };
+    }
+    const expected = await this.expectedAmountFor(id, type);
+    if (params.amount !== undefined && Number(params.amount) !== expected) {
+      throw new BadRequestException({
+        message: 'Số tiền callback không khớp',
+        code: 'PAYMENT_AMOUNT_MISMATCH',
+      });
+    }
+
+    if (type === 'ADD_ON') {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id },
+        select: { id: true, code: true, customerId: true },
+      });
+      if (!booking) {
+        throw new NotFoundException({
+          message: 'Không tìm thấy đơn đặt sân',
+          code: 'BOOKING_NOT_FOUND',
+        });
+      }
+      try {
+        await this.recordAddonPayment(booking.id, txnRef, expected, PaymentMethod.MOCK);
+      } catch (e) {
+        if ((e as { code?: string }).code === 'P2002') {
+          return { success: true, txnRef, type: 'ADD_ON', bookingCode: booking.code };
+        }
+        throw e;
+      }
+      await this.notify
+        .dispatch({
+          userId: booking.customerId,
+          type: NotificationType.SERVICE,
+          title: 'Thanh toán dịch vụ thành công',
+          body: `Đã thanh toán ${expected.toLocaleString('vi-VN')}đ dịch vụ đi kèm cho đơn ${booking.code}.`,
+          link: '/bookings',
+        })
+        .catch(() => undefined);
+      return { success: true, txnRef, type: 'ADD_ON', bookingCode: booking.code };
+    }
+
+    try {
+      const booking = await this.bookings.confirmFromHold(id, {
+        txnRef,
+        method: PaymentMethod.MOCK,
+        amountPaid: expected,
+        paidInFull: type === 'FULL',
+      });
+      return { success: true, txnRef, bookingCode: booking.code, type };
+    } catch (e) {
+      if ((e as { response?: { code?: string } }).response?.code === 'HOLD_ALREADY_CONVERTED') {
+        return { success: true, txnRef, type };
+      }
+      throw e;
+    }
+  }
+
   async handleMockCallback(params: { txnRef?: string; amount?: string }) {
     if (PaymentsService.resolveMode() !== 'mock') {
       throw new ForbiddenException({

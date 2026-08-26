@@ -501,10 +501,14 @@ async function main() {
   // hiếm gặp để chặn venue gán nhầm city mà district/address lại "sạch" (case VSP Vũng Tàu).
   for (const v of venueSpecs) {
     if (!isValidDistrictForCity(v.city.trim(), v.district)) {
-      console.warn(`[seed] Bỏ qua venue lệch chuẩn địa giới: "${v.name}" (${v.city}/${v.district})`);
+      console.warn(
+        `[seed] Bỏ qua venue lệch chuẩn địa giới: "${v.name}" (${v.city}/${v.district})`,
+      );
     }
   }
-  const insertableSpecs = venueSpecs.filter((v) => isValidDistrictForCity(v.city.trim(), v.district));
+  const insertableSpecs = venueSpecs.filter((v) =>
+    isValidDistrictForCity(v.city.trim(), v.district),
+  );
   console.log(
     `Tạo ${insertableSpecs.length} cụm sân thể thao từ AloBo (chỉ Hà Nội & TP.HCM, đã loại ${excludedCount} venue ngoài phạm vi)...`,
   );
@@ -1029,20 +1033,14 @@ async function main() {
     `Ngày mưa N2: ${rainyBookings.length + 1} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
   );
   console.log('Ví F6: customer & customer2 mỗi ví 500.000đ');
-  console.log(
-    'F1 Teams: FC SanGo (captain customer) + Pickleball Saigon Club (captain customer2)',
-  );
+  console.log('F1 Teams: FC SanGo (captain customer) + Pickleball Saigon Club (captain customer2)');
   console.log('F7 Tournaments: SanGo Open 2026 — bracket 8 đội, round 1 sẵn sàng nhập điểm');
-  console.log(
-    'F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard',
-  );
+  console.log('F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard');
   console.log('Captain thêm S3: captain3..captain8@sango.vn (cùng mật khẩu demo)');
   console.log(
     `ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC SanGo`,
   );
-  console.log(
-    `F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`,
-  );
+  console.log(`F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`);
   console.log('------------------------------------------------------------');
   const hnCount = venueSpecs.filter((v) => v.city.trim() === 'Hà Nội').length;
   console.log(

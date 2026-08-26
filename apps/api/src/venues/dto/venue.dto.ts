@@ -22,8 +22,7 @@ function addLocationChecks<T extends z.ZodTypeAny>(
       });
     }
     if (v.district === undefined) return;
-    const effectiveCity = opts.resolveDefaultCity && v.city === undefined ? 
-      'Hà Nội' : v.city;
+    const effectiveCity = opts.resolveDefaultCity && v.city === undefined ? 'Hà Nội' : v.city;
     if (!effectiveCity || !isSupportedCity(effectiveCity)) return;
     if (!isValidDistrictForCity(effectiveCity, v.district)) {
       ctx.addIssue({

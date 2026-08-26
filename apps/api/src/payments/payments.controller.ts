@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Redirect,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/guards/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -43,20 +51,39 @@ export class PaymentsController {
     return this.paymentsService.createCheckout(user, dto);
   }
 
+  // Browser đi qua đây trực tiếp (returnUrl của VNPay) -> phải là HTTP 302 về FE
+  // /thanh-toan/ket-qua chứ không trả JSON; handler vẫn throw HttpException bình thường.
+  @Redirect('/thanh-toan/ket-qua', 302)
   @Get('vnpay/callback')
   @ApiOperation({
     summary: '[Cổng VNPay gọi] Verify HMAC-SHA512 + amount + idempotency rồi confirm đơn',
   })
-  vnpayCallback(@Query() query: Record<string, string>) {
-    return this.paymentsService.handleVnpayCallback(query);
+  async vnpayCallback(@Query() query: Record<string, string>) {
+    const res = await this.paymentsService.handleVnpayCallback(query);
+    return { url: 'redirectUrl' in res ? res.redirectUrl : '/thanh-toan/ket-qua' };
   }
 
+  @Redirect('/thanh-toan/ket-qua', 302)
   @Get('mock/callback')
   @ApiOperation({
     summary:
-      '[PAYMENT_MODE=mock] Callback giả lập — tắt hẳn (403) khi PAYMENT_MODE≠mock, luôn bắt buộc khớp amount',
+      '[PAYMENT_MODE=mock] Callback giả lập (Browser Redirect) — tắt hẳn (403) khi PAYMENT_MODE≠mock, luôn bắt buộc khớp amount',
   })
-  mockCallback(@Query() query: { txnRef?: string; amount?: string }) {
-    return this.paymentsService.handleMockCallback(query);
+  async mockCallback(@Query() query: { txnRef?: string; amount?: string }) {
+    const res = await this.paymentsService.handleMockCallback(query);
+    return { url: 'redirectUrl' in res ? res.redirectUrl : '/thanh-toan/ket-qua' };
+  }
+
+  @Post('mock/confirm')
+  @ApiOperation({
+    summary:
+      '[PAYMENT_MODE=mock] Xác nhận thanh toán mock đồng bộ (trả JSON) cho Frontend nút Xác nhận',
+  })
+  async mockConfirm(@Body() body: { txnRef: string; amount?: number }) {
+    const res = await this.paymentsService.processMockCallback({
+      txnRef: body.txnRef,
+      amount: body.amount !== undefined ? String(body.amount) : undefined,
+    });
+    return res;
   }
 }

@@ -58,11 +58,7 @@ async function login(email) {
   const tokens = {};
   for (const e of capEmails)
     tokens[e] =
-      e === 'customer@sango.vn'
-        ? custTk
-        : e === 'customer2@courthub.vn'
-          ? cust2Tk
-          : await login(e);
+      e === 'customer@sango.vn' ? custTk : e === 'customer2@courthub.vn' ? cust2Tk : await login(e);
 
   // ===== V1: bye guard NOT_ENOUGH_TEAMS =====
   const mkT = await api('POST', '/tournaments', ownerTk, {

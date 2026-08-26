@@ -8,7 +8,10 @@ import { NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import type { PrismaService } from '../../src/prisma/prisma.service';
-import { NOTIFICATIONS_PAGE_SIZE, NotificationsService } from '../../src/notifications/notifications.service';
+import {
+  NOTIFICATIONS_PAGE_SIZE,
+  NotificationsService,
+} from '../../src/notifications/notifications.service';
 
 const SUFFIX = Date.now().toString(36);
 

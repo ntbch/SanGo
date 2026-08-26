@@ -7,6 +7,9 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
   CreateExpenseShareSchema,
+  CreateFundDriveSchema,
+  ContributeFundSchema,
+  CreateTeamExpenseSchema,
   CreateTeamSchema,
   InviteMemberSchema,
   RespondInviteSchema,
@@ -14,6 +17,9 @@ import {
   UpdateExpenseShareStatusSchema,
   UpdateTeamSchema,
   type CreateExpenseShareDto,
+  type CreateFundDriveDto,
+  type ContributeFundDto,
+  type CreateTeamExpenseDto,
   type CreateTeamDto,
   type InviteMemberDto,
   type RespondInviteDto,
@@ -133,5 +139,78 @@ export class TeamsController {
     @Body(new ZodValidationPipe(UpdateExpenseShareStatusSchema)) dto: UpdateExpenseShareStatusDto,
   ) {
     return this.teamsService.updateExpenseShareStatus(id, shareId, user, dto);
+  }
+
+  // ================================================================
+  // P5: TEAM TREASURY
+  // ================================================================
+
+  @Get(':id/treasury')
+  @ApiOperation({ summary: 'Tổng quan quỹ đội: số dư, thu/chi tháng này, các đợt thu đang mở' })
+  getTreasuryOverview(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+  ) {
+    return this.teamsService.getTreasuryOverview(teamId, user);
+  }
+
+  @Post(':id/treasury/contribute')
+  @ApiOperation({ summary: '[Frontend P5] Thành viên đóng quỹ đội bằng Ví cá nhân' })
+  contributeDirect(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+    @Body(new ZodValidationPipe(ContributeFundSchema)) dto: ContributeFundDto,
+  ) {
+    return this.teamsService.contributeDirect(teamId, user, dto);
+  }
+
+  @Post(':id/treasury/expense')
+  @ApiOperation({ summary: '[Frontend P5] Đội trưởng ghi khoản chi quỹ kèm ảnh hóa đơn' })
+  createTreasuryExpense(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+    @Body(new ZodValidationPipe(CreateTeamExpenseSchema)) dto: CreateTeamExpenseDto,
+  ) {
+    return this.teamsService.createTeamExpense(teamId, user, dto);
+  }
+
+  @Post(':id/fund-drives')
+  @ApiOperation({ summary: 'Tạo đợt thu quỹ mới (theo tháng hoặc theo trận) — chỉ Đội trưởng' })
+  createFundDrive(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+    @Body(new ZodValidationPipe(CreateFundDriveSchema)) dto: CreateFundDriveDto,
+  ) {
+    return this.teamsService.createFundDrive(teamId, user, dto);
+  }
+
+  @Post(':id/fund-drives/:driveId/contribute')
+  @ApiOperation({ summary: 'Thành viên đóng quỹ — trừ tiền trực tiếp từ ví cá nhân' })
+  contributeFund(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+    @Param('driveId') driveId: string,
+    @Body(new ZodValidationPipe(ContributeFundSchema)) dto: ContributeFundDto,
+  ) {
+    return this.teamsService.contributeFund(teamId, driveId, user, dto);
+  }
+
+  @Get(':id/fund-expenses')
+  @ApiOperation({ summary: 'Xem danh sách nhật ký thu - chi quỹ kèm ảnh hóa đơn' })
+  listTeamExpenses(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+  ) {
+    return this.teamsService.listTeamExpenses(teamId, user);
+  }
+
+  @Post(':id/fund-expenses')
+  @ApiOperation({ summary: 'Thêm dòng thu - chi quỹ đội kèm ảnh hóa đơn' })
+  createTeamExpense(
+    @CurrentUser() user: AuthUser,
+    @Param('id') teamId: string,
+    @Body(new ZodValidationPipe(CreateTeamExpenseSchema)) dto: CreateTeamExpenseDto,
+  ) {
+    return this.teamsService.createTeamExpense(teamId, user, dto);
   }
 }

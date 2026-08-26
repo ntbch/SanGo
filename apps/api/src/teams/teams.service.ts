@@ -5,10 +5,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, FundDriveScope, FundDriveStatus, TeamFundEntryType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { WalletsService } from '../wallets/wallets.service';
 import type {
   CreateExpenseShareDto,
+  CreateFundDriveDto,
+  ContributeFundDto,
+  CreateTeamExpenseDto,
   CreateTeamDto,
   InviteMemberDto,
   SplitBookingExpenseDto,
@@ -18,7 +22,10 @@ import type {
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly wallets: WalletsService,
+  ) {}
 
   /** Tạo đội thể thao mới: người tạo tự động là CAPTAIN và thành viên ACTIVE đầu tiên. */
   async createTeam(user: { id: string }, dto: CreateTeamDto) {
@@ -422,11 +429,68 @@ export class TeamsService {
       .filter((s) => s.payerId === user.id && s.status === 'UNPAID')
       .reduce((sum, s) => sum + s.amount, 0);
 
+    // Tính treasury metrics & fundLogs cho FE tab Quỹ đội
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [totalContributions, monthContributions, expenses] = await Promise.all([
+      this.prisma.fundContribution.aggregate({
+        where: { fundDrive: { teamId } },
+        _sum: { amount: true },
+      }),
+      this.prisma.fundContribution.aggregate({
+        where: { fundDrive: { teamId }, paidAt: { gte: startOfMonth } },
+        _sum: { amount: true },
+      }),
+      this.prisma.teamExpense.findMany({
+        where: { teamId },
+        include: { recorder: { select: { fullName: true } } },
+        orderBy: { occurredAt: 'desc' },
+      }),
+    ]);
+
+    let totalExpenseLogged = 0;
+    let totalOtherIncome = 0;
+    let monthlyExpense = 0;
+    let monthlyIncome = monthContributions._sum.amount ?? 0;
+
+    for (const exp of expenses) {
+      if (exp.type === TeamFundEntryType.EXPENSE) {
+        totalExpenseLogged += exp.amount;
+        if (exp.occurredAt >= startOfMonth) {
+          monthlyExpense += exp.amount;
+        }
+      } else {
+        totalOtherIncome += exp.amount;
+        if (exp.occurredAt >= startOfMonth) {
+          monthlyIncome += exp.amount;
+        }
+      }
+    }
+
+    const totalIncome = (totalContributions._sum.amount ?? 0) + totalOtherIncome;
+    const treasuryBalance = totalIncome - totalExpenseLogged;
+
+    const fundLogs = expenses.map((e) => ({
+      id: e.id,
+      teamId: e.teamId,
+      type: e.type,
+      title: e.reason,
+      amount: e.amount,
+      creatorName: e.recorder.fullName,
+      billImageUrl: e.receiptUrl,
+      createdAt: e.occurredAt.toISOString(),
+    }));
+
     return {
+      treasuryBalance,
+      monthlyIncome,
+      monthlyExpense,
       totalUnpaid,
       myOwed,
       myReceivable,
       shares,
+      fundLogs,
     };
   }
 
@@ -462,5 +526,311 @@ export class TeamsService {
       where: { id: shareId },
       data: { status: dto.status },
     });
+  }
+
+  // ================================================================
+  // P5: TEAM TREASURY
+  // ================================================================
+
+  /** Tổng quan quỹ đội: số dư, thu/chi tháng này, danh sách đợt thu đang mở */
+  async getTreasuryOverview(teamId: string, user: { id: string }) {
+    const isMember = await this.prisma.teamMember.findFirst({
+      where: { teamId, userId: user.id, status: 'ACTIVE' },
+    });
+    if (!isMember) {
+      throw new ForbiddenException({
+        message: 'Chỉ thành viên chính thức mới có thể xem quỹ đội',
+        code: 'TEAM_FORBIDDEN',
+      });
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Tính tổng thu từ đóng quỹ (FundContribution)
+    const totalContributions = await this.prisma.fundContribution.aggregate({
+      where: { fundDrive: { teamId } },
+      _sum: { amount: true },
+    });
+
+    // Tính tổng thu / chi từ nhật ký TeamExpense
+    const expenses = await this.prisma.teamExpense.findMany({
+      where: { teamId },
+      select: { type: true, amount: true, occurredAt: true },
+    });
+
+    let totalExpenseLogged = 0;
+    let totalOtherIncome = 0;
+    let monthExpense = 0;
+    let monthIncome = 0;
+
+    for (const exp of expenses) {
+      if (exp.type === TeamFundEntryType.EXPENSE) {
+        totalExpenseLogged += exp.amount;
+        if (exp.occurredAt >= startOfMonth) {
+          monthExpense += exp.amount;
+        }
+      } else {
+        totalOtherIncome += exp.amount;
+        if (exp.occurredAt >= startOfMonth) {
+          monthIncome += exp.amount;
+        }
+      }
+    }
+
+    // Tính thêm thu tháng này từ FundContribution
+    const monthContributions = await this.prisma.fundContribution.aggregate({
+      where: {
+        fundDrive: { teamId },
+        paidAt: { gte: startOfMonth },
+      },
+      _sum: { amount: true },
+    });
+    monthIncome += (monthContributions._sum.amount ?? 0);
+
+    const totalIncome = (totalContributions._sum.amount ?? 0) + totalOtherIncome;
+    const balance = totalIncome - totalExpenseLogged;
+
+    // Đợt thu đang mở
+    const activeDrives = await this.prisma.fundDrive.findMany({
+      where: { teamId, status: FundDriveStatus.ACTIVE },
+      include: {
+        _count: { select: { contributions: true } },
+        contributions: {
+          where: { userId: user.id },
+          select: { id: true, amount: true, paidAt: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      balance,
+      monthIncome,
+      monthExpense,
+      totalIncome,
+      totalExpense: totalExpenseLogged,
+      activeDrives: activeDrives.map((d) => ({
+        id: d.id,
+        title: d.title,
+        description: d.description,
+        scope: d.scope,
+        targetAmount: d.targetAmount,
+        amountPerMember: d.amountPerMember,
+        status: d.status,
+        deadline: d.deadline,
+        contributionsCount: d._count.contributions,
+        myContribution: d.contributions[0] ?? null,
+      })),
+    };
+  }
+
+  /** Tạo đợt thu quỹ (chỉ Captain) */
+  async createFundDrive(teamId: string, user: { id: string }, dto: CreateFundDriveDto) {
+    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+    if (!team) {
+      throw new NotFoundException({ message: 'Không tìm thấy đội', code: 'TEAM_NOT_FOUND' });
+    }
+    if (team.captainId !== user.id) {
+      throw new ForbiddenException({
+        message: 'Chỉ đội trưởng mới có quyền tạo đợt thu quỹ',
+        code: 'CAPTAIN_ONLY',
+      });
+    }
+
+    return this.prisma.fundDrive.create({
+      data: {
+        teamId,
+        title: dto.title,
+        description: dto.description ?? null,
+        scope: dto.scope as FundDriveScope,
+        targetAmount: dto.targetAmount,
+        amountPerMember: dto.amountPerMember,
+        bookingId: dto.bookingId ?? null,
+        deadline: dto.deadline ? new Date(dto.deadline) : null,
+        status: FundDriveStatus.ACTIVE,
+      },
+    });
+  }
+
+  /** Thành viên đóng quỹ — TRỪ VÍ CÁ NHÂN (transactional qua wallets.debit) */
+  async contributeFund(teamId: string, driveId: string, user: { id: string }, dto: ContributeFundDto) {
+    const drive = await this.prisma.fundDrive.findUnique({
+      where: { id: driveId },
+      include: { team: true },
+    });
+    if (!drive || drive.teamId !== teamId) {
+      throw new NotFoundException({
+        message: 'Không tìm thấy đợt thu quỹ',
+        code: 'FUND_DRIVE_NOT_FOUND',
+      });
+    }
+    if (drive.status !== FundDriveStatus.ACTIVE) {
+      throw new ConflictException({
+        message: 'Đợt thu quỹ này đã đóng',
+        code: 'FUND_DRIVE_CLOSED',
+      });
+    }
+
+    const isMember = await this.prisma.teamMember.findFirst({
+      where: { teamId, userId: user.id, status: 'ACTIVE' },
+    });
+    if (!isMember) {
+      throw new ForbiddenException({
+        message: 'Chỉ thành viên đội mới có thể đóng quỹ',
+        code: 'TEAM_FORBIDDEN',
+      });
+    }
+
+    // 1. Tạo bản ghi đóng quỹ
+    const contribution = await this.prisma.fundContribution.create({
+      data: {
+        fundDriveId: driveId,
+        userId: user.id,
+        amount: dto.amount,
+        note: dto.note ?? null,
+      },
+    });
+
+    // 2. Trừ tiền ví cá nhân qua WalletsService
+    try {
+      await this.wallets.debit({
+        userId: user.id,
+        amount: dto.amount,
+        type: 'PAYMENT',
+        refType: 'FUND_CONTRIBUTION',
+        refId: contribution.id,
+      });
+    } catch (err) {
+      // Rollback bản ghi đóng quỹ nếu trừ ví thất bại
+      await this.prisma.fundContribution.delete({ where: { id: contribution.id } });
+      throw err;
+    }
+
+    return contribution;
+  }
+
+  /** Thành viên đóng quỹ trực tiếp vào quỹ đội (P5 — Frontend alias) */
+  async contributeDirect(teamId: string, user: { id: string }, dto: ContributeFundDto) {
+    const isMember = await this.prisma.teamMember.findFirst({
+      where: { teamId, userId: user.id, status: 'ACTIVE' },
+    });
+    if (!isMember) {
+      throw new ForbiddenException({
+        message: 'Chỉ thành viên đội mới có thể đóng quỹ',
+        code: 'TEAM_FORBIDDEN',
+      });
+    }
+
+    // Ghi nhận như một khoản INCOME vào TeamExpense
+    const created = await this.prisma.teamExpense.create({
+      data: {
+        teamId,
+        type: TeamFundEntryType.INCOME,
+        amount: dto.amount,
+        reason: dto.note ? `Đóng quỹ: ${dto.note}` : 'Đóng quỹ đội',
+        recordedBy: user.id,
+        occurredAt: new Date(),
+      },
+      include: { recorder: { select: { fullName: true } } },
+    });
+
+    // Trừ ví cá nhân
+    try {
+      await this.wallets.debit({
+        userId: user.id,
+        amount: dto.amount,
+        type: 'PAYMENT',
+        refType: 'TEAM_EXPENSE_INCOME',
+        refId: created.id,
+      });
+
+      // Lấy số dư mới của quỹ đội
+      const overview = await this.getTreasuryOverview(teamId, user);
+      return {
+        success: true,
+        newBalance: overview.balance,
+        log: {
+          id: created.id,
+          teamId: created.teamId,
+          type: created.type,
+          title: created.reason,
+          amount: created.amount,
+          creatorName: created.recorder.fullName,
+          billImageUrl: null,
+          createdAt: created.occurredAt.toISOString(),
+        },
+      };
+    } catch (err) {
+      await this.prisma.teamExpense.delete({ where: { id: created.id } });
+      throw err;
+    }
+  }
+
+  /** Danh sách nhật ký thu–chi quỹ đội */
+  async listTeamExpenses(teamId: string, user: { id: string }) {
+    const isMember = await this.prisma.teamMember.findFirst({
+      where: { teamId, userId: user.id, status: 'ACTIVE' },
+    });
+    if (!isMember) {
+      throw new ForbiddenException({
+        message: 'Chỉ thành viên chính thức mới có thể xem thu chi',
+        code: 'TEAM_FORBIDDEN',
+      });
+    }
+
+    return this.prisma.teamExpense.findMany({
+      where: { teamId },
+      include: {
+        recorder: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+      orderBy: { occurredAt: 'desc' },
+    });
+  }
+
+  /** Thêm nhật ký thu–chi quỹ (Captain hoặc thành viên được ủy quyền) */
+  async createTeamExpense(teamId: string, user: { id: string }, dto: CreateTeamExpenseDto) {
+    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+    if (!team) {
+      throw new NotFoundException({ message: 'Không tìm thấy đội', code: 'TEAM_NOT_FOUND' });
+    }
+    const isMember = await this.prisma.teamMember.findFirst({
+      where: { teamId, userId: user.id, status: 'ACTIVE' },
+    });
+    if (!isMember) {
+      throw new ForbiddenException({
+        message: 'Chỉ thành viên đội mới có thể ghi nhật ký',
+        code: 'TEAM_FORBIDDEN',
+      });
+    }
+
+    const expenseReason = dto.title || dto.reason || 'Khoản chi quỹ đội';
+    const expenseReceipt = dto.billImageUrl || dto.receiptUrl || null;
+
+    const created = await this.prisma.teamExpense.create({
+      data: {
+        teamId,
+        type: (dto.type ?? 'EXPENSE') as TeamFundEntryType,
+        amount: dto.amount,
+        reason: expenseReason,
+        receiptUrl: expenseReceipt,
+        recordedBy: user.id,
+        occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : new Date(),
+      },
+      include: {
+        recorder: { select: { fullName: true } },
+      },
+    });
+
+    return {
+      id: created.id,
+      teamId: created.teamId,
+      type: created.type,
+      title: created.reason,
+      amount: created.amount,
+      creatorName: created.recorder.fullName,
+      billImageUrl: created.receiptUrl,
+      createdAt: created.occurredAt.toISOString(),
+    };
   }
 }

@@ -6,7 +6,11 @@
  */
 import { ForbiddenException } from '@nestjs/common';
 import { vnToday } from '@sango/shared';
-import { AnalyticsService, buildAnalyticsRange, computeCancelRate } from '../../src/analytics/analytics.service';
+import {
+  AnalyticsService,
+  buildAnalyticsRange,
+  computeCancelRate,
+} from '../../src/analytics/analytics.service';
 import type { PrismaService } from '../../src/prisma/prisma.service';
 import type { VenuesService } from '../../src/venues/venues.service';
 

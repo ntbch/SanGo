@@ -34,6 +34,8 @@ export enum VenueStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  /** Treo bởi ADMIN: ẩn khỏi tìm kiếm public, không đặt được (chỉ chuyển APPROVED <-> SUSPENDED). */
+  SUSPENDED = 'SUSPENDED',
 }
 
 export enum SportType {
@@ -74,6 +76,91 @@ export enum PaymentType {
   REFUND = 'REFUND',
   /** F4 dịch vụ đi kèm — trùng khớp enum PaymentType trong Prisma. */
   ADD_ON = 'ADD_ON',
+}
+
+/** Trạng thái kèo ghép trận (P6) — PHÂN SUẤT RUNTIME, không lưu DB: OPEN/FULL suy từ Booking.isPublicMatch+matchFull, COMPLETED khi đơn COMPLETED. */
+export enum MatchStatus {
+  OPEN = 'OPEN',
+  FULL = 'FULL',
+  COMPLETED = 'COMPLETED',
+}
+
+/** Cấp độ kèo / tự đánh giá bản thân (P6, P7) — trùng khớp enum MatchLevel trong Prisma. */
+export enum MatchLevel {
+  FRIENDLY = 'FRIENDLY', // Giao lưu
+  CASUAL = 'CASUAL', // Vui vẻ
+  SCRIM = 'SCRIM', // Cọ xát
+  SEMI_PRO = 'SEMI_PRO', // Bán chuyên
+}
+
+export const MATCH_LEVEL_LABELS: Record<MatchLevel, string> = {
+  [MatchLevel.FRIENDLY]: 'Giao lưu',
+  [MatchLevel.CASUAL]: 'Vui vẻ',
+  [MatchLevel.SCRIM]: 'Cọ xát',
+  [MatchLevel.SEMI_PRO]: 'Bán chuyên',
+};
+
+/** Chân thuận (P7) — trùng khớp enum PreferredFoot trong Prisma. */
+export enum PreferredFoot {
+  LEFT = 'LEFT',
+  RIGHT = 'RIGHT',
+  BOTH = 'BOTH',
+}
+
+export const PREFERRED_FOOT_LABELS: Record<PreferredFoot, string> = {
+  [PreferredFoot.LEFT]: 'Chân trái',
+  [PreferredFoot.RIGHT]: 'Chân phải',
+  [PreferredFoot.BOTH]: 'Hai chân',
+};
+
+/** Nhóm môn hiển thị trên filter (P2/P6): "Bóng đá" gộp FOOTBALL5 + FOOTBALL7. */
+export type SportTypeGroup = 'FOOTBALL' | 'PICKLEBALL' | 'BADMINTON' | 'TENNIS';
+
+export const SPORT_TYPE_GROUPS: Record<SportTypeGroup, SportType[]> = {
+  FOOTBALL: [SportType.FOOTBALL5, SportType.FOOTBALL7],
+  PICKLEBALL: [SportType.PICKLEBALL],
+  BADMINTON: [SportType.BADMINTON],
+  TENNIS: [SportType.TENNIS],
+};
+
+export const SPORT_GROUP_LABELS: Record<SportTypeGroup, string> = {
+  FOOTBALL: 'Bóng đá',
+  PICKLEBALL: 'Pickleball',
+  BADMINTON: 'Cầu lông',
+  TENNIS: 'Tennis',
+};
+
+/** Gộp nhóm ngược: SportType -> group của nó (mặc định trả chính nó nếu không thuộc nhóm nào). */
+export function sportTypeToGroup(sport: SportType): SportTypeGroup {
+  for (const [group, members] of Object.entries(SPORT_TYPE_GROUPS)) {
+    if ((members as string[]).includes(sport)) return group as SportTypeGroup;
+  }
+  return sport as unknown as SportTypeGroup;
+}
+
+/** Trạng thái yêu cầu tham gia kèo (P6) — trùng khớp enum MatchJoinRequestStatus trong Prisma. */
+export enum MatchJoinRequestStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+/** Phạm vi đợt thu quỹ đội (P5) — trùng khớp enum FundDriveScope trong Prisma. */
+export enum FundDriveScope {
+  MONTHLY = 'MONTHLY', // thu theo tháng
+  MATCH = 'MATCH', // thu theo trận/đơn đặt sân
+}
+
+/** Trạng thái đợt thu quỹ (P5) — trùng khớp enum FundDriveStatus trong Prisma. */
+export enum FundDriveStatus {
+  ACTIVE = 'ACTIVE',
+  CLOSED = 'CLOSED',
+}
+
+/** Loại dòng nhật ký thu–chi quỹ (P5) — trùng khớp enum TeamFundEntryType trong Prisma. */
+export enum TeamFundEntryType {
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
 }
 
 /** Chiều biến động ví (T0) — trùng khớp enum WalletLedgerDirection trong Prisma. */
@@ -151,8 +238,8 @@ export type SlotMinutes = (typeof SLOT_MINUTES)[number];
 
 /** Nhãn hiển thị tiếng Việt của loại sân — dùng cho UI. */
 export const SPORT_TYPE_LABELS: Record<SportType, string> = {
-  [SportType.FOOTBALL5]: 'Bóng đá 5 người',
-  [SportType.FOOTBALL7]: 'Bóng đá 7 người',
+  [SportType.FOOTBALL5]: 'Bóng đá',
+  [SportType.FOOTBALL7]: 'Bóng đá',
   [SportType.PICKLEBALL]: 'Pickleball',
   [SportType.BADMINTON]: 'Cầu lông',
   [SportType.TENNIS]: 'Tennis',
@@ -182,6 +269,8 @@ export enum NotificationType {
   SERVICE = 'SERVICE',
   TEAM = 'TEAM',
   TOURNAMENT = 'TOURNAMENT',
+  MATCH_REQUEST = 'MATCH_REQUEST',
+  FUND_DRIVE = 'FUND_DRIVE',
 }
 
 export * from './schemas';

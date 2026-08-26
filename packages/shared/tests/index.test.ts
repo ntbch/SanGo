@@ -20,9 +20,10 @@ describe('@sango/shared enums (đặc tả §5)', () => {
     ]);
   });
 
-  it('VenueStatus theo vòng đời duyệt sân PENDING → APPROVED | REJECTED', () => {
+  it('VenueStatus theo vòng đời duyệt sân PENDING → APPROVED | REJECTED (+ SUSPENDED treo)', () => {
     expect(VenueStatus.PENDING).toBe('PENDING');
-    expect(Object.values(VenueStatus)).toHaveLength(3);
+    expect(VenueStatus.SUSPENDED).toBe('SUSPENDED');
+    expect(Object.values(VenueStatus)).toHaveLength(4);
   });
 
   it('PaymentStatus đầy đủ', () => {

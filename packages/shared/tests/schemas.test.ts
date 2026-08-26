@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from '../src/schemas';
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from '../src/schemas';
 
 describe('loginSchema (shared)', () => {
   it('mật khẩu rỗng báo theo contract', () => {
@@ -40,15 +45,14 @@ describe('registerSchema (shared)', () => {
 
 describe('resetPasswordSchema (shared)', () => {
   it('token quá ngắn bị từ chối', () => {
-    expect(
-      resetPasswordSchema.safeParse({ token: 'abc', newPassword: 'Sango@2026' }).success,
-    ).toBe(false);
+    expect(resetPasswordSchema.safeParse({ token: 'abc', newPassword: 'Sango@2026' }).success).toBe(
+      false,
+    );
   });
 
   it('hợp lệ với token dài và mật khẩu đạt chuẩn', () => {
     expect(
-      resetPasswordSchema.safeParse({ token: 'x'.repeat(10), newPassword: 'Sango@2026' })
-        .success,
+      resetPasswordSchema.safeParse({ token: 'x'.repeat(10), newPassword: 'Sango@2026' }).success,
     ).toBe(true);
   });
 });

@@ -23,7 +23,7 @@ export const CreateHoldSchema = z
       .max(8, 'Tối đa 8 slot liền kề mỗi lần giữ'),
     /// S2-F1: Đặt sân với tư cách đội thể thao.
     teamId: z.string().uuid('teamId phải là UUID').optional(),
-    /// Ghép trận mở (§3.11): chủ đơn chọn công khai "cần ghép X người".
+    /// Ghép trận mở (§3.11 & P6): chủ đơn chọn công khai "cần ghép X người".
     isPublicMatch: z.boolean().optional(),
     slotsNeeded: z
       .number()
@@ -31,6 +31,9 @@ export const CreateHoldSchema = z
       .min(1, 'Cần tối thiểu 1 người ghép')
       .max(10, 'Tối đa 10 người ghép mỗi đơn')
       .optional(),
+    matchLevel: z.enum(['FRIENDLY', 'CASUAL', 'SCRIM', 'SEMI_PRO']).optional(),
+    targetPositions: z.array(z.string().trim().min(1)).optional(),
+    costPerPerson: z.number().int().min(0).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.isPublicMatch && !v.slotsNeeded) {

@@ -34,7 +34,25 @@ export interface SessionTokens {
 
 export type SafeUser = Pick<
   User,
-  'id' | 'email' | 'fullName' | 'phone' | 'avatarUrl' | 'role' | 'status' | 'createdAt'
+  | 'id'
+  | 'email'
+  | 'fullName'
+  | 'phone'
+  | 'avatarUrl'
+  | 'bannerUrl'
+  | 'bio'
+  | 'favoriteSports'
+  | 'preferredPositions'
+  | 'preferredFoot'
+  | 'selfLevel'
+  | 'bankName'
+  | 'bankAccountNumber'
+  | 'bankAccountName'
+  | 'notifyEmail'
+  | 'notifyInApp'
+  | 'role'
+  | 'status'
+  | 'createdAt'
 >;
 
 /** Reset token chỉ lưu sha256(token) trong DB; token gốc (64 hex) chỉ đi qua email/console dev. */
@@ -313,6 +331,17 @@ export function toSafeUser(user: User): SafeUser {
     fullName: user.fullName,
     phone: user.phone,
     avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    bio: user.bio,
+    favoriteSports: user.favoriteSports,
+    preferredPositions: user.preferredPositions,
+    preferredFoot: user.preferredFoot,
+    selfLevel: user.selfLevel,
+    bankName: user.bankName,
+    bankAccountNumber: user.bankAccountNumber,
+    bankAccountName: user.bankAccountName,
+    notifyEmail: user.notifyEmail,
+    notifyInApp: user.notifyInApp,
     role: user.role,
     status: user.status,
     createdAt: user.createdAt,

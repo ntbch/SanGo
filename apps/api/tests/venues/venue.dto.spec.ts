@@ -1,13 +1,21 @@
-import {
-  CreateVenueWithLocationSchema,
-  UpdateVenueSchema,
-} from '../../src/venues/dto/venue.dto';
+import { CreateVenueWithLocationSchema, UpdateVenueSchema } from '../../src/venues/dto/venue.dto';
 
-const base = { name: 'Sân test', address: '123 Đường ABC', lat: 21.03, lng: 105.85, openMinute: 360, closeMinute: 1320 };
+const base = {
+  name: 'Sân test',
+  address: '123 Đường ABC',
+  lat: 21.03,
+  lng: 105.85,
+  openMinute: 360,
+  closeMinute: 1320,
+};
 
 describe('Cascade TP → Quận ở tầng DTO', () => {
   it('create: district sai thành phố -> DISTRICT_NOT_IN_CITY', () => {
-    const r = CreateVenueWithLocationSchema.safeParse({ ...base, city: 'Hà Nội', district: 'Quận 7' });
+    const r = CreateVenueWithLocationSchema.safeParse({
+      ...base,
+      city: 'Hà Nội',
+      district: 'Quận 7',
+    });
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues[0].message).toContain('DISTRICT_NOT_IN_CITY');
   });
@@ -24,9 +32,14 @@ describe('Cascade TP → Quận ở tầng DTO', () => {
   });
 
   it('create: city không hỗ trợ (Đà Nẵng) -> CITY_NOT_SUPPORTED', () => {
-    const r = CreateVenueWithLocationSchema.safeParse({ ...base, city: 'Đà Nẵng', district: 'Hải Châu' });
+    const r = CreateVenueWithLocationSchema.safeParse({
+      ...base,
+      city: 'Đà Nẵng',
+      district: 'Hải Châu',
+    });
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues.some((i) => i.message.startsWith('CITY_NOT_SUPPORTED'))).toBe(true);
+    if (!r.success)
+      expect(r.error.issues.some((i) => i.message.startsWith('CITY_NOT_SUPPORTED'))).toBe(true);
   });
 
   it('update một phần: chỉ district hợp lệ với city ngầm -> không lỗi ở tầng DTO', () => {

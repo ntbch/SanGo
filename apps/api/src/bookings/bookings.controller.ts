@@ -243,6 +243,18 @@ export class BookingsController {
   ) {
     return this.bookingsService.cancelBooking(id, user, dto.reason);
   }
+
+  @Post(':id/cancel')
+  @ApiOperation({
+    summary: 'Hủy đơn của mình (POST alias theo spec §1.3) — tạo Payment(REFUND) nếu được hoàn',
+  })
+  async cancelBookingPost(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+    @Body(new ZodValidationPipe(CancelBookingSchema)) dto: CancelBookingDto,
+  ) {
+    return this.bookingsService.cancelBooking(id, user, dto.reason);
+  }
 }
 
 @ApiTags('owner')

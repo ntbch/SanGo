@@ -45,12 +45,21 @@ export class BookingsService {
   async createHold(user: { id: string }, dto: CreateHoldDto) {
     const court = await this.prisma.court.findUnique({
       where: { id: dto.courtId },
-      include: { venue: { select: { openMinute: true, closeMinute: true, depositPercent: true } } },
+      include: {
+        venue: { select: { openMinute: true, closeMinute: true, depositPercent: true, status: true } },
+      },
     });
     if (!court)
       throw new NotFoundException({ message: 'Không tìm thấy sân con', code: 'COURT_NOT_FOUND' });
     if (court.status !== 'ACTIVE') {
       throw new ConflictException({ message: 'Sân con đang bảo trì', code: 'COURT_MAINTENANCE' });
+    }
+    // Treo cụm sân (ADMIN): venue phải đang APPROVED mới cho đặt — SUSPENDED/PENDING/REJECTED chặn ngay.
+    if (court.venue.status !== 'APPROVED') {
+      throw new ConflictException({
+        message: 'Sân hiện không khả dụng, vui lòng chọn sân khác',
+        code: 'VENUE_NOT_BOOKABLE',
+      });
     }
 
     // Slot phải LIỀN KỀ nhau đúng bước slotMinutes và nằm trong giờ mở cửa.
@@ -184,7 +193,14 @@ export class BookingsService {
   }
 
   async getHold(holdId: string, user: { id: string; role: string }) {
-    const hold = await this.prisma.bookingHold.findUnique({ where: { id: holdId } });
+    const hold = await this.prisma.bookingHold.findUnique({
+      where: { id: holdId },
+      include: {
+        court: {
+          select: { name: true, slotMinutes: true, venue: { select: { name: true, depositPercent: true } } },
+        },
+      },
+    });
     if (!hold)
       throw new NotFoundException({
         message: 'Không tìm thấy lượt giữ chỗ',
@@ -196,7 +212,21 @@ export class BookingsService {
         code: 'HOLD_FORBIDDEN',
       });
     }
-    return hold;
+    // FE checkout cần tên sân/%cọc và danh sách slot — hold trong DB chỉ lưu
+    // startMinute/endMinute nên tách lại theo bước slotMinutes của sân con.
+    const step = hold.court.slotMinutes;
+    const slots: Array<{ startMinute: number; endMinute: number }> = [];
+    for (let m = hold.startMinute; m < hold.endMinute; m += step) {
+      slots.push({ startMinute: m, endMinute: Math.min(m + step, hold.endMinute) });
+    }
+    const { court, ...holdData } = hold;
+    return {
+      ...holdData,
+      courtName: court.name,
+      venueName: court.venue.name,
+      depositPercent: court.venue.depositPercent,
+      slots,
+    };
   }
 
   /** Hủy sớm lượt giữ để nhả slot ngay (EXPIRED = không còn chiếm chỗ). */
@@ -322,9 +352,16 @@ export class BookingsService {
             status: BookingStatus.CONFIRMED,
             // S2-F1: payments không biết teamId -> lấy từ hold đã giữ lúc createHold.
             teamId: opts.teamId ?? hold.teamId ?? null,
-            // Ghép trận mở (§3.11): đơn mới luôn chưa đủ người.
+            // Ghép trận mở (§3.11 & P6): đơn mới luôn chưa đủ người.
             ...(hold.isPublicMatch
-              ? { isPublicMatch: true, slotsNeeded: hold.slotsNeeded, matchFull: false }
+              ? {
+                  isPublicMatch: true,
+                  slotsNeeded: hold.slotsNeeded,
+                  matchFull: false,
+                  matchLevel: (hold as any).matchLevel ?? 'FRIENDLY',
+                  targetPositions: (hold as any).targetPositions ?? [],
+                  costPerPerson: (hold as any).costPerPerson ?? null,
+                }
               : {}),
           },
           include: { court: true },
