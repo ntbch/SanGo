@@ -1,5 +1,5 @@
 /**
- * Schema form xác thực của web — NỀN là schema dùng chung từ @courthub/shared
+ * Schema form xác thực của web — NỀN là schema dùng chung từ @sango/shared
  * (nguồn chính tắc: apps/api/src/auth/dto/auth.dto.ts). Phần UI-only
  * (confirmPassword + refine khớp mật khẩu, tiền xử lý phone rỗng → undefined)
  * được GIỮ lại ở web theo quyết định của captain.
@@ -14,7 +14,7 @@ import {
   type ForgotPasswordDto,
   type LoginDto,
   type RegisterDto,
-} from '@courthub/shared';
+} from '@sango/shared';
 
 // Dùng lại nguyên xi từ shared:
 export { forgotPasswordSchema, loginSchema };

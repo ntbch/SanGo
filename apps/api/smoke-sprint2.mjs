@@ -41,13 +41,13 @@ async function waitApi() {
 
   // ---- S0 login ----
   async function login(email) {
-    const r = await api('POST', '/auth/login', null, { email, password: 'Courthub@2026' });
+    const r = await api('POST', '/auth/login', null, { email, password: 'Sango@2026' });
     const j = r.json || {};
     let rr = r,
       jj = j;
     for (let a = 0; a < 4 && rr.status === 429; a++) {
       await new Promise((res) => setTimeout(res, 20000));
-      rr = await api('POST', '/auth/login', null, { email, password: 'Courthub@2026' });
+      rr = await api('POST', '/auth/login', null, { email, password: 'Sango@2026' });
       jj = rr.json || {};
     }
     if (rr.status >= 300)
@@ -60,8 +60,8 @@ async function waitApi() {
       raw: jj,
     };
   }
-  const owner = await login('owner@courthub.vn');
-  const cust = await login('customer@courthub.vn');
+  const owner = await login('owner@sango.vn');
+  const cust = await login('customer@sango.vn');
   const cust2 = await login('customer2@courthub.vn');
   rec(
     'S0',
@@ -72,11 +72,11 @@ async function waitApi() {
 
   // ids từ DB (đọc-only)
   const users = await prisma.user.findMany({
-    where: { email: { in: ['customer@courthub.vn', 'customer2@courthub.vn'] } },
+    where: { email: { in: ['customer@sango.vn', 'customer2@courthub.vn'] } },
   });
   const uMap = Object.fromEntries(users.map((u) => [u.email, u.id]));
   const vOwner = await prisma.venue.findFirst({
-    where: { owner: { email: 'owner@courthub.vn' } },
+    where: { owner: { email: 'owner@sango.vn' } },
     include: { courts: { take: 3 } },
   });
   // Chọn ngày+slot còn trống cho court (tránh dữ liệu smoke các lần chạy trước)
@@ -112,7 +112,7 @@ async function waitApi() {
 
   // Dọn hold còn hiệu lực để chạy lại sạch (luồng DELETE chính thức)
   for (const u of [
-    [cust, 'customer@courthub.vn'],
+    [cust, 'customer@sango.vn'],
     [cust2, 'customer2@courthub.vn'],
   ]) {
     const olds = await prisma.bookingHold
@@ -244,7 +244,7 @@ async function waitApi() {
   }
   const sp = await api('POST', '/teams/' + team.id + '/expenses/split-booking', cust.token, {
     bookingId: bkTeam.id,
-    memberIds: [uMap['customer@courthub.vn'], uMap['customer2@courthub.vn']],
+    memberIds: [uMap['customer@sango.vn'], uMap['customer2@courthub.vn']],
     note: 'Smoke S2 quỹ đội',
   });
   const shares = Array.isArray(sp.json) ? sp.json : sp.json?.items || sp.json?.shares || [];

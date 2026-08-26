@@ -1,5 +1,5 @@
 {
-  "name": "@courthub/shared",
+  "name": "@sango/shared",
   "version": "0.1.0",
   "private": true,
   "description": "Kiểu dữ liệu + enum trạng thái dùng chung giữa apps/api và apps/web (đặc tả §5)",

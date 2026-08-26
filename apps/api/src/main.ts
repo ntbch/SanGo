@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
 
   // Swagger là nguồn sự thật của contract API — đặc tả §4 (/api/docs)
   const config = new DocumentBuilder()
-    .setTitle('CourtHub API')
+    .setTitle('SanGo API')
     .setDescription('Hệ thống đặt và quản lý sân thể thao trực tuyến — REST /api/v1')
     .setVersion('0.1')
     .addBearerAuth()
@@ -33,7 +33,7 @@ async function bootstrap(): Promise<void> {
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port, '0.0.0.0');
-  Logger.log(`CourtHub API đang chạy tại http://localhost:${port}/api/v1`, 'Bootstrap');
+  Logger.log(`SanGo API đang chạy tại http://localhost:${port}/api/v1`, 'Bootstrap');
 }
 
 void bootstrap();

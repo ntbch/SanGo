@@ -1,4 +1,4 @@
-# CourtHub — QA Checklist Sprint 2 (Map bbox · Team/quỹ đội · Add-on · Fix MAJOR-1)
+# SanGo — QA Checklist Sprint 2 (Map bbox · Team/quỹ đội · Add-on · Fix MAJOR-1)
 
 > Owner: qa · Trạng thái: CHUẨN BỊ — kích hoạt khi các task BE/FE Sprint 2 xong (QA Regression là mục 6 kế hoạch sprint).
 > Căn cứ: roadmap-master (đợt 2), mô tả t13–t18 trong team state, code hiện hữu (schema đã có PaymentType.ADD_ON :74, Booking.teamId? :303).

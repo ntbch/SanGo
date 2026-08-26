@@ -23,7 +23,7 @@ async function api(method, path, token, body) {
 }
 async function login(email) {
   for (let a = 0; a < 5; a++) {
-    const r = await api('POST', '/auth/login', null, { email, password: 'Courthub@2026' });
+    const r = await api('POST', '/auth/login', null, { email, password: 'Sango@2026' });
     if (r.json?.accessToken) return r.json.accessToken;
     await new Promise((res) => setTimeout(res, 15000));
   }
@@ -38,16 +38,16 @@ async function login(email) {
     await new Promise((r) => setTimeout(r, 2000));
   }
 
-  const custTk = await login('customer@courthub.vn');
+  const custTk = await login('customer@sango.vn');
   const cust2Tk = await login('customer2@courthub.vn');
-  const ownerTk = await login('owner@courthub.vn');
+  const ownerTk = await login('owner@sango.vn');
 
   const users = await prisma.user.findMany({
-    where: { email: { in: ['customer@courthub.vn', 'customer2@courthub.vn'] } },
+    where: { email: { in: ['customer@sango.vn', 'customer2@courthub.vn'] } },
   });
   const uid = Object.fromEntries(users.map((u) => [u.email, u.id]));
   const venue = await prisma.venue.findFirst({
-    where: { owner: { email: 'owner@courthub.vn' } },
+    where: { owner: { email: 'owner@sango.vn' } },
     include: { courts: { take: 1 } },
   });
   const court = venue.courts[0];
@@ -74,7 +74,7 @@ async function login(email) {
     }
     throw new Error('het slot');
   }
-  for (const email of ['customer@courthub.vn', 'customer2@courthub.vn']) {
+  for (const email of ['customer@sango.vn', 'customer2@courthub.vn']) {
     const olds = await prisma.bookingHold.findMany({
       where: { userId: uid[email], status: 'ACTIVE' },
     });
@@ -82,7 +82,7 @@ async function login(email) {
       await api(
         'DELETE',
         '/bookings/holds/' + oh.id,
-        email === 'customer@courthub.vn' ? custTk : cust2Tk,
+        email === 'customer@sango.vn' ? custTk : cust2Tk,
       );
   }
 
@@ -106,8 +106,8 @@ async function login(email) {
     'st=' + badHold.status + ' ' + JSON.stringify(badHold.json || {}).slice(0, 120),
   );
 
-  // ===== Setup: booking CH moi cua cust tren FC CourtHub (ca 2 la ACTIVE member) =====
-  const fcTeam = await prisma.team.findFirst({ where: { name: 'FC CourtHub' } });
+  // ===== Setup: booking CH moi cua cust tren FC SanGo (ca 2 la ACTIVE member) =====
+  const fcTeam = await prisma.team.findFirst({ where: { name: 'FC SanGo' } });
   const p2 = await pickSlot();
   const h = await api('POST', '/bookings/holds', custTk, {
     courtId: court.id,
@@ -128,7 +128,7 @@ async function login(email) {
     : { status: 0 };
   const bkDb = await prisma.booking.findFirst({
     where: {
-      customerId: uid['customer@courthub.vn'],
+      customerId: uid['customer@sango.vn'],
       courtId: court.id,
       date: new Date(p2.date + 'T00:00:00Z'),
       startMinute: p2.minute,
@@ -143,7 +143,7 @@ async function login(email) {
   );
 
   // ===== MAJOR-A(2): split lan 1 OK -> lan 2 BI CHAN, khong nhan doi =====
-  const mIds = [uid['customer@courthub.vn'], uid['customer2@courthub.vn']];
+  const mIds = [uid['customer@sango.vn'], uid['customer2@courthub.vn']];
   const sp1 = await api('POST', '/teams/' + fcTeam.id + '/expenses/split-booking', custTk, {
     bookingId: bkDb.id,
     memberIds: mIds,

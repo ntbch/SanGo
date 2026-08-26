@@ -10,3 +10,8 @@ coverage/
 .tmp-screens/
 .codegraph/
 .agent-teams/
+
+# Cache công cụ cục bộ
+.npm-cache/
+.tooling-cache/
+.tmp-screens/

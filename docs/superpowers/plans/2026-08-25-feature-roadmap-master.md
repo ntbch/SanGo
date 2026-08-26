@@ -1,4 +1,4 @@
-# CourtHub — Master Roadmap triển khai tính năng v5 (chốt CÓ ví nội bộ)
+# SanGo — Master Roadmap triển khai tính năng v5 (chốt CÓ ví nội bộ)
 
 > For agentic workers: Đây là bản roadmap tổng. Khi triển khai từng feature, sinh kế hoạch chi tiết theo skill writing-plans (mỗi feature một file docs/superpowers/plans/YYYY-MM-DD-<feature>.md) rồi thực thi bằng subagent-driven-development.
 

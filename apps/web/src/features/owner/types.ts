@@ -15,6 +15,8 @@ export interface OwnerVenue {
   name: string;
   slug: string;
   address: string;
+  city?: string;
+  district?: string;
   lat: number;
   lng: number;
   images: string[];

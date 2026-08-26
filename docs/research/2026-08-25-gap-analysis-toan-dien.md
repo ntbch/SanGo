@@ -16,7 +16,7 @@
 
 ## 1. 👤 CUSTOMER — 8 GIAI ĐOẠN HÀNH TRÌNH
 
-| # | Giai đoạn | Chuẩn ngành (Playo/CourtReserve/OpenSports/Playtomic) | CourtHub hiện tại | Gap | Ưu tiên |
+| # | Giai đoạn | Chuẩn ngành (Playo/CourtReserve/OpenSports/Playtomic) | SanGo hiện tại | Gap | Ưu tiên |
 |---|---|---|---|---|---|
 | 1 | Lần đầu mở app | OTP/Social login (Zalo!), onboarding chọn môn+trình độ; duyệt KHÔNG cần TK (CourtReserve public booking: OTP SMS → QR → ký waiver) | Bắt login ngay | Landing public + guest browsing + Zalo login | P0 |
 | 2 | Tìm & so sánh | Lưới trống real-time "như vé phim", so giá theo SLOT cụ thể, badge đã duyệt, ảnh thật (ALOBO lỗi geocoding: tìm Ba Đình ra Long Biên) | Quận/GPS/môn/sort ✓ | So sánh nhiều sân; chuẩn hóa geocoding địa chỉ VN | P1 |
@@ -29,7 +29,7 @@
 
 ## 2. 🏢 OWNER — 8 QUY TRÌNH VẬN HÀNH
 
-| # | Quy trình | Chuẩn ngành | CourtHub | Gap | Ưu tiên |
+| # | Quy trình | Chuẩn ngành | SanGo | Gap | Ưu tiên |
 |---|---|---|---|---|---|
 | 1 | Onboarding | KYC venue (GPĐKD, TK nhận tiền, PCCC), hợp đồng điện tử minh bạch phí, import dữ liệu cũ + parallel run | Form đăng ký → chờ duyệt | KYC chủ sân = giá trị niềm tin số 1 VN (chống lừa cọc) | P0 |
 | 2 | Cấu hình giá | Override membership×khung×thứ×date-range (lễ VN + âm lịch!), child courts khóa liên động (đặt cha khóa con), phụ phí đèn/AC tự cộng, giá theo loại khách | PricingRule theo khung/ngày ✓ | Lễ VN · child courts · đèn/AC tự động · member/khách/U15 | P0 |
@@ -40,11 +40,11 @@
 | 7 | Nhân viên quầy | Role matrix tinh (ai được refund/discount/xóa đơn); time clock PIN từng NV; ca-kế tiền mặt đầu/cuối ca; audit log | Một tài khoản chung | Staff roles + ca tiền mặt — nguồn thất thoát kinh điển sân bóng VN | P1 |
 | 8 | Marketing | Promo gắn SLOT GIỜ CHẾT (discount tự động khi fill-rate thấp); win-back automation (Patch Retention); đo fill-rate trước/sau campaign; Zalo OA | Không có | Voucher gắn khung trống (nối AI-2); đo fill-rate | P2 |
 
-**Bài học Mindbody:** commission 20%/booking áp cả khách cũ → chủ sân lách khách ra kênh riêng. CourtHub thiết kế commission theo new-vs-returning từ đầu.
+**Bài học Mindbody:** commission 20%/booking áp cả khách cũ → chủ sân lách khách ra kênh riêng. SanGo thiết kế commission theo new-vs-returning từ đầu.
 
 ## 3. 🛡️ ADMIN — 7 TRỤ CỘT BACK-OFFICE
 
-| # | Trụ cột | Chuẩn ngành | CourtHub | Ưu tiên |
+| # | Trụ cột | Chuẩn ngành | SanGo | Ưu tiên |
 |---|---|---|---|---|
 | 1 | User lifecycle | active/restricted/suspended/banned; restricted = chặn hành vi mới nhưng hoàn tất nghĩa vụ treo; chống multi-account (velocity signup, disposable email) | Không có gì | P0 |
 | 2 | Moderation | Pipeline 3 lớp (auto→human SLA 24h→hậu kiểm); checklist từ chối cụ thể; violation history đếm tái phạm ≥3 lần/90 ngày → auto-suspend; Compliance Center owner tự khắc phục deadline | Duyệt venue 1 màn hình | P1 |
@@ -56,9 +56,9 @@
 
 ## 4. 🇻🇳 DIFFERENTIATORS VIỆT NAM (cơ hội vượt app hiện có)
 
-1. **"Chống nát lịch"** — pain #1 thương mại hóa (Sportis). Hold transactional + notification của CourtHub giải đúng bài này — cần nói rõ trên UI.
+1. **"Chống nát lịch"** — pain #1 thương mại hóa (Sportis). Hold transactional + notification của SanGo giải đúng bài này — cần nói rõ trên UI.
 2. **Policy "dời vì mưa"**: trước 24h hoàn 100%/dời free · 12-24h 50% · <12h mất cọc · **mưa bão = sân chịu, hoàn 100% hoặc đá bù bảo lưu cọc 30 ngày** (sanchaolua).
-3. **Cọc giữ chữ số hóa**: Zalo flow (hold miệng → CK cọc → ảnh biên lai) ≈ hold + deposit + payment confirmation của CourtHub — cần làm user nhận ra điều đó.
+3. **Cọc giữ chữ số hóa**: Zalo flow (hold miệng → CK cọc → ảnh biên lai) ≈ hold + deposit + payment confirmation của SanGo — cần làm user nhận ra điều đó.
 4. **Ghép trận ≠ "xé vé"**: scandal pickleball HN nhồi người quá công suất lệch trình độ (Dân trí) → bắt buộc cap slotsNeeded + khai báo trình độ.
 5. **Chia tiền theo cầu** (30-35k/người, ông bầu giữ quỹ) — khoảng trống tuyệt đối: quỹ đội/split-pay.
 6. **Giờ vàng dư cung** (pickleball "đua giảm giá vẫn vắng khách") — voucher AI-tự-gắn-slot-chết là vũ khí bán hàng thật.

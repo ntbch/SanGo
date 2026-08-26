@@ -23,7 +23,7 @@ async function api(method, path, token, body) {
 }
 async function login(email) {
   for (let a = 0; a < 5; a++) {
-    const r = await api('POST', '/auth/login', null, { email, password: 'Courthub@2026' });
+    const r = await api('POST', '/auth/login', null, { email, password: 'Sango@2026' });
     if (r.json?.accessToken) return r.json.accessToken;
     await new Promise((res) => setTimeout(res, 15000));
   }
@@ -38,16 +38,16 @@ async function login(email) {
     await new Promise((r) => setTimeout(r, 2000));
   }
 
-  const ownerTk = await login('owner@courthub.vn');
-  const custTk = await login('customer@courthub.vn');
+  const ownerTk = await login('owner@sango.vn');
+  const custTk = await login('customer@sango.vn');
   const cust2Tk = await login('customer2@courthub.vn');
   const users = await prisma.user.findMany({
-    where: { email: { in: ['customer@courthub.vn', 'customer2@courthub.vn'] } },
+    where: { email: { in: ['customer@sango.vn', 'customer2@courthub.vn'] } },
   });
   const uid = Object.fromEntries(users.map((u) => [u.email, u.id]));
   // captains sẵn có từ seed S3
   const capEmails = [
-    'customer@courthub.vn',
+    'customer@sango.vn',
     'customer2@courthub.vn',
     'captain3@courthub.vn',
     'captain4@courthub.vn',
@@ -58,7 +58,7 @@ async function login(email) {
   const tokens = {};
   for (const e of capEmails)
     tokens[e] =
-      e === 'customer@courthub.vn'
+      e === 'customer@sango.vn'
         ? custTk
         : e === 'customer2@courthub.vn'
           ? cust2Tk
@@ -77,7 +77,7 @@ async function login(email) {
     include: { members: { where: { role: 'CAPTAIN' }, include: { user: true } } },
   });
   async function regTeam(t) {
-    const capEmail = t.members[0]?.user?.email || 'customer@courthub.vn';
+    const capEmail = t.members[0]?.user?.email || 'customer@sango.vn';
     return api(
       'POST',
       '/tournaments/' + tid + '/register',
@@ -108,14 +108,14 @@ async function login(email) {
   );
 
   // ===== V2: dedup memberIds khi chia tiền =====
-  const fcTeam = await prisma.team.findFirst({ where: { name: 'FC CourtHub' } });
-  // booking CONFIRMED moi cua cust (kèm teamId FC CourtHub để khớp scoping)
+  const fcTeam = await prisma.team.findFirst({ where: { name: 'FC SanGo' } });
+  // booking CONFIRMED moi cua cust (kèm teamId FC SanGo để khớp scoping)
   const olds = await prisma.bookingHold.findMany({
-    where: { userId: uid['customer@courthub.vn'], status: 'ACTIVE' },
+    where: { userId: uid['customer@sango.vn'], status: 'ACTIVE' },
   });
   for (const oh of olds) await api('DELETE', '/bookings/holds/' + oh.id, custTk);
   const venue = await prisma.venue.findFirst({
-    where: { owner: { email: 'owner@courthub.vn' } },
+    where: { owner: { email: 'owner@sango.vn' } },
     include: { courts: { take: 1 } },
   });
   const court = venue.courts[0];
@@ -168,7 +168,7 @@ async function login(email) {
   );
   const bkDb = await prisma.booking.findFirst({
     where: {
-      customerId: uid['customer@courthub.vn'],
+      customerId: uid['customer@sango.vn'],
       courtId: court.id,
       date: new Date(date + 'T00:00:00Z'),
       startMinute: minute,
@@ -179,7 +179,7 @@ async function login(email) {
   const dupIds = [
     uid['customer2@courthub.vn'],
     uid['customer2@courthub.vn'],
-    uid['customer@courthub.vn'],
+    uid['customer@sango.vn'],
   ]; // cust2 xuat hien 2 lan
   const sp1 = await api('POST', '/teams/' + fcTeam.id + '/expenses/split-booking', custTk, {
     bookingId: bkDb.id,

@@ -89,7 +89,7 @@ export function CreateTournamentDialog({
                 <FormItem>
                   <FormLabel>Tên giải</FormLabel>
                   <FormControl>
-                    <Input placeholder="VD: CourtHub Open 2026" {...field} />
+                    <Input placeholder="VD: SanGo Open 2026" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

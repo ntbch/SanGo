@@ -1,4 +1,4 @@
-import { DayType } from '@courthub/shared';
+import { DayType } from '@sango/shared';
 import type { Court, PricingRule } from '@prisma/client';
 
 /** Ngày lưu UTC-midnight theo quy ước đặc tả §5 -> dayType suy từ thứ của ngày VN. */

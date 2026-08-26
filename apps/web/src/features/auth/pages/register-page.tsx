@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Lock, Mail, Phone, ShieldCheck, User, UserPlus } from 'lucide-react';
+import { Lock, Mail, PartyPopper, Phone, ShieldCheck, User, UserPlus } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 import { Button } from '../../../components/ui/button';
 import { Card, CardTitle } from '../../../components/ui/card';
 import {
@@ -102,7 +102,7 @@ export function RegisterPage(): ReactElement {
                       <AuthInput
                         icon={<Mail aria-hidden />}
                         type="email"
-                        placeholder="ban@courthub.vn"
+                        placeholder="ban@sango.vn"
                         autoComplete="email"
                         {...field}
                       />
@@ -193,7 +193,10 @@ export function RegisterPage(): ReactElement {
       <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tạo tài khoản thành công 🎉</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <PartyPopper className="size-5 text-primary" aria-hidden />
+              Tạo tài khoản thành công
+            </DialogTitle>
             <DialogDescription>
               Tài khoản của bạn đã sẵn sàng. Hãy đăng nhập để bắt đầu tìm và đặt sân thể thao.
             </DialogDescription>

@@ -2,8 +2,8 @@
 
 **Mã tài liệu:** `SPEC-GEO-BA-20260825`  
 **Phiên bản:** `1.0.0`  
-**Tác giả:** Business Analyst / Product Owner (AgentTeams `courthub-geo`)  
-**Dự án:** CourtHub Sport Booking Platform  
+**Tác giả:** Business Analyst / Product Owner (AgentTeams `sango-geo`)  
+**Dự án:** SanGo Sport Booking Platform  
 **Trạng thái:** Approved / Ready for Implementation & QA  
 
 ---
@@ -20,7 +20,7 @@ Người chơi thể thao (Pickleball, Bóng đá, Cầu lông, Tennis) tại kh
 - **Rút ngắn thời gian tìm sân:** Giảm từ trung bình ~3.5 phút xuống < 15 giây.
 - **Tăng tỷ lệ chuyển đổi (Booking Conversion Rate):** Tăng ít nhất 25% nhờ gợi ý đúng cụm sân gần nhất với chi phí đi lại tối ưu.
 - **Giảm tỷ lệ bỏ trang (Bounce Rate):** Giảm 35% trên trang tìm kiếm `/venues`.
-- **Tối ưu trải nghiệm Trợ lý AI (NLU):** Trợ lý CourtHub AI hiểu ngữ cảnh địa lý 12 quận, phản hồi chính xác vị trí và dẫn link sân tương ứng.
+- **Tối ưu trải nghiệm Trợ lý AI (NLU):** Trợ lý SanGo AI hiểu ngữ cảnh địa lý 12 quận, phản hồi chính xác vị trí và dẫn link sân tương ứng.
 
 ---
 
@@ -31,7 +31,7 @@ Người chơi thể thao (Pickleball, Bóng đá, Cầu lông, Tennis) tại kh
 | **Cầu thủ phong trào (Player/Booker)** | Khách hàng đặt sân | Tìm sân gần nhà/công ty, biết cự ly chính xác, mở bản đồ đi ngay. | Phải copy địa chỉ sang Google Maps để xem cự ly và đường đi. |
 | **Đội trưởng/Kèo trưởng (Team Leader)** | Đặt sân cho cả đội | Lọc sân theo quận trung gian để các thành viên đều tiện di chuyển. | Khó lọc danh sách sân gom theo từng quận cụ thể. |
 | **Chủ cụm sân (Venue Owner)** | Đối tác cung cấp sân | Tiếp cận đúng tệp khách hàng trong bán kính 3-10 km. | Sân ở vị trí đẹp nhưng không hiển thị cự ly đến người dùng. |
-| **Trợ lý AI CourtHub** | Virtual Assistant | Nhận diện câu hỏi tự nhiên chứa tên quận và gợi ý sân phù hợp. | Dễ bỏ sót nếu người dùng gõ không dấu hoặc viết tắt. |
+| **Trợ lý AI SanGo** | Virtual Assistant | Nhận diện câu hỏi tự nhiên chứa tên quận và gợi ý sân phù hợp. | Dễ bỏ sót nếu người dùng gõ không dấu hoặc viết tắt. |
 
 ---
 
@@ -57,7 +57,7 @@ Người chơi thể thao (Pickleball, Bóng đá, Cầu lông, Tennis) tại kh
 ## 4. Đặc Tả Chi Tiết User Stories & Acceptance Criteria (Gherkin format)
 
 ### US-GEO-01: Lọc danh sách cụm sân theo Quận/Huyện
-- **Là:** Người dùng tìm sân trên web CourtHub.
+- **Là:** Người dùng tìm sân trên web SanGo.
 - **Tôi muốn:** Chọn một quận cụ thể trong dropdown danh sách 12 quận Hà Nội.
 - **Để:** Xem nhanh các cụm sân nằm trong khu vực mong muốn.
 
@@ -109,13 +109,13 @@ Người chơi thể thao (Pickleball, Bóng đá, Cầu lông, Tennis) tại kh
   - Card sân trên trang tìm kiếm (icon map pin / dẫn đường).
 - **AC 4.2:** URL dẫn đường được tạo theo chuẩn chính thống:
   `https://www.google.com/maps/dir/?api=1&destination={lat},{lng}&travelmode=driving`
-- **AC 4.3:** Thuộc tính liên kết: `target="_blank"` và `rel="noopener noreferrer"` để đảm bảo bảo mật và không mất trang CourtHub hiện tại.
+- **AC 4.3:** Thuộc tính liên kết: `target="_blank"` và `rel="noopener noreferrer"` để đảm bảo bảo mật và không mất trang SanGo hiện tại.
 - **AC 4.4:** Trên Mobile Browser (iOS Safari / Android Chrome), liên kết mở trực tiếp app Google Maps Native nếu đã cài đặt.
 
 ---
 
 ### US-GEO-05: Trợ Lý AI NLU Nhận Diện Địa Giới 12 Quận Tự Nhiên
-- **Là:** Người dùng chat với Trợ lý ảo CourtHub AI.
+- **Là:** Người dùng chat với Trợ lý ảo SanGo AI.
 - **Tôi muốn:** Hỏi bằng ngôn từ tự nhiên như *"tìm sân bóng ở cầu giấy"*, *"có sân pickleball nào bên long biên không"*, *"sân tennis thanh xuan"*.
 - **Để:** Bot hiểu ngay quận tôi muốn và hiển thị danh sách sân tương ứng kèm đường dẫn.
 

@@ -23,7 +23,7 @@ async function api(method, path, token, body) {
 }
 async function login(email) {
   for (let a = 0; a < 5; a++) {
-    const r = await api('POST', '/auth/login', null, { email, password: 'Courthub@2026' });
+    const r = await api('POST', '/auth/login', null, { email, password: 'Sango@2026' });
     if (r.json?.accessToken) return r.json.accessToken;
     await new Promise((res) => setTimeout(res, 15000));
   }
@@ -60,17 +60,17 @@ function expectedScore(bks) {
     await new Promise((r) => setTimeout(r, 2000));
   }
 
-  const custTk = await login('customer@courthub.vn');
+  const custTk = await login('customer@sango.vn');
   const cust2Tk = await login('customer2@courthub.vn');
-  const ownerTk = await login('owner@courthub.vn');
+  const ownerTk = await login('owner@sango.vn');
   const users = await prisma.user.findMany({
-    where: { email: { in: ['customer@courthub.vn', 'customer2@courthub.vn'] } },
+    where: { email: { in: ['customer@sango.vn', 'customer2@courthub.vn'] } },
   });
   const uMap = Object.fromEntries(users.map((u) => [u.email, u]));
 
   // ===== F2-A: compute-on-read khớp công thức =====
   for (const [tk, email] of [
-    [custTk, 'customer@courthub.vn'],
+    [custTk, 'customer@sango.vn'],
     [cust2Tk, 'customer2@courthub.vn'],
   ]) {
     const bks = await prisma.booking.findMany({
@@ -82,7 +82,7 @@ function expectedScore(bks) {
     });
     const exp = expectedScore(bks);
     const me = await api('GET', '/reputation/me', tk);
-    if (email === 'customer@courthub.vn') {
+    if (email === 'customer@sango.vn') {
       // user này bị script mutate (chèn no-show) + cache TTL thuần -> assert TỰ-NHẤT QUÁN công thức trên chính response
       const b = me.json?.breakdown || {};
       const selfScore = Math.max(
@@ -115,12 +115,12 @@ function expectedScore(bks) {
   const newEmail = 'qa-rep-' + Date.now().toString(36) + '@courthub.vn';
   const regNew = await api('POST', '/auth/register', null, {
     email: newEmail,
-    password: 'Courthub@2026',
+    password: 'Sango@2026',
     fullName: 'QA Rep New',
   });
   const newTk =
     regNew.json?.accessToken ||
-    (await api('POST', '/auth/login', null, { email: newEmail, password: 'Courthub@2026' })).json
+    (await api('POST', '/auth/login', null, { email: newEmail, password: 'Sango@2026' })).json
       ?.accessToken;
   const meNew = await api('GET', '/reputation/me', newTk);
   rec(
@@ -140,7 +140,7 @@ function expectedScore(bks) {
   await prisma.booking.create({
     data: {
       code: 'QA-NS-' + Date.now().toString(36),
-      customerId: uMap['customer@courthub.vn'].id,
+      customerId: uMap['customer@sango.vn'].id,
       courtId: anyCourt.id,
       date: pastDate,
       startMinute: 600,
@@ -171,7 +171,7 @@ function expectedScore(bks) {
   // ===== F2-C: badge SQL aggregate dung current/target =====
   const onTimeCnt = await prisma.$queryRawUnsafe(
     'SELECT COUNT(*)::int AS cnt FROM bookings WHERE "customerId" = $1::uuid AND "checkedInAt" IS NOT NULL AND "checkedInAt" <= ("date" + ("startMinute" * interval \'1 minute\'))',
-    uMap['customer@courthub.vn'].id,
+    uMap['customer@sango.vn'].id,
   );
   const badges = before.json?.badges || [];
   const b1 = badges.find((b) => b.code === 'ON_TIME_10');
@@ -230,7 +230,7 @@ function expectedScore(bks) {
     'def=' + lbDef + ' big=' + lbBig.json.items.length + ' bad_st=' + lbBad.status,
   );
   const seedInBoard = items.some(
-    (it) => ['customer@courthub.vn', 'customer2@courthub.vn'].includes(it.userId) || it.fullName,
+    (it) => ['customer@sango.vn', 'customer2@courthub.vn'].includes(it.userId) || it.fullName,
   );
   rec(
     'LB-global',
@@ -269,7 +269,7 @@ function expectedScore(bks) {
   }
   let regOk = 0;
   for (const t of teams) {
-    const captainEmail = t.members[0]?.user?.email || t.captain?.email || 'customer@courthub.vn';
+    const captainEmail = t.members[0]?.user?.email || t.captain?.email || 'customer@sango.vn';
     const tk = await captainToken(captainEmail);
     const rr = await api('POST', '/tournaments/' + tid + '/register', tk, { teamId: t.id });
     if (rr.status < 300) regOk++;
@@ -349,13 +349,13 @@ function expectedScore(bks) {
     data: {
       name: 'QA Draw A ' + Date.now().toString(36),
       sportType: 'PICKLEBALL',
-      captainId: uMap['customer@courthub.vn'].id,
+      captainId: uMap['customer@sango.vn'].id,
     },
   });
   await prisma.teamMember.create({
     data: {
       teamId: drawTeamA.id,
-      userId: uMap['customer@courthub.vn'].id,
+      userId: uMap['customer@sango.vn'].id,
       role: 'CAPTAIN',
       status: 'ACTIVE',
     },
@@ -376,7 +376,7 @@ function expectedScore(bks) {
     await api(
       'POST',
       '/tournaments/' + mk2.json.id + '/register',
-      capEmail === 'customer@courthub.vn' ? custTk : cust2Tk,
+      capEmail === 'customer@sango.vn' ? custTk : cust2Tk,
       { teamId: t.id },
     );
   }

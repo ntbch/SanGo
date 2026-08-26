@@ -49,7 +49,7 @@ export function ProfilePage(): ReactElement {
   // SEO cơ bản — trang nằm trong dashboard nhưng vẫn nên có title riêng.
   usePageMeta(
     'Hồ sơ cá nhân',
-    'Xem và cập nhật thông tin cá nhân, đổi mật khẩu tài khoản CourtHub.',
+    'Xem và cập nhật thông tin cá nhân, đổi mật khẩu tài khoản SanGo.',
   );
 
   // S3-F2: điểm uy tín + badge (compute-on-read từ Booking).

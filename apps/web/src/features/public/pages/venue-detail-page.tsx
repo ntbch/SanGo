@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Suspense, lazy, useState, type ReactElement } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { buildGoogleMapsUrl, hasUsableCoords } from '@courthub/shared';
+import { buildGoogleMapsUrl, hasUsableCoords } from '@sango/shared';
 
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';

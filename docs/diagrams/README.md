@@ -1,4 +1,4 @@
-# Sơ đồ Mermaid cho báo cáo tốt nghiệp — CourtHub
+# Sơ đồ Mermaid cho báo cáo tốt nghiệp — SanGo
 
 Nguyên liệu chương **Phân tích thiết kế** (Chương 3) viết bằng Mermaid để vừa
 version-control vừa render PNG/SVG chất lượng cao lúc đóng báo cáo.
@@ -7,7 +7,7 @@ version-control vừa render PNG/SVG chất lượng cao lúc đóng báo cáo.
 
 | File | Loại sơ đồ | Nội dung | Nguồn đặc tả |
 |---|---|---|---|
-| `erd.mmd` | erDiagram | 9 bảng dữ liệu, tên cột/enum chuẩn gói `@courthub/shared` | §5 |
+| `erd.mmd` | erDiagram | 9 bảng dữ liệu, tên cột/enum chuẩn gói `@sango/shared` | §5 |
 | `architecture.mmd` | flowchart TB | Browser → Vercel → Render (11 modules + cron) → Neon/VNPay/Resend/Cloudinary | §4, §9 |
 | `booking-sequence.mmd` | sequenceDiagram | Luồng đặt sân: hold FOR UPDATE → overlap check → VNPay callback idempotent | §6.1 ⭐ |
 | `booking-state.mmd` | stateDiagram-v2 | Máy trạng thái Booking 5 trạng thái | §5 |

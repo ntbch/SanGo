@@ -3,7 +3,7 @@
  * Chat tiếng Việt -> tool-call DB thật; GUARDRAIL: không tự thanh toán,
  * giữ chỗ bắt buộc đăng nhập qua POST /ai/hold rồi chuyển checkout chuẩn.
  */
-import { Bot, Loader2, Send, X } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Bot, Loader2, Send, X } from 'lucide-react';
 import { useRef, useState, type ReactElement } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
@@ -53,7 +53,8 @@ function ToolBadge(options: { tools: string[] }): ReactElement {
           key={tool}
           className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
         >
-          [tool: {tool} ✓]
+          <BadgeCheck className="mr-0.5 inline size-3 text-primary" aria-hidden />
+          [tool: {tool}]
         </span>
       ))}
     </div>
@@ -174,7 +175,8 @@ export function AiChatWidget(): ReactElement {
             data-testid="continue-checkout"
             onClick={() => navigate('/thanh-toan/checkout/' + message.holdId)}
           >
-            Tiếp tục thanh toán →
+            Tiếp tục thanh toán
+            <ArrowRight className="ml-1 inline size-4" aria-hidden />
           </Button>
         </div>
       );
@@ -262,7 +264,7 @@ export function AiChatWidget(): ReactElement {
         >
           <div className="flex items-center gap-2 border-b px-3 py-2.5">
             <Bot className="size-4 text-primary" aria-hidden />
-            <p className="flex-1 text-sm font-bold">Trợ lý CourtHub</p>
+            <p className="flex-1 text-sm font-bold">Trợ lý SanGo</p>
             <button
               type="button"
               aria-label="Đóng chat"

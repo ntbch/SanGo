@@ -1,4 +1,4 @@
-import { vnToday } from '@courthub/shared';
+import { vnToday } from '@sango/shared';
 
 import type { OwnerBooking } from '../features/owner/types';
 
@@ -46,8 +46,8 @@ export interface OwnerKpisOptions {
 const PAID_STATUSES: ReadonlySet<string> = new Set(['CONFIRMED', 'CHECKED_IN', 'COMPLETED']);
 
 /**
- * "Hôm nay" nghiệp vụ của CourtHub — delegate sang vnToday() của
- * @courthub/shared (múi giờ Asia/Ho_Chi_Minh thay vì biên UTC).
+ * "Hôm nay" nghiệp vụ của SanGo — delegate sang vnToday() của
+ * @sango/shared (múi giờ Asia/Ho_Chi_Minh thay vì biên UTC).
  * RỦI RO UTC CẦN NHỚ khi nối API thật: backend phải thống nhất cùng mốc
  * "hôm nay" VN cho các filter date (QA t8: mất đơn hôm nay 00:00–06:59 ICT).
  * So sánh chuỗi YYYY-MM-DD an toàn miễn cả hai phía dùng cùng một mốc.

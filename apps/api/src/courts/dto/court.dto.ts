@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SportType } from '@courthub/shared';
+import { SportType } from '@sango/shared';
 
 export const CreateCourtSchema = z.object({
   name: z.string().min(1, 'Tên sân con là bắt buộc').max(120),

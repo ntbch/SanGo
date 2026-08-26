@@ -1,4 +1,4 @@
-import { vnToday } from '@courthub/shared';
+import { vnToday } from '@sango/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import type { AiChatResponse } from './ai-chat.service';
 import { AiToolsService } from './ai-tools.service';
@@ -83,7 +83,7 @@ const TOOL_DEFS: LlmToolDef[] = [
 
 function systemPrompt(today: string): string {
   return [
-    'Bạn là trợ lý đặt sân thể thao của CourtHub, trả lời tiếng Việt thân thiện.',
+    'Bạn là trợ lý đặt sân thể thao của SanGo, trả lời tiếng Việt thân thiện.',
     `Hôm nay là ${today}.`,
     'QUY TẮC BẮT BUỘC:',
     '1. Mọi số liệu về sân, giá, giờ trống CHỈ được lấy từ kết quả tool. Không bịa, không suy diễn số liệu không có trong kết quả.',

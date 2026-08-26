@@ -17,7 +17,7 @@ import {
   Wrench,
 } from 'lucide-react';
 
-import { NotificationType } from '@courthub/shared';
+import { NotificationType } from '@sango/shared';
 
 export const NOTIFICATION_TYPE_META: Record<
   NotificationType,

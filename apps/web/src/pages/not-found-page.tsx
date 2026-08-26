@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { House } from 'lucide-react';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 import { Button } from '../components/ui/button';
 
 /** Trang 404 toàn cục — dead-end screen kiểu Stitch: khối đồ hoạ số 404 to + một CTA về trang chủ. */

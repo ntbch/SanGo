@@ -1,6 +1,6 @@
-# Đặc tả thiết kế web — Athletic Synergy (CourtHub)
+# Đặc tả thiết kế web — Athletic Synergy (SanGo)
 
-> Bản chuẩn cho team courthub-ui-restyle. Nguồn: `stitch_pitch_booking_home/athletic_synergy/DESIGN.md`,
+> Bản chuẩn cho team sango-ui-restyle. Nguồn: `stitch_pitch_booking_home/athletic_synergy/DESIGN.md`,
 > 19 màn HTML Stitch, và 5 file golden đã migrate (`apps/web/index.html`, `src/index.css`,
 > `src/components/layout/public-layout.tsx`, `src/pages/home-page.tsx`,
 > `src/features/public/components/venue-card.tsx`).

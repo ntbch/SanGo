@@ -113,7 +113,7 @@ export function TeamJoinPage(): ReactElement {
                 <span>
                   Bạn chưa là thành viên. Hiện đội mời thành viên qua đội trưởng — hãy nhắn{' '}
                   <strong className="text-foreground/80">{team.captain.fullName}</strong> thêm bạn
-                  vào đội (theo email tài khoản CourtHub), sau đó trạng thái sẽ cập nhật tại đây.
+                  vào đội (theo email tài khoản SanGo), sau đó trạng thái sẽ cập nhật tại đây.
                 </span>
               </div>
             )}

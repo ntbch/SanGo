@@ -4,13 +4,13 @@
  */
 import { useEffect } from 'react';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 
 /** Title mặc định khi trang không truyền title riêng (landing "/"). */
 export const DEFAULT_SITE_TITLE = APP_NAME + ' — Đặt và quản lý sân thể thao trực tuyến';
 /** Description mặc định cho landing và làm fallback. */
 export const DEFAULT_SITE_DESCRIPTION =
-  'Tìm kiếm, giữ chỗ 10 phút, đặt cọc online và check-in QR cho cụm sân thể thao tại Hà Nội với CourtHub.';
+  'Tìm kiếm, giữ chỗ 10 phút, đặt cọc online và check-in QR cho cụm sân thể thao tại Hà Nội với SanGo.';
 
 function upsertMetaDescription(content: string): HTMLMetaElement {
   let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
@@ -25,7 +25,7 @@ function upsertMetaDescription(content: string): HTMLMetaElement {
 
 /**
  * Đặt title + description của trang.
- * @param title Tiêu đề riêng của trang (đã thêm " · CourtHub"); bỏ trống dùng mặc định.
+ * @param title Tiêu đề riêng của trang (đã thêm " · SanGo"); bỏ trống dùng mặc định.
  * @param description Mô tả SEO; bỏ trống dùng mô tả mặc định.
  */
 export function usePageMeta(title?: string, description?: string): void {

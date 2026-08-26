@@ -1,11 +1,11 @@
 /**
- * @courthub/shared — kiểu + enum trạng thái dùng chung toàn hệ thống.
+ * @sango/shared — kiểu + enum trạng thái dùng chung toàn hệ thống.
  * Nguồn chân lý: đặc tả thiết kế §5 (Mô hình dữ liệu Prisma).
  * Quy ước giá trị enum = tên chuỗi UPPERCASE trùng với DB/Prisma.
  */
 
 /** Tên sản phẩm — dùng chung cho UI placeholder và tiêu đề. */
-export const APP_NAME = 'CourtHub' as const;
+export const APP_NAME = 'SanGo' as const;
 
 /** Tiền tố REST API quy ước ở đặc tả §4. */
 export const API_PREFIX = '/api/v1' as const;
@@ -160,7 +160,7 @@ export const SPORT_TYPE_LABELS: Record<SportType, string> = {
 
 /**
  * Ngày hiện tại (YYYY-MM-DD) theo múi giờ kinh doanh Asia/Ho_Chi_Minh.
- * "Hôm nay" nghiệp vụ của CourtHub là ngày VN — không dùng biên UTC để tránh
+ * "Hôm nay" nghiệp vụ của SanGo là ngày VN — không dùng biên UTC để tránh
  * lệch 7 tiếng (QA t8: dashboard mất đơn hôm nay lúc 00:00-06:59 ICT).
  */
 export function vnToday(now: Date = new Date()): string {

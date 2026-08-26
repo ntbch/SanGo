@@ -24,8 +24,8 @@ const emailPasswordBody = {
     type: 'object',
     required: ['email', 'password'],
     properties: {
-      email: { type: 'string', format: 'email', example: 'customer@courthub.vn' },
-      password: { type: 'string', minLength: 8, example: 'Courthub@2026' },
+      email: { type: 'string', format: 'email', example: 'customer@sango.vn' },
+      password: { type: 'string', minLength: 8, example: 'Sango@2026' },
     },
   },
 };

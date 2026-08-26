@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
-import { NotificationType } from '@courthub/shared';
+import { NotificationType } from '@sango/shared';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';

@@ -16,13 +16,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: courthub
-          POSTGRES_USER: courthub
-          POSTGRES_PASSWORD: courthub
+          POSTGRES_DB: sango
+          POSTGRES_USER: sango
+          POSTGRES_PASSWORD: sango
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U courthub"
+          --health-cmd "pg_isready -U sango"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -50,12 +50,12 @@ jobs:
       # Tạo schema trên service postgres trước khi integration test chạy
       # (migrations nằm ở apps/api/prisma/migrations — task T2)
       - name: Migrate database for integration tests
-        run: pnpm --filter @courthub/api exec prisma migrate deploy
+        run: pnpm --filter @sango/api exec prisma migrate deploy
 
       - name: Test
         run: pnpm test
         env:
-          DATABASE_URL: postgresql://courthub:courthub@localhost:5432/courthub
+          DATABASE_URL: postgresql://sango:sango@localhost:5432/sango
 
       - name: Build api + web
         run: pnpm build

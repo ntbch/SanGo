@@ -3,7 +3,7 @@ import { Bell, CheckCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-rea
 import { useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { NotificationType } from '@courthub/shared';
+import { NotificationType } from '@sango/shared';
 
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -123,7 +123,7 @@ export function NotificationsPage(): ReactElement {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Thông báo</h1>
-          <p className="text-sm text-muted-foreground">Hộp thư hoạt động của bạn trên CourtHub.</p>
+          <p className="text-sm text-muted-foreground">Hộp thư hoạt động của bạn trên SanGo.</p>
         </div>
         <div className="flex items-center gap-2">
           {unreadCount > 0 ? (

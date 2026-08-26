@@ -1,6 +1,6 @@
 # Báo cáo QA — T4 · Smoke test Đợt 1 (P1-F1/F2)
 
-- **Người thực hiện:** qa-reviewer (team courthub-p1)
+- **Người thực hiện:** qa-reviewer (team sango-p1)
 - **Ngày:** 2026-08-25 · **Commit kiểm thử:** 1afb676
 - **Môi trường:** không Docker; Web dev server Vite chạy trực tiếp với VITE_USE_MOCK=true (http://localhost:5173); Google Chrome headless 1440×900 điều khiển qua CDP; Postgres embedded (.tooling-cache/pgdev/start-pg.js) phục vụ gate test API.
 
@@ -21,7 +21,7 @@
 
 | Bước | Kết quả | Bằng chứng |
 | --- | --- | --- |
-| J1.1 Mở "/" thấy landing | PASS | h1 «CourtHub — Sân chơi đúng ý, giờ chơi đúng hẹn» |
+| J1.1 Mở "/" thấy landing | PASS | h1 «SanGo — Sân chơi đúng ý, giờ chơi đúng hẹn» |
 | J1.2 "/venues" duyệt tự do không bị chặn | PASS | 24 link cụm sân công khai, bộ lọc 12 quận hiển thị |
 | J1.3 Vào chi tiết sân | PASS | slug san-the-thao-quan-ngua, h1 «Sân Thể Thao Quần Ngựa» |
 | J1.4 Lịch tuần + tab sân con render | PASS | URL /venues/san-the-thao-quan-ngua/book |

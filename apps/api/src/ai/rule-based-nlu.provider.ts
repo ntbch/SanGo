@@ -1,4 +1,4 @@
-import { HANOI_DISTRICT_ALIASES, vnToday } from '@courthub/shared';
+import { HANOI_DISTRICT_ALIASES, vnToday } from '@sango/shared';
 import { Injectable } from '@nestjs/common';
 import type { SportTypeValue } from './dto/ai.dto';
 import type { NluEntities, NluProvider, NluResult } from './nlu-provider.interface';

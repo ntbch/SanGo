@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { vnToday } from '@courthub/shared';
+import { vnToday } from '@sango/shared';
 import { Prisma } from '@prisma/client';
 import type { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';

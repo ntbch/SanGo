@@ -1,8 +1,8 @@
 {
-  "name": "courthub",
+  "name": "sango",
   "version": "0.1.0",
   "private": true,
-  "description": "CourtHub — hệ thống đặt và quản lý sân thể thao trực tuyến (đồ án tốt nghiệp)",
+  "description": "SanGo — hệ thống đặt và quản lý sân thể thao trực tuyến (đồ án tốt nghiệp)",
   "packageManager": "pnpm@11.22.0",
   "engines": {
     "node": ">=22"
@@ -13,8 +13,8 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r typecheck",
-    "dev:api": "pnpm --filter @courthub/api start:dev",
-    "dev:web": "pnpm --filter @courthub/web dev",
+    "dev:api": "pnpm --filter @sango/api start:dev",
+    "dev:web": "pnpm --filter @sango/web dev",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down"
   },

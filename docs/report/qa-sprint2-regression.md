@@ -1,4 +1,4 @@
-# CourtHub — Biên bản QA Regression Sprint 2
+# SanGo — Biên bản QA Regression Sprint 2
 
 > Owner: qa2 · Cập nhật lần 2: 2026-08-26 (b25f1b0 teamId flow) · Ngày: 2026-08-26 · Căn cứ: docs/superpowers/plans/2026-08-25-qa-regression-checklist-sprint2.md
 > Kết luận: **PASS Sprint 2** — A1–A4 xanh, MAJOR-1 bị chặn chắc chắn, Smoke demo 6 bước **26/26 PASS × 2 lần liên tiếp**.

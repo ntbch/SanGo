@@ -20,6 +20,8 @@ import type {
 export interface VenueFormPayload {
   name: string;
   address: string;
+  city: string;
+  district: string;
   lat: number;
   lng: number;
   openMinute: number;

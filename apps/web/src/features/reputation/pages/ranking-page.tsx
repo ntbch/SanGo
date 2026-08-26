@@ -34,7 +34,7 @@ export function RankingPage(): ReactElement {
 
   usePageMeta(
     'Bảng xếp hạng uy tín',
-    'Xếp hạng người chơi CourtHub theo điểm uy tín: đúng giờ, hủy sát giờ và no-show.',
+    'Xếp hạng người chơi SanGo theo điểm uy tín: đúng giờ, hủy sát giờ và no-show.',
   );
 
   return (

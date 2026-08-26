@@ -13,10 +13,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   APP_NAME,
   UserRole,
-  HANOI_DISTRICTS,
+  SUPPORTED_CITIES,
   SPORT_TYPE_LABELS,
+  districtsOfCity,
   type SportType,
-} from '@courthub/shared';
+} from '@sango/shared';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { VenueCard } from '../features/public/components/venue-card';
@@ -42,6 +43,7 @@ export function HomePage(): ReactElement {
   const topVenues = (topVenuesQuery.data?.items ?? []).slice(0, TOP_VENUES_COUNT);
 
   const [sport, setSport] = useState('');
+  const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
 
   // SEO: landing dùng title/description mặc định của site.
@@ -51,6 +53,7 @@ export function HomePage(): ReactElement {
     event.preventDefault();
     const params = new URLSearchParams();
     if (sport !== '') params.set('sportType', sport);
+    if (city !== '') params.set('city', city);
     if (district !== '') params.set('district', district);
     const qs = params.toString();
     navigate(qs === '' ? '/venues' : `/venues?${qs}`);
@@ -112,19 +115,46 @@ export function HomePage(): ReactElement {
               </select>
             </label>
             <label className="flex-1">
+              <span className="sr-only">Chọn thành phố</span>
+              <select
+                aria-label="Chọn thành phố"
+                value={city}
+                onChange={(event) => {
+                  setCity(event.target.value);
+                  // Đổi thành phố -> reset quận vì danh sách quận đã thay đổi
+                  setDistrict('');
+                }}
+                className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Tất cả thành phố</option>
+                {SUPPORTED_CITIES.map((supported) => (
+                  <option key={supported} value={supported}>
+                    {supported}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex-1">
               <span className="sr-only">Chọn khu vực (Quận/Huyện)</span>
               <select
                 aria-label="Chọn khu vực"
                 value={district}
+                disabled={city === ''}
                 onChange={(event) => setDistrict(event.target.value)}
-                className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <option value="">Chọn khu vực (Quận/Huyện)</option>
-                {HANOI_DISTRICTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
+                {city !== '' ? (
+                  <>
+                    <option value="">Chọn khu vực (Quận/Huyện)</option>
+                    {districtsOfCity(city).map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="">Chọn thành phố trước</option>
+                )}
               </select>
             </label>
             <Button

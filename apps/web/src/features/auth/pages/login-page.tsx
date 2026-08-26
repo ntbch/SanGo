@@ -4,7 +4,7 @@ import { type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 import { safeInternalTarget } from '../../../components/auth/guards';
 import { Button } from '../../../components/ui/button';
 import { Card, CardTitle } from '../../../components/ui/card';
@@ -26,7 +26,7 @@ import { AUTH_CARD_CLASS, AuthShell } from '../components/auth-shell';
 import { loginSchema, type LoginDto } from '../schemas';
 
 /** Tài khoản demo hiển thị khi chạy chế độ mock (VITE_USE_MOCK=true). */
-const MOCK_HINT_ACCOUNTS = ['customer@courthub.vn', 'owner@courthub.vn', 'admin@courthub.vn'];
+const MOCK_HINT_ACCOUNTS = ['customer@sango.vn', 'owner@sango.vn', 'admin@sango.vn'];
 
 export function LoginPage(): ReactElement {
   const navigate = useNavigate();
@@ -94,7 +94,7 @@ export function LoginPage(): ReactElement {
                     <AuthInput
                       icon={<Mail aria-hidden />}
                       type="email"
-                      placeholder="ban@courthub.vn"
+                      placeholder="ban@sango.vn"
                       autoComplete="email"
                       {...field}
                     />
@@ -153,7 +153,7 @@ export function LoginPage(): ReactElement {
           <div className="mt-4 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Chế độ demo (mock)</p>
             Đăng nhập thử với mật khẩu{' '}
-            <code className="font-score text-primary">Courthub@2026</code>:
+            <code className="font-score text-primary">Sango@2026</code>:
             <ul className="mt-1 list-inside list-disc">
               {MOCK_HINT_ACCOUNTS.map((account) => (
                 <li key={account} className="font-score">

@@ -1,21 +1,21 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: courthub-db
+    container_name: sango-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: courthub
-      POSTGRES_USER: courthub
-      POSTGRES_PASSWORD: courthub
+      POSTGRES_DB: sango
+      POSTGRES_USER: sango
+      POSTGRES_PASSWORD: sango
     ports:
       - '5432:5432'
     volumes:
-      - courthub_pgdata:/var/lib/postgresql/data
+      - sango_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U courthub -d courthub']
+      test: ['CMD-SHELL', 'pg_isready -U sango -d sango']
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
-  courthub_pgdata:
+  sango_pgdata:

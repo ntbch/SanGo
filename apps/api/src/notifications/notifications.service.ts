@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Notification, Prisma } from '@prisma/client';
-import type { NotificationType } from '@courthub/shared';
+import type { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Số thông báo mỗi trang của GET /notifications. */

@@ -1,0 +1,19 @@
+import { Test } from '@nestjs/testing';
+
+import { HealthController } from '../../src/health/health.controller';
+
+describe('HealthController', () => {
+  let controller: HealthController;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [HealthController],
+    }).compile();
+
+    controller = moduleRef.get(HealthController);
+  });
+
+  it('GET /health trả về { status: "ok" }', () => {
+    expect(controller.getHealth()).toEqual({ status: 'ok' });
+  });
+});

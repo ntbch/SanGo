@@ -12,5 +12,5 @@
     "strictPropertyInitialization": false,
     "types": ["node", "jest"]
   },
-  "include": ["src", "prisma"]
+  "include": ["src", "tests", "prisma"]
 }

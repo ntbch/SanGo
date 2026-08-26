@@ -38,7 +38,7 @@
 
 Mock `global.fetch` bằng `jest.spyOn`. Ba case: (a) map đúng request body (systemInstruction, contents role user/model, functionResponse) và parse `functionCall` thành `toolCalls`; (b) HTTP 429 → reject; (c) factory `none`→undefined, `gemini`+key→instance, `gemini` thiếu key→undefined.
 
-- [ ] **Step 2: Run** `pnpm --filter @courthub/api test -- gemini.client` → FAIL (module chưa tồn tại).
+- [ ] **Step 2: Run** `pnpm --filter @sango/api test -- gemini.client` → FAIL (module chưa tồn tại).
 
 - [ ] **Step 3: Implement 3 file interface/client/factory** theo spec §3.1. Mapping: `system`→`systemInstruction`; `assistant.toolCalls`→parts `functionCall{name,args}`; `tool`→role `user` + part `functionResponse{name,response:{result:<json string>}}`; response parts `text` nối chuỗi, `functionCall`→`{id:'call_'+i,name,args}`. Header `x-goog-api-key`, timeout 12s AbortController, URL `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`.
 
@@ -75,7 +75,7 @@ Mock `global.fetch` bằng `jest.spyOn`. Ba case: (a) map đúng request body (s
 - [ ] **Step 1:** Sửa DTO + controller ApiBody schema (thêm `history`).
 - [ ] **Step 2:** Sửa `AiChatService.chat` nhận `ctx?: ChatContext`, thay `user?.id` → `ctx?.user?.id`, bỏ qua history.
 - [ ] **Step 3:** Module: `{ provide:'LlmClient', useFactory: createLlmClient }` + factory `ChatOrchestrator` inject `['LlmClient', AiChatService]` → có client thì `new AgentChatService(client, tools, ruleBased)` else `ruleBased`. Controller: `@Inject('ChatOrchestrator')`.
-- [ ] **Step 4:** `pnpm --filter @courthub/api test && pnpm --filter @courthub/api typecheck` → PASS.
+- [ ] **Step 4:** `pnpm --filter @sango/api test && pnpm --filter @sango/api typecheck` → PASS.
 - [ ] **Step 5: Commit** `feat(ai): multi-turn history + orchestrator wiring`
 
 ### Task 4: Web — gửi history kèm tin nhắn
@@ -85,7 +85,7 @@ Mock `global.fetch` bằng `jest.spyOn`. Ba case: (a) map đúng request body (s
 - Modify: `apps/web/src/features/ai/api.ts` (`sendAiChat(message, history)`)
 - Modify: `apps/web/src/features/ai/queries.ts` (mutationFn nhận `{message, history}`)
 - Modify: `apps/web/src/features/ai/components/ai-chat-widget.tsx` (hàm `send` dựng history từ `messages`, bỏ welcome/bubble hold/needLogin, slice 8)
-- Test: `pnpm --filter @courthub/web test` (widget test đi qua mock-server, body thêm field không phá assertion cũ)
+- Test: `pnpm --filter @sango/web test` (widget test đi qua mock-server, body thêm field không phá assertion cũ)
 
 - [ ] Commit: `feat(web): send conversation history to ai chat`
 

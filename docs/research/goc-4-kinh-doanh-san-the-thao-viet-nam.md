@@ -1,6 +1,6 @@
-# GÓC 4 — Thực tế kinh doanh sân thể thao Việt Nam (research cho CourtHub)
+# GÓC 4 — Thực tế kinh doanh sân thể thao Việt Nam (research cho SanGo)
 
-> Mục tiêu: đối chiếu nghiệp vụ CourtHub với cách sân bóng/pickleball/cầu lông vận hành ngoài đời tại HN–HCM.
+> Mục tiêu: đối chiếu nghiệp vụ SanGo với cách sân bóng/pickleball/cầu lông vận hành ngoài đời tại HN–HCM.
 > Ngày nghiên cứu: 2026-08-25. Phương pháp: web_search + read_page nhiều vòng (báo chí VN, Google Play/App Store, group Facebook, trang chính sách của chính các sân).
 
 ---
@@ -87,9 +87,9 @@ Bối cảnh kinh tế chủ sân: chuyển nhượng quyền khai thác + redo 
 - Niềm tin thanh toán chưa có hạ tầng: lừa cọc giả danh chủ sân ngoài app (Lao Động) → cần xác thực chủ sân + cọc nằm trong hệ thống thay vì STK cá nhân.
 - Policy hủy mỗi sân một kiểu, phải đọc FAQ từng sân; sanbong.vn phải viết "mẫu policy + script trả lời khách giúp giảm 80% tranh chấp" → chuẩn hóa policy trên nền tảng là giá trị thật: https://sanbong.vn/blog/quan-ly-san-pickleball-dat-coc-huy-hoan-tien
 
-## Đối chiếu nhanh với CourtHub (đã có)
+## Đối chiếu nhanh với SanGo (đã có)
 
-| Nghiệp vụ ngoài đời | Feature CourtHub | Ghi chú từ research |
+| Nghiệp vụ ngoài đời | Feature SanGo | Ghi chú từ research |
 |---|---|---|
 | Hold miệng qua Zalo | Hold 10 phút | Chuẩn thị trường (ChọnSân cũng 10 phút) |
 | Cọc STK cá nhân + ảnh biên lai | VNPay mock + QR | Đúng điểm lừa đảo cọc cần hóa giải |

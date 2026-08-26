@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight, Loader2, X } from 'lucide-react';
-import { useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { Button } from '../../../components/ui/button';
@@ -15,6 +15,8 @@ import {
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { cn } from '../../../lib/utils';
+
+import { SUPPORTED_CITIES, districtsOfCity } from '@sango/shared';
 
 import { AMENITY_OPTIONS, venueFormSchema, type VenueFormValues } from '../schemas';
 
@@ -33,8 +35,10 @@ interface VenueFormDialogProps {
 const DEFAULT_VALUES: VenueFormValues = {
   name: '',
   address: '',
-  lat: 10.775,
-  lng: 106.7,
+  city: 'Hà Nội',
+  district: '',
+  lat: 21.0285,
+  lng: 105.8542,
   openHour: 6,
   closeHour: 23,
   depositPercent: 30,
@@ -57,8 +61,18 @@ export function VenueFormDialog({
     resolver: zodResolver(venueFormSchema),
     defaultValues: venue ?? DEFAULT_VALUES,
   });
+  // Dialog render thường trực — reset form mỗi lần MỞ để (a) prefill đúng venue đang sửa,
+  // (b) không giữ dữ liệu của venue trước (nguy cơ ghi đè nhầm lên bản ghi khác).
+  useEffect(() => {
+    if (open) {
+      setStep(0);
+      form.reset(venue ?? DEFAULT_VALUES);
+    }
+  }, [open, venue, form]);
   const images = form.watch('images');
   const amenities = form.watch('amenities');
+  const selectedCity = form.watch('city');
+  const districtOptions = districtsOfCity(selectedCity);
 
   function addImage(): void {
     const url = newImage.trim();
@@ -77,7 +91,7 @@ export function VenueFormDialog({
 
   async function next(): Promise<void> {
     const fieldsByStep: (keyof VenueFormValues)[][] = [
-      ['name', 'address', 'lat', 'lng'],
+      ['name', 'address', 'city', 'district', 'lat', 'lng'],
       ['images'],
       ['openHour', 'closeHour', 'depositPercent'],
     ];
@@ -153,6 +167,61 @@ export function VenueFormDialog({
                     {form.formState.errors.address.message}
                   </p>
                 ) : null}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="venue-city">Thành phố</Label>
+                  <select
+                    id="venue-city"
+                    aria-label="Chọn thành phố"
+                    value={selectedCity}
+                    onChange={(event) => {
+                      form.setValue('city', event.target.value as VenueFormValues['city'], {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                      // Đổi thành phố -> quận cũ không còn hợp lệ, reset để chọn lại
+                      form.setValue('district', '', { shouldDirty: true, shouldValidate: true });
+                    }}
+                    className={cn(
+                      'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors',
+                      'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    )}
+                  >
+                    {SUPPORTED_CITIES.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                  {form.formState.errors.city ? (
+                    <p className="text-xs text-destructive">{form.formState.errors.city.message}</p>
+                  ) : null}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="venue-district">Quận / Huyện</Label>
+                  <select
+                    id="venue-district"
+                    aria-label="Chọn quận huyện"
+                    {...form.register('district')}
+                    className={cn(
+                      'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors',
+                      'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    )}
+                  >
+                    <option value="">Chọn quận/huyện</option>
+                    {districtOptions.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  {form.formState.errors.district ? (
+                    <p className="text-xs text-destructive">
+                      {form.formState.errors.district.message}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">

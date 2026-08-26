@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 type Theme = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';
 
-const STORAGE_KEY = 'courthub-theme';
+const STORAGE_KEY = 'sango-theme';
 
 interface ThemeContextValue {
   theme: Theme;

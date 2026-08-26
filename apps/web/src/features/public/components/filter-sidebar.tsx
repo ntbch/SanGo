@@ -1,5 +1,5 @@
 import { type ReactElement } from 'react';
-import { HANOI_DISTRICTS, SportType, SPORT_TYPE_LABELS } from '@courthub/shared';
+import { SUPPORTED_CITIES, SportType, SPORT_TYPE_LABELS, districtsOfCity } from '@sango/shared';
 
 import { Button } from '../../../components/ui/button';
 import { Label } from '../../../components/ui/label';
@@ -26,28 +26,34 @@ export const FILTERABLE_SPORT_TYPES: SportType[] = [
 
 interface FilterSidebarProps {
   sportType?: string;
+  /** Thành phố đang chọn — quyết định danh sách quận phía dưới (cascade). */
+  city?: string;
   district?: string;
   sort: VenueSort;
   hasGps?: boolean;
   onSportTypeChange: (value?: string) => void;
+  onCityChange: (value?: string) => void;
   onDistrictChange: (value?: string) => void;
   onSortChange: (value: VenueSort) => void;
 }
 
 /**
  * Cột lọc trái: panel kính mờ sticky (DESIGN.md — Depth Cues/Glassmorphism cho
- * filter bar) gồm dropdown 12 quận Hà Nội, chip loại sân + sắp xếp.
+ * filter bar) gồm dropdown Thành phố → Quận/Huyện (cascade), chip loại sân + sắp xếp.
  * Dùng native select để tinh gọn và đồng bộ.
  */
 export function FilterSidebar({
   sportType,
+  city,
   district,
   sort,
   hasGps = false,
+  onCityChange,
   onDistrictChange,
   onSortChange,
   onSportTypeChange,
 }: FilterSidebarProps): ReactElement {
+  const districtOptions = city ? districtsOfCity(city) : [];
   const availableSorts: VenueSort[] = hasGps
     ? ['distance', 'newest', 'price-asc', 'price-desc']
     : ['newest', 'price-asc', 'price-desc', 'distance'];
@@ -61,27 +67,58 @@ export function FilterSidebar({
         Bộ lọc
       </p>
       <div className="space-y-2">
+        <Label htmlFor="venue-city" className="text-sm font-semibold">
+          Thành phố
+        </Label>
+        <select
+          id="venue-city"
+          aria-label="Chọn thành phố"
+          value={city ?? ''}
+          onChange={(event) => onCityChange(event.target.value ? event.target.value : undefined)}
+          className={cn(
+            'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors',
+            'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+        >
+          <option value="">Tất cả thành phố</option>
+          {SUPPORTED_CITIES.map((supported) => (
+            <option key={supported} value={supported}>
+              {supported}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="venue-district" className="text-sm font-semibold">
-          Quận / Huyện (Hà Nội)
+          Quận / Huyện
         </Label>
         <select
           id="venue-district"
           aria-label="Chọn quận huyện"
           value={district ?? ''}
+          disabled={!city}
           onChange={(event) =>
             onDistrictChange(event.target.value ? event.target.value : undefined)
           }
           className={cn(
             'h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors',
             'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            !city && 'cursor-not-allowed opacity-60',
           )}
         >
-          <option value="">Tất cả quận/huyện</option>
-          {HANOI_DISTRICTS.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
+          {city ? (
+            <>
+              <option value="">Tất cả quận/huyện</option>
+              {districtOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </>
+          ) : (
+            <option value="">Chọn thành phố trước</option>
+          )}
         </select>
       </div>
 

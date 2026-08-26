@@ -1,7 +1,7 @@
 import { MapPin, Navigation } from 'lucide-react';
 import { type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { buildGoogleMapsUrl, formatDistance } from '@courthub/shared';
+import { buildGoogleMapsUrl, formatDistance } from '@sango/shared';
 
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent } from '../../../components/ui/card';
@@ -67,8 +67,9 @@ export function VenueCard({ venue }: VenueCardProps): ReactElement {
             <span />
           )}
           {distanceLabel !== null ? (
-            <span className="rounded-full bg-turf px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-on-turf shadow-sm">
-              📍 Cách bạn {distanceLabel}
+            <span className="flex items-center gap-1 rounded-full bg-turf px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-on-turf shadow-sm">
+              <MapPin className="size-3" aria-hidden />
+              Cách bạn {distanceLabel}
             </span>
           ) : null}
         </span>

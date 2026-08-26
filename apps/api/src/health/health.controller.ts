@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 
-import { type HealthResponse } from '@courthub/shared';
+import { type HealthResponse } from '@sango/shared';
 
 @Controller('health')
 export class HealthController {

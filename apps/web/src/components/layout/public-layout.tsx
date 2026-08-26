@@ -1,8 +1,8 @@
-import { Menu, Trophy } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { APP_NAME, UserRole } from '@courthub/shared';
+import { APP_NAME, UserRole } from '@sango/shared';
 import { NotificationBell } from '../../features/notifications/components/notification-bell';
 import { ThemeToggle } from '../theme/theme-toggle';
 import {
@@ -47,9 +47,11 @@ export function PublicLayout(): ReactElement {
               to="/"
               className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-primary"
             >
-              <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(15,23,42,0.08)]">
-                <Trophy className="size-5" aria-hidden />
-              </span>
+              <img
+                src="/logo-256.png"
+                alt={`Logo ${APP_NAME}`}
+                className="size-9 rounded-lg object-cover shadow-[0_4px_20px_rgba(15,23,42,0.08)]"
+              />
               {APP_NAME}
             </Link>
             {/* Điều hướng public cho khách (P1-F1): xem được sân/trận trước khi đăng nhập */}
@@ -156,9 +158,11 @@ export function PublicLayout(): ReactElement {
         >
           <div>
             <div className="mb-1 flex items-center gap-2 text-lg font-extrabold tracking-tight text-turf-bright">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-turf/15">
-                <Trophy className="size-5" aria-hidden />
-              </span>
+              <img
+                src="/logo-256.png"
+                alt={`Logo ${APP_NAME}`}
+                className="size-8 rounded-lg object-cover bg-white/10"
+              />
               {APP_NAME}
             </div>
             <p className="text-sm">

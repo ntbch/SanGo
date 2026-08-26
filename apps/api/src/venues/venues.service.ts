@@ -1,11 +1,16 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { calculateHaversineDistanceKm } from '@courthub/shared';
+import {
+  calculateHaversineDistanceKm,
+  isSupportedCity,
+  isValidDistrictForCity,
+} from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { uniqueSlug } from './slug.util';
 import type {
@@ -294,7 +299,22 @@ export class VenuesService {
   }
 
   async update(id: string, user: Pick<User, 'id' | 'role'>, dto: UpdateVenueDto) {
-    await this.canManageVenue(id, user);
+    const venue = await this.canManageVenue(id, user);
+    // Cascade TP → Quận theo TRẠNG THÁI SAU MERGE: update một phần chỉ gửi district
+    // phải được đối chiếu với city hiện có của bản ghi, không chỉ payload.
+    if (dto.city !== undefined || dto.district !== undefined) {
+      const mergedCity = dto.city ?? venue.city;
+      const mergedDistrict = dto.district ?? venue.district;
+      if (
+        isSupportedCity(mergedCity) &&
+        !isValidDistrictForCity(mergedCity, mergedDistrict)
+      ) {
+        throw new BadRequestException({
+          message: `DISTRICT_NOT_IN_CITY: "${mergedDistrict}" không thuộc thành phố "${mergedCity}"`,
+          code: 'DISTRICT_NOT_IN_CITY',
+        });
+      }
+    }
     return this.prisma.venue.update({ where: { id }, data: dto });
   }
 

@@ -1,4 +1,4 @@
-import { vnToday } from '@courthub/shared';
+import { vnToday } from '@sango/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AiToolsService } from './ai-tools.service';
 import type { NluProvider } from './nlu-provider.interface';
@@ -9,7 +9,7 @@ export interface AiChatResponse {
   intent: 'SEARCH_SLOTS' | 'HOLD_REQUEST' | 'FALLBACK';
   /** Câu trả lời hiển thị trong bubble AI — chỉ dùng số liệu từ tool thật. */
   reply: string;
-  /** Tên các tool đã chạy để UI hiện "[tool: xxx ✓]" (minh bạch anti-hallucination). */
+  /** Tên các tool đã chạy để UI hiện "[tool: xxx]" kèm icon BadgeCheck (minh bạch anti-hallucination). */
   toolsUsed: string[];
   data: {
     venues?: Awaited<ReturnType<AiToolsService['searchVenues']>>;
@@ -98,7 +98,7 @@ export class AiChatService implements ChatOrchestrator {
     return {
       intent: 'FALLBACK',
       reply: [
-        'Chào bạn! Mình giúp tìm sân và xem lịch trống 🏸',
+        'Chào bạn! Mình giúp tìm sân và xem lịch trống.',
         'Bạn thử: "cho mình sân pickleball gần Gò Vấp tối nay" hoặc "sân X còn giờ nào ngày mai?".',
         'Khi thấy giờ ưng ý, đăng nhập và bấm "Giữ chỗ" — mình không tự đặt giúp bạn.',
       ].join('\n'),

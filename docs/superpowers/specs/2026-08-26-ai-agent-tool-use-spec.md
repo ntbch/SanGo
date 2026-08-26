@@ -1,4 +1,4 @@
-# Đặc Tả: Nâng cấp Trợ lý AI — LLM Agent tool-use đa lượt (CourtHub GĐ2)
+# Đặc Tả: Nâng cấp Trợ lý AI — LLM Agent tool-use đa lượt (SanGo GĐ2)
 
 > Ngày: 2026-08-26 · Phân loại: Architectural · Thay thế pipeline NLU cứng bằng vòng lặp LLM tool-use, giữ nguyên guardrail chống bịa dữ liệu.
 
@@ -51,7 +51,7 @@ interface LlmClient {
 
 ### 3.2. Agent orchestrator (`agent-chat.service.ts`)
 
-- System prompt tiếng Việt gồm: vai trò trợ lý CourtHub, ngày hôm nay (`vnToday()`), guardrail:
+- System prompt tiếng Việt gồm: vai trò trợ lý SanGo, ngày hôm nay (`vnToday()`), guardrail:
   1. CHỈ được nêu số liệu sân/giá/giờ từ kết quả tool; hết dữ liệu thì nói thẳng là hết.
   2. TUYỆT ĐỐI không hứa giữ chỗ/thanh toán hộ — hướng dẫn user bấm chip giờ và đăng nhập.
   3. Trả lời ngắn gọn (≤120 từ), tiếng Việt thân thiện.

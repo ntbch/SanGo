@@ -1,4 +1,4 @@
-# Wireframe các màn chính — CourtHub (low-fi)
+# Wireframe các màn chính — SanGo (low-fi)
 
 > **⚠️ GHI CHÚ ĐỊNH HƯỚNG:** đây là wireframe **low-fi** nhằm chốt cấu trúc,
 > thành phần và luồng chức năng để các task frontend có điểm tựa thống nhất.

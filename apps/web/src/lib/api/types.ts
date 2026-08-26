@@ -1,4 +1,4 @@
-import { type UserRole } from '@courthub/shared';
+import { type UserRole } from '@sango/shared';
 
 /** Người dung tối giản client cần sau khi đăng nhập (payload auth của API). */
 export interface AuthUser {

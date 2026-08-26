@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, BookingStatus, PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
-import { NotificationType } from '@courthub/shared';
+import { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotifyService } from '../notifications/notify.service';
 import { WalletsService } from '../wallets/wallets.service';
@@ -426,7 +426,7 @@ export class BookingsService {
         userId: d.customerId,
         type: NotificationType.PAYMENT_RECEIVED,
         title: 'Thanh toán đã được ghi nhận',
-        body: `CourtHub đã nhận ${amountPaid.toLocaleString('vi-VN')}đ cho đơn ${d.code}`,
+        body: `SanGo đã nhận ${amountPaid.toLocaleString('vi-VN')}đ cho đơn ${d.code}`,
         link,
         mail: paymentReceiptEmail({ ...mailBase, amountVnd: amountPaid }),
       });

@@ -23,10 +23,10 @@ export class MailerService {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: process.env.MAIL_FROM ?? 'CourtHub <no-reply@courthub.vn>',
+          from: process.env.MAIL_FROM ?? 'SanGo <no-reply@sango.vn>',
           to: [email],
-          subject: 'CourtHub — Đặt lại mật khẩu',
-          html: `<p>Bạn vừa yêu cầu đặt lại mật khẩu CourtHub.</p><p><a href="${resetLink}">Nhấn vào đây để đặt mật khẩu mới</a> (hết hạn sau 30 phút).</p><p>Nếu không phải bạn, hãy bỏ qua email này.</p>`,
+          subject: 'SanGo — Đặt lại mật khẩu',
+          html: `<p>Bạn vừa yêu cầu đặt lại mật khẩu SanGo.</p><p><a href="${resetLink}">Nhấn vào đây để đặt mật khẩu mới</a> (hết hạn sau 30 phút).</p><p>Nếu không phải bạn, hãy bỏ qua email này.</p>`,
         }),
       });
       if (!res.ok) {

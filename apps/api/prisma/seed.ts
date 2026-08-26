@@ -1,9 +1,10 @@
 /**
- * CourtHub — seed dữ liệu demo đẹp (đặc tả §9 & Master Data 12 Quận Hà Nội).
+ * SanGo — seed dữ liệu demo đẹp (đặc tả §9 & Master Data 12 Quận Hà Nội).
  *
- * Chạy: pnpm --filter @courthub/api db:seed
+ * Chạy: pnpm --filter @sango/api db:seed
  * Dữ liệu: reset toàn bộ rồi tạo lại (deterministic cho demo/đồ án):
- *  - 24 venue APPROVED tại 12 quận nội thành Hà Nội + 1 venue TP.HCM
+ *  - Venue APPROVED từ dữ liệu AloBo, CHỈ giữ Hà Nội + TP.HCM
+ *    (lọc bỏ venue ngoài 2 thành phố và venue bị gán nhầm city ở tỉnh khác)
  *  - Phủ đủ 5 sportType: FOOTBALL5, FOOTBALL7, PICKLEBALL, BADMINTON, TENNIS
  *  - Pricing rules ngày thường / cuối tuần hợp lý
  *  - Booking mẫu đủ trạng thái + Payment + Review + BookingHold
@@ -11,16 +12,18 @@
  *    3 đơn CONFIRMED đã trả cùng 1 ngày tới (demo hủy hàng loạt N2),
  *    thông báo WALLET chưa đọc sẵn cho chuông thông báo.
  *  - 4 tài khoản demo (mật khẩu in rõ ở cuối log)
- *  - SPRINT 3 (F7/F2): giải 'CourtHub Open 2026' 8 đội bracket sẵn round 1,
+ *  - SPRINT 3 (F7/F2): giải 'SanGo Open 2026' 8 đội bracket sẵn round 1,
  *    booking lịch sử đa dạng cho ranking; chạy với cờ '--reset' để chỉ reset phần giải đấu
  */
 import { PrismaClient, type SportType } from '@prisma/client';
+import { isValidDistrictForCity } from '@sango/shared';
 import bcrypt from 'bcryptjs';
+import aloboVenues from './data/alobo_venues.json';
 
 const prisma = new PrismaClient();
 
 /** Mật khẩu dùng chung của 3 tài khoản demo — in rõ khi seed theo yêu cầu. */
-export const DEMO_PASSWORD = 'Courthub@2026';
+export const DEMO_PASSWORD = 'Sango@2026';
 
 /** Ngày hôm nay theo giờ Việt Nam (UTC+7), dạng YYYY-MM-DD. */
 function vnToday(): string {
@@ -101,40 +104,40 @@ async function ensureTeam(name: string, sportType: SportType, captainId: string)
 }
 
 /**
- * SPRINT 3 (F7): giải 'CourtHub Open 2026' — 8 đội FOOTBALL5, bracket single-elimination
+ * SPRINT 3 (F7): giải 'SanGo Open 2026' — 8 đội FOOTBALL5, bracket single-elimination
  * đã start đủ round 1 (4 trận QF READY cặp chuẩn [1v8,4v5,2v7,3v6], SF/chung kết PENDING)
  * để FE nhập điểm trực tiếp lúc bảo vệ. Chạy độc lập với phần seed còn lại.
  */
 async function seedSprint3Tournament(): Promise<void> {
-  const host = await prisma.user.findUnique({ where: { email: 'owner@courthub.vn' } });
+  const host = await prisma.user.findUnique({ where: { email: 'owner@sango.vn' } });
   if (!host) {
-    throw new Error('Chưa có owner@courthub.vn — hãy chạy seed đầy đủ trước khi reset giải đấu.');
+    throw new Error('Chưa có owner@sango.vn — hãy chạy seed đầy đủ trước khi reset giải đấu.');
   }
-  const customer = await prisma.user.findUnique({ where: { email: 'customer@courthub.vn' } });
-  const customer2 = await prisma.user.findUnique({ where: { email: 'customer2@courthub.vn' } });
+  const customer = await prisma.user.findUnique({ where: { email: 'customer@sango.vn' } });
+  const customer2 = await prisma.user.findUnique({ where: { email: 'customer2@sango.vn' } });
   if (!customer || !customer2) {
     throw new Error('Thiếu tài khoản demo customer/customer2 — hãy chạy seed đầy đủ trước.');
   }
 
-  console.log('👤 S3: tạo 6 captain bổ sung cho giải đấu (captain3..captain8)...');
+  console.log('S3: tạo 6 captain bổ sung cho giải đấu (captain3..captain8)...');
   const extraDefs: Array<[string, string, string]> = [
-    ['captain3@courthub.vn', 'Vũ Đình Cầu', '0900000013'],
-    ['captain4@courthub.vn', 'Bùi Minh Bóng', '0900000014'],
-    ['captain5@courthub.vn', 'Đỗ Thanh Long', '0900000015'],
-    ['captain6@courthub.vn', 'Hoàng Văn Nhất', '0900000016'],
-    ['captain7@courthub.vn', 'Ngô Khánh Linh', '0900000017'],
-    ['captain8@courthub.vn', 'Dương Tuấn Kiệt', '0900000018'],
+    ['captain3@sango.vn', 'Vũ Đình Cầu', '0900000013'],
+    ['captain4@sango.vn', 'Bùi Minh Bóng', '0900000014'],
+    ['captain5@sango.vn', 'Đỗ Thanh Long', '0900000015'],
+    ['captain6@sango.vn', 'Hoàng Văn Nhất', '0900000016'],
+    ['captain7@sango.vn', 'Ngô Khánh Linh', '0900000017'],
+    ['captain8@sango.vn', 'Dương Tuấn Kiệt', '0900000018'],
   ];
   const extras = [];
   for (const [email, fullName, phone] of extraDefs) {
     extras.push(await ensureCustomer(email, fullName, phone));
   }
 
-  console.log('🏆 S3 F7: dựng giải CourtHub Open 2026 (8 đội single-elimination)...');
+  console.log('S3 F7: dựng giải SanGo Open 2026 (8 đội single-elimination)...');
   await clearTournaments();
 
   const teamDefs: Array<{ name: string; captainId: string }> = [
-    { name: 'FC CourtHub', captainId: customer.id },
+    { name: 'FC SanGo', captainId: customer.id },
     { name: 'Hà Nội Rangers', captainId: customer2.id },
     { name: 'FC Tây Hồ', captainId: extras[0].id },
     { name: 'Golden Star FC', captainId: extras[1].id },
@@ -150,7 +153,7 @@ async function seedSprint3Tournament(): Promise<void> {
 
   const tour = await prisma.tournament.create({
     data: {
-      name: 'CourtHub Open 2026',
+      name: 'SanGo Open 2026',
       description: 'Giải bóng đá 5 người khai mạc hệ thống — 8 đội đấu loại trực tiếp.',
       sportType: 'FOOTBALL5',
       maxTeams: 8,
@@ -223,7 +226,7 @@ async function seedRankingHistory(
   courts: Array<{ id: string }>,
   users: Array<{ id: string }>,
 ): Promise<void> {
-  console.log('📊 S3 F2: tạo booking lịch sử đa dạng cho ranking...');
+  console.log('S3 F2: tạo booking lịch sử đa dạng cho ranking...');
   type Outcome = 'ONTIME' | 'NOSHOW' | 'LATE_CANCEL';
   interface HistSpec {
     userIdx: number;
@@ -409,13 +412,13 @@ async function seedRankingHistory(
 async function main() {
   // --reset: chỉ dọn + seed lại PHẦN GIẢI ĐẤU, giữ nguyên venue/booking/ví/đội hiện có.
   if (process.argv.includes('--reset')) {
-    console.log('🔄 --reset: dọn bảng tournament* (FK-an-toàn) rồi seed lại giải demo S3...');
+    console.log('--reset: dọn bảng tournament* (FK-an-toàn) rồi seed lại giải demo S3...');
     await clearTournaments();
     await seedSprint3Tournament();
     return;
   }
 
-  console.log('🧹 Dọn dữ liệu cũ...');
+  console.log('Dọn dữ liệu cũ...');
   // Thứ tự FK-an-toàn: con trước cha; bảng F6/F3/F8/S2/S3 xoá trước users.
   await clearTournaments(); // giải đấu xoá trước teams (FK championTeamId)
   await prisma.expenseShare.deleteMany();
@@ -442,11 +445,11 @@ async function main() {
   await prisma.bookingCodeSeq.deleteMany(); // reset bộ đếm mã đơn -> demo luôn CH-...-0001
   await prisma.user.deleteMany();
 
-  console.log('👤 Tạo tài khoản demo...');
+  console.log('Tạo tài khoản demo...');
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
   await prisma.user.create({
     data: {
-      email: 'admin@courthub.vn',
+      email: 'admin@sango.vn',
       passwordHash,
       fullName: 'Nguyễn Quản Trị',
       phone: '0900000001',
@@ -455,7 +458,7 @@ async function main() {
   });
   const owner = await prisma.user.create({
     data: {
-      email: 'owner@courthub.vn',
+      email: 'owner@sango.vn',
       passwordHash,
       fullName: 'Trần Văn Chủ Sân',
       phone: '0900000002',
@@ -464,7 +467,7 @@ async function main() {
   });
   const customer = await prisma.user.create({
     data: {
-      email: 'customer@courthub.vn',
+      email: 'customer@sango.vn',
       passwordHash,
       fullName: 'Lê Thị Khách Hàng',
       phone: '0900000003',
@@ -474,7 +477,7 @@ async function main() {
   // Khách thứ 2 phục vụ demo N2 (hủy hàng loạt -> hoàn ví + thông báo TỪNG khách)
   const customer2 = await prisma.user.create({
     data: {
-      email: 'customer2@courthub.vn',
+      email: 'customer2@sango.vn',
       passwordHash,
       fullName: 'Phạm Văn Khách Hai',
       phone: '0900000004',
@@ -482,873 +485,32 @@ async function main() {
     },
   });
 
-  console.log('🏟️  Tạo 24 cụm sân tại 12 quận Hà Nội + 1 cụm sân TP.HCM...');
-  const venueSpecs: VenueSpec[] = [
-    // --- 1. BA ĐÌNH ---
-    {
-      name: 'Sân Thể Thao Quần Ngựa',
-      slug: 'san-the-thao-quan-ngua',
-      city: 'Hà Nội',
-      district: 'Ba Đình',
-      address: '30 Văn Cao, Liễu Giai, Ba Đình, Hà Nội',
-      lat: 21.0384,
-      lng: 105.8152,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi đỗ xe', 'Phòng thay đồ', 'Căng tin', 'Wifi'],
-      images: [
-        'https://picsum.photos/seed/quan-ngua-1/800/500',
-        'https://picsum.photos/seed/quan-ngua-2/800/500',
-      ],
-      courts: [
-        {
-          name: 'Sân Pickleball Quần Ngựa 1',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 130_000,
-        },
-        {
-          name: 'Sân Cầu Lông Quần Ngựa',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 100_000,
-        },
-        {
-          name: 'Sân Tennis Quần Ngựa',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 350_000,
-        },
-      ],
-    },
-    {
-      name: 'Cụm Sân Bóng Đá Hoàng Hoa Thám',
-      slug: 'cum-san-bong-da-hoang-hoa-tham',
-      city: 'Hà Nội',
-      district: 'Ba Đình',
-      address: '250 Hoàng Hoa Thám, Thụy Khuê, Ba Đình, Hà Nội',
-      lat: 21.0421,
-      lng: 105.8236,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi xe máy', 'Đèn chiếu sáng ban đêm', 'Nước uống'],
-      images: ['https://picsum.photos/seed/hoang-hoa-tham-1/800/500'],
-      courts: [
-        {
-          name: 'Sân 5 Hoàng Hoa Thám A',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 450_000,
-        },
-        {
-          name: 'Sân 7 Hoàng Hoa Thám B',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 850_000,
-        },
-      ],
-    },
-
-    // --- 2. CẦU GIẤY ---
-    {
-      name: 'Tổ Hợp Thể Thao Cầu Giấy',
-      slug: 'to-hop-the-thao-cau-giay',
-      city: 'Hà Nội',
-      district: 'Cầu Giấy',
-      address: '35 Trần Quý Kiên, Dịch Vọng, Cầu Giấy, Hà Nội',
-      lat: 21.0368,
-      lng: 105.7925,
-      openMinute: 360,
-      closeMinute: 1410,
-      depositPercent: 30,
-      amenities: ['Bãi xe ô tô', 'Phòng tắm nóng lạnh', 'Cho thuê vợt', 'Wifi'],
-      images: [
-        'https://picsum.photos/seed/to-hop-cau-giay-1/800/500',
-        'https://picsum.photos/seed/to-hop-cau-giay-2/800/500',
-      ],
-      courts: [
-        {
-          name: 'Sân Cầu Lông Số 1',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 90_000,
-        },
-        {
-          name: 'Sân Cầu Lông Số 2',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 90_000,
-        },
-        {
-          name: 'Sân Pickleball Cầu Giấy',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 130_000,
-        },
-        {
-          name: 'Sân Tennis Cầu Giấy',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 320_000,
-        },
-      ],
-    },
-    {
-      name: 'Sân Bóng Đá & Pickleball Trung Kính',
-      slug: 'san-bong-da-pickleball-trung-kinh',
-      city: 'Hà Nội',
-      district: 'Cầu Giấy',
-      address: '218 Trung Kính, Yên Hòa, Cầu Giấy, Hà Nội',
-      lat: 21.0182,
-      lng: 105.7938,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi đỗ xe', 'Căng tin', 'Tủ đồ'],
-      images: ['https://picsum.photos/seed/trung-kinh-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Trung Kính',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 420_000,
-        },
-        {
-          name: 'Sân Pickleball Trung Kính',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-      ],
-    },
-
-    // --- 3. ĐỐNG ĐA ---
-    {
-      name: 'Sân thể thao Ngọc Khánh',
-      slug: 'san-the-thao-ngoc-khanh',
-      city: 'Hà Nội',
-      district: 'Đống Đa',
-      address: 'Số 12 Nguyễn Chí Thanh, Láng Thượng, Đống Đa, Hà Nội',
-      lat: 21.0283,
-      lng: 105.8142,
-      openMinute: 360,
-      closeMinute: 1410,
-      depositPercent: 30,
-      amenities: ['Phòng thay đồ', 'Bãi xe miễn phí', 'Nước uống miễn phí', 'Wifi'],
-      images: [
-        'https://picsum.photos/seed/courthub-ngoc-khanh-1/800/500',
-        'https://picsum.photos/seed/courthub-ngoc-khanh-2/800/500',
-      ],
-      courts: [
-        {
-          name: 'Sân bóng đá 5 người A',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân bóng đá 5 người B',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân Pickleball trong nhà',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-      ],
-    },
-    {
-      name: 'Cụm Sân Thể Thao Hoàng Cầu',
-      slug: 'cum-san-the-thao-hoang-cau',
-      city: 'Hà Nội',
-      district: 'Đống Đa',
-      address: 'Số 1 Ngõ 69 Hoàng Cầu, Ô Chợ Dừa, Đống Đa, Hà Nội',
-      lat: 21.0185,
-      lng: 105.8234,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Ven hồ thoáng mát', 'Bãi xe', 'Căng tin giải khát'],
-      images: ['https://picsum.photos/seed/hoang-cau-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Cầu Lông Hoàng Cầu',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 95_000,
-        },
-        {
-          name: 'Sân Tennis Hoàng Cầu',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 300_000,
-        },
-        {
-          name: 'Sân Bóng Đá 5 Hoàng Cầu',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-      ],
-    },
-
-    // --- 4. HAI BÀ TRƯNG ---
-    {
-      name: 'Cụm Sân Thể Thao Bách Khoa',
-      slug: 'cum-san-the-thao-bach-khoa',
-      city: 'Hà Nội',
-      district: 'Hai Bà Trưng',
-      address: 'Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội',
-      lat: 21.0068,
-      lng: 105.8452,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi đỗ xe lớn', 'Khán đài', 'Phòng thay đồ'],
-      images: ['https://picsum.photos/seed/bach-khoa-1/800/500'],
-      courts: [
-        {
-          name: 'Sân 5 Bách Khoa 1',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân 7 Bách Khoa Pro',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 800_000,
-        },
-        {
-          name: 'Sân Cầu Lông Nhà Thi Đấu BK',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 85_000,
-        },
-      ],
-    },
-    {
-      name: 'CLB Pickleball & Tennis Tuổi Trẻ',
-      slug: 'clb-pickleball-tennis-tuoi-tre',
-      city: 'Hà Nội',
-      district: 'Hai Bà Trưng',
-      address: 'Công viên Tuổi Trẻ, Võ Thị Sáu, Thanh Nhàn, Hai Bà Trưng, Hà Nội',
-      lat: 21.0041,
-      lng: 105.8562,
-      openMinute: 360,
-      closeMinute: 1350,
-      depositPercent: 25,
-      amenities: ['Không gian xanh', 'Bãi xe ô tô', 'Huấn luyện viên'],
-      images: ['https://picsum.photos/seed/tuoi-tre-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Pickleball Tuổi Trẻ 1',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 110_000,
-        },
-        {
-          name: 'Sân Pickleball Tuổi Trẻ 2',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 110_000,
-        },
-        {
-          name: 'Sân Tennis Tuổi Trẻ',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 280_000,
-        },
-      ],
-    },
-
-    // --- 5. HOÀN KIẾM ---
-    {
-      name: 'Sân Thể Thao Phúc Tân',
-      slug: 'san-the-thao-phuc-tan',
-      city: 'Hà Nội',
-      district: 'Hoàn Kiếm',
-      address: 'Khu thể thao Phúc Tân, Phúc Tân, Hoàn Kiếm, Hà Nội',
-      lat: 21.0315,
-      lng: 105.8592,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi xe máy', 'Gần phố cổ', 'Nước uống'],
-      images: ['https://picsum.photos/seed/phuc-tan-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Phúc Tân',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 420_000,
-        },
-        {
-          name: 'Sân Cầu Lông Phúc Tân',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 95_000,
-        },
-      ],
-    },
-    {
-      name: 'Trung Tâm Thể Thao Hàng Chiếu',
-      slug: 'trung-tam-the-thao-hang-chieu',
-      city: 'Hà Nội',
-      district: 'Hoàn Kiếm',
-      address: '42 Hàng Chiếu, Đồng Xuân, Hoàn Kiếm, Hà Nội',
-      lat: 21.0378,
-      lng: 105.8515,
-      openMinute: 360,
-      closeMinute: 1320,
-      depositPercent: 30,
-      amenities: ['Trung tâm phố cổ', 'Điều hòa', 'Tủ đồ an toàn'],
-      images: ['https://picsum.photos/seed/hang-chieu-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Pickleball Phố Cổ',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 140_000,
-        },
-        {
-          name: 'Sân Cầu Lông Hàng Chiếu',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 110_000,
-        },
-      ],
-    },
-
-    // --- 6. THANH XUÂN ---
-    {
-      name: 'Cụm Sân Không Quân Lê Trọng Tấn',
-      slug: 'cum-san-khong-quan-le-trong-tan',
-      city: 'Hà Nội',
-      district: 'Thanh Xuân',
-      address: '168 Lê Trọng Tấn, Khương Mai, Thanh Xuân, Hà Nội',
-      lat: 20.9985,
-      lng: 105.8285,
-      openMinute: 360,
-      closeMinute: 1410,
-      depositPercent: 30,
-      amenities: ['Bãi xe ô tô cực rộng', 'Căng tin', 'Hệ thống đèn tiêu chuẩn'],
-      images: ['https://picsum.photos/seed/khong-quan-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Không Quân',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 420_000,
-        },
-        {
-          name: 'Sân Bóng Đá 7 Không Quân',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 850_000,
-        },
-        {
-          name: 'Sân Tennis Phòng Không',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 300_000,
-        },
-      ],
-    },
-    {
-      name: 'CLB Pickleball & Cầu Lông Thanh Xuân',
-      slug: 'clb-pickleball-cau-long-thanh-xuan',
-      city: 'Hà Nội',
-      district: 'Thanh Xuân',
-      address: '15 Khuất Duy Tiến, Nhân Chính, Thanh Xuân, Hà Nội',
-      lat: 20.9952,
-      lng: 105.8012,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 25,
-      amenities: ['Mặt thảm chuẩn thi đấu', 'Phòng thay đồ', 'Wifi tốc độ cao'],
-      images: ['https://picsum.photos/seed/thanh-xuan-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Pickleball Thanh Xuân A',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-        {
-          name: 'Sân Pickleball Thanh Xuân B',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-        {
-          name: 'Sân Cầu Lông Thanh Xuân 1',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 90_000,
-        },
-      ],
-    },
-
-    // --- 7. TÂY HỒ ---
-    {
-      name: 'D-Sports Quảng An',
-      slug: 'd-sports-quang-an',
-      city: 'Hà Nội',
-      district: 'Tây Hồ',
-      address: '50 Đặng Thai Mai, Quảng An, Tây Hồ, Hà Nội',
-      lat: 21.0645,
-      lng: 105.8282,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['View Hồ Tây', 'Cafe sang trọng', 'Phòng tắm nóng lạnh', 'Bãi xe ô tô'],
-      images: ['https://picsum.photos/seed/quang-an-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Pickleball View Hồ',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 150_000,
-        },
-        {
-          name: 'Sân Pickleball Pro Tây Hồ',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 150_000,
-        },
-        {
-          name: 'Sân Tennis D-Sports',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 380_000,
-        },
-      ],
-    },
-    {
-      name: 'Cụm Sân Thể Thao An Dương',
-      slug: 'cum-san-the-thao-an-duong',
-      city: 'Hà Nội',
-      district: 'Tây Hồ',
-      address: 'Ngõ 76 An Dương, Yên Phụ, Tây Hồ, Hà Nội',
-      lat: 21.0512,
-      lng: 105.8395,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi xe máy rộng', 'Đèn LED cao cấp', 'Nước ngọt'],
-      images: ['https://picsum.photos/seed/an-duong-1/800/500'],
-      courts: [
-        {
-          name: 'Sân 5 An Dương 1',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân 7 An Dương',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 800_000,
-        },
-        {
-          name: 'Sân Cầu Lông An Dương',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 90_000,
-        },
-      ],
-    },
-
-    // --- 8. HOÀNG MAI ---
-    {
-      name: 'Trung tâm cầu lông & Pickleball Hoàng Mai',
-      slug: 'cau-long-pickleball-hoang-mai',
-      city: 'Hà Nội',
-      district: 'Hoàng Mai',
-      address: 'KĐT Linh Đàm, Hoàng Liệt, Hoàng Mai, Hà Nội',
-      lat: 20.9845,
-      lng: 105.8541,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 25,
-      amenities: ['Phòng thay đồ', 'Bãi xe có mái che', 'Thuê vợt/cầu'],
-      images: [
-        'https://picsum.photos/seed/courthub-hoang-mai-1/800/500',
-        'https://picsum.photos/seed/courthub-hoang-mai-2/800/500',
-      ],
-      courts: [
-        {
-          name: 'Sân cầu lông 1',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 90_000,
-        },
-        {
-          name: 'Sân cầu lông 2',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 90_000,
-        },
-        {
-          name: 'Sân bóng đá 7 người',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 800_000,
-        },
-        {
-          name: 'Sân Pickleball ngoài trời',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 100_000,
-          status: 'MAINTENANCE',
-        },
-      ],
-    },
-    {
-      name: 'Sân Bóng Đá Định Công',
-      slug: 'san-bong-da-dinh-cong',
-      city: 'Hà Nội',
-      district: 'Hoàng Mai',
-      address: 'Định Công Thượng, Định Công, Hoàng Mai, Hà Nội',
-      lat: 20.9852,
-      lng: 105.8341,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi xe máy & ô tô', 'Khán đài mini', 'Căng tin'],
-      images: ['https://picsum.photos/seed/dinh-cong-1/800/500'],
-      courts: [
-        {
-          name: 'Sân 5 Định Công A',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 380_000,
-        },
-        {
-          name: 'Sân 7 Định Công B',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 750_000,
-        },
-      ],
-    },
-
-    // --- 9. LONG BIÊN ---
-    {
-      name: 'Cụm Sân Thể Thao Bồ Đề',
-      slug: 'cum-san-the-thao-bo-de',
-      city: 'Hà Nội',
-      district: 'Long Biên',
-      address: 'Phố Hồng Tiến, Bồ Đề, Long Biên, Hà Nội',
-      lat: 21.0385,
-      lng: 105.8752,
-      openMinute: 360,
-      closeMinute: 1410,
-      depositPercent: 30,
-      amenities: ['Bãi xe ô tô', 'Sân cỏ nhân tạo mới', 'Hệ thống đèn LED', 'Wifi'],
-      images: ['https://picsum.photos/seed/bo-de-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Bồ Đề',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân Pickleball Bồ Đề',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 110_000,
-        },
-        {
-          name: 'Sân Tennis Bồ Đề',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 290_000,
-        },
-      ],
-    },
-    {
-      name: 'Trung Tâm Pickleball & Cầu Lông Việt Hưng',
-      slug: 'trung-tam-pickleball-cau-long-viet-hung',
-      city: 'Hà Nội',
-      district: 'Long Biên',
-      address: 'KĐT Việt Hưng, Giang Biên, Long Biên, Hà Nội',
-      lat: 21.0615,
-      lng: 105.9085,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 25,
-      amenities: ['Nhà thi đấu có máy lạnh', 'Phòng tắm sạch', 'Cho thuê dụng cụ'],
-      images: ['https://picsum.photos/seed/viet-hung-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Pickleball Việt Hưng 1',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-        {
-          name: 'Sân Pickleball Việt Hưng 2',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-        {
-          name: 'Sân Cầu Lông Việt Hưng',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 85_000,
-        },
-      ],
-    },
-
-    // --- 10. HÀ ĐÔNG ---
-    {
-      name: 'Cụm Sân Thể Thao Văn Quán',
-      slug: 'cum-san-the-thao-van-quan',
-      city: 'Hà Nội',
-      district: 'Hà Đông',
-      address: 'KĐT Văn Quán, Văn Quán, Hà Đông, Hà Nội',
-      lat: 20.9785,
-      lng: 105.7892,
-      openMinute: 360,
-      closeMinute: 1410,
-      depositPercent: 30,
-      amenities: ['Ven hồ Văn Quán', 'Bãi xe ô tô', 'Căng tin đồ uống', 'Tủ đồ'],
-      images: ['https://picsum.photos/seed/van-quan-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Văn Quán',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 380_000,
-        },
-        {
-          name: 'Sân Pickleball Văn Quán',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 110_000,
-        },
-        {
-          name: 'Sân Cầu Lông Văn Quán',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 80_000,
-        },
-      ],
-    },
-    {
-      name: 'Sân Tennis & Pickleball Dương Nội',
-      slug: 'san-tennis-pickleball-duong-noi',
-      city: 'Hà Nội',
-      district: 'Hà Đông',
-      address: 'KĐT Dương Nội, Dương Nội, Hà Đông, Hà Nội',
-      lat: 20.9652,
-      lng: 105.7525,
-      openMinute: 360,
-      closeMinute: 1350,
-      depositPercent: 30,
-      amenities: ['Bãi đỗ xe', 'Hệ thống đèn LED', 'Nước uống'],
-      images: ['https://picsum.photos/seed/duong-noi-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Tennis Dương Nội 1',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 270_000,
-        },
-        {
-          name: 'Sân Pickleball Dương Nội',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 100_000,
-        },
-      ],
-    },
-
-    // --- 11. NAM TỪ LIÊM ---
-    {
-      name: 'Cụm Sân Tân Mỹ - Mỹ Đình',
-      slug: 'cum-san-tan-my-my-dinh',
-      city: 'Hà Nội',
-      district: 'Nam Từ Liêm',
-      address: 'Đường Tân Mỹ, Mỹ Đình 1, Nam Từ Liêm, Hà Nội',
-      lat: 21.0252,
-      lng: 105.7685,
-      openMinute: 360,
-      closeMinute: 1410,
-      depositPercent: 30,
-      amenities: ['Gần SVĐ Quốc Gia', 'Bãi xe cực lớn', 'Cỏ nhân tạo đạt chuẩn', 'Wifi'],
-      images: ['https://picsum.photos/seed/tan-my-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Tân Mỹ 1',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân Bóng Đá 7 Tân Mỹ Pro',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 850_000,
-        },
-        {
-          name: 'Sân Pickleball Mỹ Đình',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-      ],
-    },
-    {
-      name: 'Sân Bóng Đá & Cầu Lông Mễ Trì',
-      slug: 'san-bong-da-cau-long-me-tri',
-      city: 'Hà Nội',
-      district: 'Nam Từ Liêm',
-      address: 'Đường Mễ Trì Hạ, Mễ Trì, Nam Từ Liêm, Hà Nội',
-      lat: 21.0112,
-      lng: 105.7815,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 25,
-      amenities: ['Bãi đỗ xe máy & ô tô', 'Phòng thay đồ', 'Căng tin'],
-      images: ['https://picsum.photos/seed/me-tri-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Mễ Trì',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 400_000,
-        },
-        {
-          name: 'Sân Cầu Lông Mễ Trì',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 85_000,
-        },
-      ],
-    },
-
-    // --- 12. BẮC TỪ LIÊM ---
-    {
-      name: 'Cụm Sân Thể Thao Cổ Nhuế',
-      slug: 'cum-san-the-thao-co-nhue',
-      city: 'Hà Nội',
-      district: 'Bắc Từ Liêm',
-      address: 'Đường Cổ Nhuế, Cổ Nhuế 2, Bắc Từ Liêm, Hà Nội',
-      lat: 21.0685,
-      lng: 105.7725,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Bãi đỗ xe', 'Hệ thống đèn LED', 'Nước uống'],
-      images: ['https://picsum.photos/seed/co-nhue-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Bóng Đá 5 Cổ Nhuế',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 380_000,
-        },
-        {
-          name: 'Sân Bóng Đá 7 Cổ Nhuế',
-          sportType: 'FOOTBALL7',
-          slotMinutes: 90,
-          defaultPricePerSlot: 750_000,
-        },
-        {
-          name: 'Sân Cầu Lông Cổ Nhuế',
-          sportType: 'BADMINTON',
-          slotMinutes: 60,
-          defaultPricePerSlot: 80_000,
-        },
-      ],
-    },
-    {
-      name: 'CLB Pickleball & Tennis Xuân Đỉnh',
-      slug: 'clb-pickleball-tennis-xuan-dinh',
-      city: 'Hà Nội',
-      district: 'Bắc Từ Liêm',
-      address: 'Đường Xuân Đỉnh, Xuân Đỉnh, Bắc Từ Liêm, Hà Nội',
-      lat: 21.0745,
-      lng: 105.7885,
-      openMinute: 360,
-      closeMinute: 1380,
-      depositPercent: 30,
-      amenities: ['Khuôn viên rộng', 'Bãi xe ô tô', 'HLV chuyên nghiệp', 'Phòng tắm nóng lạnh'],
-      images: ['https://picsum.photos/seed/xuan-dinh-1/800/500'],
-      courts: [
-        {
-          name: 'Sân Pickleball Xuân Đỉnh 1',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-        {
-          name: 'Sân Pickleball Xuân Đỉnh 2',
-          sportType: 'PICKLEBALL',
-          slotMinutes: 60,
-          defaultPricePerSlot: 120_000,
-        },
-        {
-          name: 'Sân Tennis Xuân Đỉnh',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 300_000,
-        },
-      ],
-    },
-
-    // --- TP. HỒ CHÍ MINH ---
-    {
-      name: 'Tổng hợp thể thao Phú Thọ',
-      slug: 'tong-hop-the-thao-phu-tho',
-      city: 'TP. Hồ Chí Minh',
-      district: 'Quận 11',
-      address: '221 Lý Thường Kiệt, Quận 11, TP. Hồ Chí Minh',
-      lat: 10.7626,
-      lng: 106.673,
-      openMinute: 330,
-      closeMinute: 1320,
-      depositPercent: 30,
-      amenities: ['Phòng thay đồ', 'Bãi xe giữ xe', 'Ghim bóng miễn phí'],
-      images: [
-        'https://picsum.photos/seed/courthub-phu-tho-1/800/500',
-        'https://picsum.photos/seed/courthub-phu-tho-2/800/500',
-      ],
-      courts: [
-        {
-          name: 'Sân Tennis số 1',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 300_000,
-        },
-        {
-          name: 'Sân Tennis số 2',
-          sportType: 'TENNIS',
-          slotMinutes: 90,
-          defaultPricePerSlot: 300_000,
-        },
-        {
-          name: 'Sân bóng đá 5 người',
-          sportType: 'FOOTBALL5',
-          slotMinutes: 60,
-          defaultPricePerSlot: 350_000,
-        },
-      ],
-    },
-  ];
+  // Giới hạn phạm vi: chỉ Hà Nội & TP.HCM. Lọc kép vì một số bản ghi bị gán
+  // nhầm city="TP. Hồ Chí Minh" trong khi địa chỉ thật ở Bình Dương / Bà Rịa-Vũng Tàu.
+  const ALLOWED_CITIES = new Set(['Hà Nội', 'TP. Hồ Chí Minh']);
+  const OUTSIDE_ADDRESS_PATTERN =
+    /(bình dương|dĩ an|thuận an|thủ dầu một|tân uyên|bà rịa|vũng tàu|biên hòa)/i;
+  const aloboAll = aloboVenues as unknown as VenueSpec[];
+  const isAllowed = (v: VenueSpec): boolean =>
+    ALLOWED_CITIES.has(v.city.trim()) &&
+    !OUTSIDE_ADDRESS_PATTERN.test(`${v.name} ${v.district} ${v.address}`);
+  const excludedCount = aloboAll.filter((v) => !isAllowed(v)).length;
+  const venueSpecs: VenueSpec[] = aloboAll.filter(isAllowed);
+  // Lưới an toàn cuối: mọi spec sắp insert phải canonical (city + district thuộc city).
+  // Pattern OUTSIDE_ADDRESS_PATTERN có test cả name — chấp nhận trade-off false-positive
+  // hiếm gặp để chặn venue gán nhầm city mà district/address lại "sạch" (case VSP Vũng Tàu).
+  for (const v of venueSpecs) {
+    if (!isValidDistrictForCity(v.city.trim(), v.district)) {
+      console.warn(`[seed] Bỏ qua venue lệch chuẩn địa giới: "${v.name}" (${v.city}/${v.district})`);
+    }
+  }
+  const insertableSpecs = venueSpecs.filter((v) => isValidDistrictForCity(v.city.trim(), v.district));
+  console.log(
+    `Tạo ${insertableSpecs.length} cụm sân thể thao từ AloBo (chỉ Hà Nội & TP.HCM, đã loại ${excludedCount} venue ngoài phạm vi)...`,
+  );
 
   const createdCourts: { id: string; spec: CourtSpec }[] = [];
-  for (const spec of venueSpecs) {
+  for (const spec of insertableSpecs) {
     const venue = await prisma.venue.create({
       data: {
         ownerId: owner.id,
@@ -1421,7 +583,7 @@ async function main() {
   const pickleballIndoor =
     createdCourts.find((c) => c.spec.sportType === 'PICKLEBALL') ?? createdCourts[3];
 
-  console.log('📅 Tạo booking mẫu đủ trạng thái + payment/review...');
+  console.log('Tạo booking mẫu đủ trạng thái + payment/review...');
   const today = vnToday();
   const depositOf = (subtotal: number, percent: number) => roundPrice((subtotal * percent) / 100);
 
@@ -1576,7 +738,7 @@ async function main() {
     }
   }
 
-  console.log('🔒 Tạo 1 BookingHold đang hoạt động (demo slot state HOLD)...');
+  console.log('Tạo 1 BookingHold đang hoạt động (demo slot state HOLD)...');
   const tomorrow = addDays(today, 1);
   await prisma.bookingHold.create({
     data: {
@@ -1596,7 +758,7 @@ async function main() {
   // owner hủy cả ngày mưa -> tiền về ví + chuông thông báo từng khách.
   // ================================================================
 
-  console.log('💰 F6: Nạp sẵn ví 500.000đ cho 2 khách (ledger + balance đồng bộ)...');
+  console.log('F6: Nạp sẵn ví 500.000đ cho 2 khách (ledger + balance đồng bộ)...');
   const seedWallet = async (userId: string) => {
     const amount = 500_000;
     const txnRef = `demo-topup-${userId.slice(0, 8)}.TOPUP.seed`;
@@ -1626,7 +788,7 @@ async function main() {
   await seedWallet(customer.id);
   await seedWallet(customer2.id);
 
-  console.log('🎟️  F3: Tạo voucher giảm 20% phủ đủ 7 thứ trong tuần (owner sở hữu)...');
+  console.log('F3: Tạo voucher giảm 20% phủ đủ 7 thứ trong tuần (owner sở hữu)...');
   // Mỗi thứ một mã — presenter đặt sân ngày nào cũng có mã hợp lệ để áp ngay.
   const weekdayCodes = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']; // index = getUTCDay()
   for (let dow = 0; dow < 7; dow++) {
@@ -1644,7 +806,7 @@ async function main() {
     });
   }
 
-  console.log('🌧️  N2: 3 đơn CONFIRMED đã trả trên cùng 1 ngày tới (cụm sân của owner)...');
+  console.log('N2: 3 đơn CONFIRMED đã trả trên cùng 1 ngày tới (cụm sân của owner)...');
   // Owner sẽ hủy hàng loạt đúng ngày này -> hoàn 100% tiền ĐÃ TRẢ vào ví từng khách.
   const rainyDate = addDays(today, 3);
   interface RainyBookingSeed {
@@ -1715,13 +877,13 @@ async function main() {
   const rankUsers = [
     customer,
     customer2,
-    await ensureCustomer('captain3@courthub.vn', 'Vũ Đình Cầu', '0900000013'),
-    await ensureCustomer('captain4@courthub.vn', 'Bùi Minh Bóng', '0900000014'),
-    await ensureCustomer('captain5@courthub.vn', 'Đỗ Thanh Long', '0900000015'),
+    await ensureCustomer('captain3@sango.vn', 'Vũ Đình Cầu', '0900000013'),
+    await ensureCustomer('captain4@sango.vn', 'Bùi Minh Bóng', '0900000014'),
+    await ensureCustomer('captain5@sango.vn', 'Đỗ Thanh Long', '0900000015'),
   ];
   await seedRankingHistory([football5A, badminton1, tennis1], rankUsers);
 
-  console.log('🔔 F8: 2 thông báo WALLET chưa đọc để chuông thông báo có badge sẵn...');
+  console.log('F8: 2 thông báo WALLET chưa đọc để chuông thông báo có badge sẵn...');
   for (const c of [customer, customer2]) {
     await prisma.notification.create({
       data: {
@@ -1739,20 +901,20 @@ async function main() {
   // chia tiền ExpenseShare (track-only) + catalog dịch vụ đi kèm.
   // ================================================================
 
-  console.log('👥 F1: Tạo 2 đội thể thao kèm thành viên...');
-  const fcCourthub = await prisma.team.create({
+  console.log('F1: Tạo 2 đội thể thao kèm thành viên...');
+  const fcSanGo = await prisma.team.create({
     data: {
-      name: 'FC CourtHub',
+      name: 'FC SanGo',
       sportType: 'FOOTBALL5',
-      description: 'Đội bóng đá 5 người của hệ thống CourtHub — sẵn sàng cho mọi trận cầu.',
+      description: 'Đội bóng đá 5 người của hệ thống SanGo — sẵn sàng cho mọi trận cầu.',
       captainId: customer.id,
     },
   });
   await prisma.teamMember.create({
-    data: { teamId: fcCourthub.id, userId: customer.id, role: 'CAPTAIN', status: 'ACTIVE' },
+    data: { teamId: fcSanGo.id, userId: customer.id, role: 'CAPTAIN', status: 'ACTIVE' },
   });
   await prisma.teamMember.create({
-    data: { teamId: fcCourthub.id, userId: customer2.id, role: 'MEMBER', status: 'ACTIVE' },
+    data: { teamId: fcSanGo.id, userId: customer2.id, role: 'MEMBER', status: 'ACTIVE' },
   });
 
   const pbSaigon = await prisma.team.create({
@@ -1770,8 +932,8 @@ async function main() {
     data: { teamId: pbSaigon.id, userId: customer.id, role: 'MEMBER', status: 'ACTIVE' },
   });
 
-  console.log('⚽ F1: Đặt sân tư cách FC CourtHub + khoản chia tiền ExpenseShare...');
-  // Đội FC CourtHub đặt sân ngày mưa (đơn thứ 4) — captain trả trước, member bị ghi nợ 1/2.
+  console.log('F1: Đặt sân tư cách FC SanGo + khoản chia tiền ExpenseShare...');
+  // Đội FC SanGo đặt sân ngày mưa (đơn thứ 4) — captain trả trước, member bị ghi nợ 1/2.
   const teamBookingDeposit = depositOf(450_000, 30);
   const teamBooking = await prisma.booking.create({
     data: {
@@ -1784,7 +946,7 @@ async function main() {
       subtotal: 450_000,
       depositAmount: teamBookingDeposit,
       status: 'CONFIRMED',
-      teamId: fcCourthub.id,
+      teamId: fcSanGo.id,
     },
   });
   await prisma.payment.create({
@@ -1804,7 +966,7 @@ async function main() {
   const shareAmount = Math.floor(teamBookingDeposit / 2);
   await prisma.expenseShare.create({
     data: {
-      teamId: fcCourthub.id,
+      teamId: fcSanGo.id,
       bookingId: teamBooking.id,
       payerId: customer.id,
       debtorId: customer2.id,
@@ -1814,7 +976,7 @@ async function main() {
     },
   });
 
-  console.log('🧃 F4: Tạo menu dịch vụ đi kèm cho các cụm sân của owner...');
+  console.log('F4: Tạo menu dịch vụ đi kèm cho các cụm sân của owner...');
   const venueOfCourt = async (court: { id: string }): Promise<string> => {
     const row = await prisma.court.findUnique({
       where: { id: court.id },
@@ -1853,44 +1015,45 @@ async function main() {
   await seedSprint3Tournament();
 
   console.log('\n============================================================');
-  console.log('✨ SEED DỮ LIỆU THÀNH CÔNG!');
+  console.log('SEED DỮ LIỆU THÀNH CÔNG!');
   console.log('============================================================');
   console.log('4 tài khoản demo sẵn sàng đăng nhập (mật khẩu chung):');
   console.log(`  Mật khẩu: ${DEMO_PASSWORD}`);
-  console.log('  1. ADMIN:    admin@courthub.vn');
-  console.log('  2. OWNER:    owner@courthub.vn   (sở hữu mọi venue + voucher GIAM20-*)');
-  console.log('  3. CUSTOMER: customer@courthub.vn (ví 500k, đơn ngày mưa)');
-  console.log('  4. CUSTOMER: customer2@courthub.vn (ví 500k, đơn ngày mưa)');
+  console.log('  1. ADMIN:    admin@sango.vn');
+  console.log('  2. OWNER:    owner@sango.vn   (sở hữu mọi venue + voucher GIAM20-*)');
+  console.log('  3. CUSTOMER: customer@sango.vn (ví 500k, đơn ngày mưa)');
+  console.log('  4. CUSTOMER: customer2@sango.vn (ví 500k, đơn ngày mưa)');
   console.log('------------------------------------------------------------');
-  console.log('🎟️  Voucher F3: GIAM20-CN..GIAM20-T7 (giảm 20%, theo thứ, 06:00-22:00)');
+  console.log('Voucher F3: GIAM20-CN..GIAM20-T7 (giảm 20%, theo thứ, 06:00-22:00)');
   console.log(
-    `🌧️  Ngày mưa N2: ${rainyBookings.length + 1} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
+    `Ngày mưa N2: ${rainyBookings.length + 1} đơn CONFIRMED đã trả chờ hủy hàng loạt (${rainyDate})`,
   );
-  console.log('💰 Ví F6: customer & customer2 mỗi ví 500.000đ');
+  console.log('Ví F6: customer & customer2 mỗi ví 500.000đ');
   console.log(
-    '👥 F1 Teams: FC CourtHub (captain customer) + Pickleball Saigon Club (captain customer2)',
+    'F1 Teams: FC SanGo (captain customer) + Pickleball Saigon Club (captain customer2)',
   );
-  console.log('🏆 F7 Tournaments: CourtHub Open 2026 — bracket 8 đội, round 1 sẵn sàng nhập điểm');
+  console.log('F7 Tournaments: SanGo Open 2026 — bracket 8 đội, round 1 sẵn sàng nhập điểm');
   console.log(
-    '📊 F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard',
+    'F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard',
   );
-  console.log('👤 Captain thêm S3: captain3..captain8@courthub.vn (cùng mật khẩu demo)');
+  console.log('Captain thêm S3: captain3..captain8@sango.vn (cùng mật khẩu demo)');
   console.log(
-    `💸 ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC CourtHub`,
+    `ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC SanGo`,
   );
   console.log(
-    `🧃 F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`,
+    `F4 Services: ${svcCount} dịch vụ menu (Aquafina/Redbull/bóng chuyền/giày cầu lông)`,
   );
   console.log('------------------------------------------------------------');
+  const hnCount = venueSpecs.filter((v) => v.city.trim() === 'Hà Nội').length;
   console.log(
-    `Tổng cộng: ${venueSpecs.length} venue (${venueSpecs.length - 1} Hà Nội phủ 12 quận, 1 TP.HCM), ${createdCourts.length} court.`,
+    `Tổng cộng: ${venueSpecs.length} venue (${hnCount} Hà Nội, ${venueSpecs.length - hnCount} TP.HCM), ${createdCourts.length} court.`,
   );
   console.log('============================================================\n');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Lỗi seed:', e);
+    console.error('Lỗi seed:', e);
     process.exit(1);
   })
   .finally(async () => {

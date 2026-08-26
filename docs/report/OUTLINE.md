@@ -1,7 +1,7 @@
-# Dàn ý báo cáo tốt nghiệp — CourtHub
+# Dàn ý báo cáo tốt nghiệp — SanGo
 
 > Bản khung nội dung Chương 1–6 + Kết luận, ánh xạ trực tiếp sang đặc tả
-> thiết kế `docs/superpowers/specs/2026-08-24-courthub-design.md` (trích dẫn
+> thiết kế `docs/superpowers/specs/2026-08-24-sango-design.md` (trích dẫn
 > dạng §x). Mỗi mục ghi 2–3 dòng gợi ý viết; chỗ cần số liệu thực nghiệm được
 > đánh dấu **[ĐIỀN SAU]**. Sơ đồ tham chiếu nằm ở `docs/diagrams/`.
 
@@ -12,7 +12,7 @@
 ### 1.1 Bối cảnh và lý do chọn đề tài (từ §1)
 Sự bùng nổ sân thể thao (bóng đá 5/7, pickleball, cầu lông, tennis) tại Việt
 Nam đối lập với cách quản lý đặt sân thủ công qua điện thoại/Zalo/sổ tay: trùng
-lịch, mất đơn, không có số liệu doanh thu. Nêu khoảng trống mà CourtHub lấp đầy.
+lịch, mất đơn, không có số liệu doanh thu. Nêu khoảng trống mà SanGo lấp đầy.
 
 ### 1.2 Mục tiêu đề tài
 Xây dựng trọn vẹn quy trình tìm sân → chọn giờ → giữ chỗ → đặt cọc online →

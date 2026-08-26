@@ -1,5 +1,5 @@
 /**
- * Template email branded CourtHub — render thuần chuỗi (không dependency).
+ * Template email branded SanGo — render thuần chuỗi (không dependency).
  * Thiết kế: header lime (#a3e635) + wordmark xanh lá sân cỏ (#16a34a),
  * footer đồ án. Màu viết inline vì hầu hết client mail bỏ qua <style>.
  */
@@ -44,7 +44,7 @@ function layout(title: string, bodyHtml: string): string {
             style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
             <tr>
               <td style="background:${LIME};padding:16px 24px;">
-                <span style="font-size:20px;font-weight:bold;color:${BRAND_GREEN};letter-spacing:1px;">CourtHub</span>
+                <span style="font-size:20px;font-weight:bold;color:${BRAND_GREEN};letter-spacing:1px;">SanGo</span>
                 <span style="float:right;color:${INK};font-size:13px;padding-top:4px;">Đặt sân thể thao trong 1 phút</span>
               </td>
             </tr>
@@ -57,8 +57,8 @@ function layout(title: string, bodyHtml: string): string {
             <tr>
               <td style="padding:20px 24px;border-top:1px solid #e5e7eb;background:#fafafa;">
                 <p style="margin:0;font-size:12px;color:${MUTED};line-height:1.6;">
-                  CourtHub — Đồ án tốt nghiệp · Nền tảng đặt sân thể thao (bóng đá, pickleball, cầu lông, tennis).<br/>
-                  Email tự động, vui lòng không trả lời. Chi tiết đơn xem trên web hoặc ứng dụng CourtHub.
+                  SanGo — Đồ án tốt nghiệp · Nền tảng đặt sân thể thao (bóng đá, pickleball, cầu lông, tennis).<br/>
+                  Email tự động, vui lòng không trả lời. Chi tiết đơn xem trên web hoặc ứng dụng SanGo.
                 </p>
               </td>
             </tr>
@@ -118,10 +118,10 @@ export function bookingConfirmedEmail(d: BookingMailData): MailContent {
     <p style="font-size:14px;margin:0 0 4px 0;">Số tiền đã thanh toán: <strong style="color:${BRAND_GREEN};">${formatVnd(d.amountVnd)}</strong></p>
     <p style="font-size:13px;color:${MUTED};">Vui lòng đến đúng giờ; đến trễ quá 15 phút có thể bị tính NO_SHOW theo quy định sân.</p>`;
   return {
-    subject: `[CourtHub] Đã xác nhận đơn ${d.code}`,
-    html: layout('Đặt sân thành công 🎾', body),
+    subject: `[SanGo] Đã xác nhận đơn ${d.code}`,
+    html: layout('Đặt sân thành công', body),
     text:
-      `CourtHub: Đã xác nhận đơn ${d.code}\n` +
+      `SanGo: Đã xác nhận đơn ${d.code}\n` +
       `Sân: ${d.courtName} - ${d.venueName}\n` +
       `Thời gian: ${vnDateLabel(d.date)}, ${formatMinute(d.startMinute)}-${formatMinute(d.endMinute)}\n` +
       `Thanh toán: ${formatVnd(d.amountVnd)}`,
@@ -135,15 +135,15 @@ export function bookingCancelledEmail(d: BookingMailData): MailContent {
     : '';
   const body = `
     <p>Xin chào${d.customerName ? ` ${d.customerName}` : ''},</p>
-    <p>Đơn đặt sân dưới đây đã bị <strong>hủy</strong>. Nếu đây là nhầm lẫn, bạn có thể đặt lại lịch trống khác trên CourtHub.</p>
+    <p>Đơn đặt sân dưới đây đã bị <strong>hủy</strong>. Nếu đây là nhầm lẫn, bạn có thể đặt lại lịch trống khác trên SanGo.</p>
     ${bookingTable(d)}
     ${reason}
     <p style="font-size:14px;margin:0 0 4px 0;">Số tiền liên quan: <strong>${formatVnd(d.amountVnd)}</strong> (nếu đã thanh toán sẽ được hoàn theo chính sách venue).</p>`;
   return {
-    subject: `[CourtHub] Đơn ${d.code} đã bị hủy`,
+    subject: `[SanGo] Đơn ${d.code} đã bị hủy`,
     html: layout('Thông báo hủy đơn', body),
     text:
-      `CourtHub: Đơn ${d.code} đã bị hủy\n` +
+      `SanGo: Đơn ${d.code} đã bị hủy\n` +
       `Sân: ${d.courtName} - ${d.venueName}\n` +
       `Thời gian: ${vnDateLabel(d.date)}, ${formatMinute(d.startMinute)}-${formatMinute(d.endMinute)}\n` +
       (d.cancelReason ? `Lý do: ${d.cancelReason}\n` : '') +
@@ -153,17 +153,17 @@ export function bookingCancelledEmail(d: BookingMailData): MailContent {
 
 /** Mail NHẮC LỊCH (P2-B2) — cron bắn tại mốc T-24h và T-2h trước giờ chơi. */
 export function reminderEmail(d: BookingMailData & { markLabel: 'T-24h' | 'T-2h' }): MailContent {
-  const heading = d.markLabel === 'T-24h' ? 'Ngày mai bạn có trận! ⚽' : 'Sắp tới giờ chơi! ⏰';
+  const heading = d.markLabel === 'T-24h' ? 'Ngày mai bạn có trận!' : 'Sắp tới giờ chơi!';
   const body = `
     <p>Xin chào${d.customerName ? ` ${d.customerName}` : ''},</p>
     <p>Đơn đặt sân của bạn sẽ bắt đầu ${d.markLabel === 'T-24h' ? 'trong khoảng 24 tiếng tới' : 'trong khoảng 2 tiếng tới'}. Nhớ chuẩn bị sẵn tinh thần thể thao nhé!</p>
     ${bookingTable(d)}
     <p style="font-size:13px;color:${MUTED};">Mang mã đơn ${d.code} để check-in nhanh tại sân.</p>`;
   return {
-    subject: `[CourtHub] Nhắc lịch đơn ${d.code} (${d.markLabel})`,
+    subject: `[SanGo] Nhắc lịch đơn ${d.code} (${d.markLabel})`,
     html: layout(heading, body),
     text:
-      `CourtHub: Nhắc lịch (${d.markLabel}) — đơn ${d.code}\n` +
+      `SanGo: Nhắc lịch (${d.markLabel}) — đơn ${d.code}\n` +
       `Sân: ${d.courtName} - ${d.venueName}\n` +
       `Thời gian: ${vnDateLabel(d.date)}, ${formatMinute(d.startMinute)}-${formatMinute(d.endMinute)}`,
   };
@@ -173,7 +173,7 @@ export function reminderEmail(d: BookingMailData & { markLabel: 'T-24h' | 'T-2h'
 export function paymentReceiptEmail(d: BookingMailData): MailContent {
   const body = `
     <p>Xin chào${d.customerName ? ` ${d.customerName}` : ''},</p>
-    <p>CourtHub đã nhận được thanh toán cho đơn của bạn. Biên nhận chi tiết như sau:</p>
+    <p>SanGo đã nhận được thanh toán cho đơn của bạn. Biên nhận chi tiết như sau:</p>
     ${bookingTable(d)}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
       style="background:#ecfdf5;border-radius:8px;padding:12px 16px;margin:0 0 16px 0;">
@@ -184,10 +184,10 @@ export function paymentReceiptEmail(d: BookingMailData): MailContent {
     </table>
     <p style="font-size:13px;color:${MUTED};">Biên nhận điện tử này thay thế hóa đơn giấy. Mang mã đơn ${d.code} để check-in tại sân.</p>`;
   return {
-    subject: `[CourtHub] Biên nhận thanh toán đơn ${d.code}`,
-    html: layout('Thanh toán thành công ✅', body),
+    subject: `[SanGo] Biên nhận thanh toán đơn ${d.code}`,
+    html: layout('Thanh toán thành công', body),
     text:
-      `CourtHub: Đã nhận thanh toán ${formatVnd(d.amountVnd)} cho đơn ${d.code}\n` +
+      `SanGo: Đã nhận thanh toán ${formatVnd(d.amountVnd)} cho đơn ${d.code}\n` +
       `Sân: ${d.courtName} - ${d.venueName}\n` +
       `Thời gian chơi: ${vnDateLabel(d.date)}, ${formatMinute(d.startMinute)}-${formatMinute(d.endMinute)}`,
   };

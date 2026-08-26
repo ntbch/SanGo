@@ -3,7 +3,7 @@ import { Loader2, Wrench } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { SportType, SPORT_TYPE_LABELS } from '@courthub/shared';
+import { SportType, SPORT_TYPE_LABELS } from '@sango/shared';
 
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';

@@ -1,4 +1,4 @@
-# Hướng dẫn triển khai CourtHub (free tier) — đặc tả §9
+# Hướng dẫn triển khai SanGo (free tier) — đặc tả §9
 
 > **Ghi chú scaffolding:** tài liệu này viết sớm theo cấu trúc đã chốt. Các URL
 > dịch vụ thật (Render, Vercel) sẽ được điền vào chỗ `<...>` ở **mốc deploy
@@ -24,14 +24,14 @@ cần URL của API sau).
 ## 1. Tạo database trên Neon
 
 1. Đăng nhập <https://console.neon.tech> → tạo project mới, đặt tên
-   `courthub`, region **Singapore** (gần người dùng VN nhất trong free tier).
-2. Trong project, tạo database tên `courthub` (mặc định là `neondb` — có thể
+   `sango`, region **Singapore** (gần người dùng VN nhất trong free tier).
+2. Trong project, tạo database tên `sango` (mặc định là `neondb` — có thể
    dùng luôn, nhưng đặt riêng cho gọn gàng).
 3. Lấy connection string dạng **pooled**: Dashboard → *Connection Details* →
    bật/tích chọn **"Pooled connection"**. Chuỗi có dạng:
 
    ```
-   postgresql://<user>:<password>@ep-xxxxx-pooler.ap-southeast-1.aws.neon.tech/courthub?sslmode=require
+   postgresql://<user>:<password>@ep-xxxxx-pooler.ap-southeast-1.aws.neon.tech/sango?sslmode=require
    ```
 
    - Host chứa `-pooler` là endpoint qua PgBouncer của Neon — **dùng chuỗi này
@@ -52,8 +52,8 @@ cần URL của API sau).
    |---|---|
    | Region | Singapore |
    | Plan | Free |
-   | Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @courthub/api prisma:generate && pnpm --filter @courthub/api build && pnpm --filter @courthub/api prisma migrate deploy` |
-   | Start command | `pnpm --filter @courthub/api start` |
+   | Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @sango/api prisma:generate && pnpm --filter @sango/api build && pnpm --filter @sango/api prisma migrate deploy` |
+   | Start command | `pnpm --filter @sango/api start` |
    | Health check path | `/api/v1/health` |
 
    > Vì sao migrate nằm trong build? Gói **free** của Render chưa hỗ trợ
@@ -72,7 +72,7 @@ cần URL của API sau).
    | `RESEND_API_KEY` | Bước 5 dưới đây |
    | `EMAIL_FROM` | Địa chỉ gửi email đã xác thực trên Resend |
    | `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | Bước 4 dưới đây |
-   | `CORS_ORIGIN` | URL Vercel của web, ví dụ `https://courthub.vercel.app` (điền lại sau bước 3) |
+   | `CORS_ORIGIN` | URL Vercel của web, ví dụ `https://sango.vercel.app` (điền lại sau bước 3) |
 4. Deploy lần đầu → mở log kiểm tra migrate chạy xong → thử
    `https://<service>.onrender.com/api/v1/health` trả về
    `{"status":"ok"}`.
@@ -92,7 +92,7 @@ cần URL của API sau).
    |---|---|---|
    | `VITE_API_URL` | `https://<render-api-url>/api/v1` | Trỏ đúng URL Render ở bước 2; thêm cho cả Production lẫn Preview |
 
-4. Deploy → mở URL Vercel, kiểm tra trang "CourtHub" hiển thị và gọi được API.
+4. Deploy → mở URL Vercel, kiểm tra trang "SanGo" hiển thị và gọi được API.
 5. Quay lại Render cập nhật `CORS_ORIGIN` = URL Vercel vừa tạo (nếu khác dự
    kiến), redeploy API.
 
@@ -136,7 +136,7 @@ Chạy checklist này **trước giờ bảo vệ 30 phút** và trước mỗi 
 
 - [ ] **T-30':** mở terminal, `curl https://<render-api-url>/api/v1/health` đến khi trả `{"status":"ok"}` (đánh thức Render khỏi sleep).
 - [ ] Mở Neon console xác nhận database **Active**, không bị khóa hạn mức.
-- [ ] Chạy lại seed dữ liệu demo nếu DB bị xáo trộn bởi buổi demo trước (script seed — có từ mốc Prisma/seed): `pnpm --filter @courthub/api db:seed`.
+- [ ] Chạy lại seed dữ liệu demo nếu DB bị xáo trộn bởi buổi demo trước (script seed — có từ mốc Prisma/seed): `pnpm --filter @sango/api db:seed`.
 - [ ] Mở sẵn tab: trang chủ Vercel, Swagger `/api/docs`, trang đặt sân, admin duyệt sân.
 - [ ] Xác nhận `PAYMENT_MODE=mock` đang bật nếu không muốn phụ thuộc VNPay sandbox; nếu demo thanh toán thật thì test 1 giao dịch sandbox trước.
 - [ ] Kiểm tra UptimeRobot monitor đang **UP** (không red).

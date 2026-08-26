@@ -1,4 +1,4 @@
-import { vnToday } from '@courthub/shared';
+import { vnToday } from '@sango/shared';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { BookingsService } from '../bookings/bookings.service';

@@ -31,23 +31,23 @@ async function api(method, path, token, body) {
   }
 
   const lg = async (email) =>
-    (await api('POST', '/auth/login', null, { email, password: 'Courthub@2026' })).json;
+    (await api('POST', '/auth/login', null, { email, password: 'Sango@2026' })).json;
   let cust = null;
   for (let a = 0; a < 5; a++) {
-    cust = await lg('customer@courthub.vn');
+    cust = await lg('customer@sango.vn');
     if (cust?.accessToken) break;
     await new Promise((r) => setTimeout(r, 15000));
   }
   const TK = cust.accessToken;
 
-  const users = await prisma.user.findMany({ where: { email: 'customer@courthub.vn' } });
+  const users = await prisma.user.findMany({ where: { email: 'customer@sango.vn' } });
   const uid = users[0].id;
   // dọn hold active
   const olds = await prisma.bookingHold.findMany({ where: { userId: uid, status: 'ACTIVE' } });
   for (const oh of olds) await api('DELETE', '/bookings/holds/' + oh.id, TK);
 
   const venue = await prisma.venue.findFirst({
-    where: { owner: { email: 'owner@courthub.vn' } },
+    where: { owner: { email: 'owner@sango.vn' } },
     include: { courts: { take: 1 } },
   });
   const court = venue.courts[0];

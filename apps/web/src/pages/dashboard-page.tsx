@@ -1,4 +1,4 @@
-import { UserRole } from '@courthub/shared';
+import { UserRole } from '@sango/shared';
 import { useQueries } from '@tanstack/react-query';
 import {
   ArrowRight,
@@ -111,7 +111,7 @@ function CustomerUpcomingCard(): ReactElement {
     >
       <CardHeader>
         <CardTitle>Đơn sắp tới</CardTitle>
-        <CardDescription>Trận đấu gần nhất của bạn tại CourtHub.</CardDescription>
+        <CardDescription>Trận đấu gần nhất của bạn tại SanGo.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">

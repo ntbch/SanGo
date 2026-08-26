@@ -3,7 +3,7 @@ import type { MailerPort, SendMailInput } from './mailer.port';
 
 /**
  * Adapter SMTP — hiện đang là STUB:
- * TODO(nodemailer): `pnpm --filter @courthub/api add nodemailer` (+ @types/nodemailer)
+ * TODO(nodemailer): `pnpm --filter @sango/api add nodemailer` (+ @types/nodemailer)
  * rồi thay khối try bên dưới bằng transporter thật:
  *
  *   const nodemailer = require('nodemailer');
@@ -40,7 +40,7 @@ export class SmtpMailer implements MailerPort {
             : undefined,
       });
       await transporter.sendMail({
-        from: process.env.MAIL_FROM ?? 'CourtHub <no-reply@courthub.vn>',
+        from: process.env.MAIL_FROM ?? 'SanGo <no-reply@sango.vn>',
         to: input.to,
         subject: input.subject,
         html: input.html,

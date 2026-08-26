@@ -9,7 +9,7 @@ chủ sân/admin cũng dùng làm điểm neo điều hướng.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ⚽ CourtHub   [Tìm sân]  [Đơn của tôi]              [Đăng nhập] [Đăng ký]    │
+│ ⚽ SanGo   [Tìm sân]  [Đơn của tôi]              [Đăng nhập] [Đăng ký]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │            Tìm sân thể thao gần bạn                                          │
@@ -36,7 +36,7 @@ vào nút nổi `[⚙ Bộ lọc]` mở bottom-sheet; grid card 1 cột; tab bar
 
 ## (c) Thành phần tương tác
 - Search bar: text input (debounce), select loại sân (enum cố định v1 — lấy từ
-  `SPORT_TYPE_LABELS` của `@courthub/shared`, không cần gọi API), date picker,
+  `SPORT_TYPE_LABELS` của `@sango/shared`, không cần gọi API), date picker,
   khung giờ (select start/end theo bước 30').
 - Bộ lọc: checkbox loại sân, slider giá tối đa, đa chọn tiện ích, sort select.
 - Card sân: hover nâng khối; click → `venue-detail`. Nút `[Đặt ngay]` → thẳng
@@ -47,4 +47,4 @@ vào nút nổi `[⚙ Bộ lọc]` mở bottom-sheet; grid card 1 cột; tab bar
 ## (d) API sử dụng
 - `GET /api/v1/venues?sportType=&q=&date=&startMinute=&endMinute=&maxPrice=&amenities=&sort=&page=` **[ĐỀ XUẤT query params — §3.2 chỉ chốt tính năng tìm kiếm]**
 - Chỉ trả sân `APPROVED` (§3.2 — sân mới phải được admin duyệt mới công khai).
-- Danh sách loại sân: hardcode từ `@courthub/shared` (enum cố định v1).
+- Danh sách loại sân: hardcode từ `@sango/shared` (enum cố định v1).

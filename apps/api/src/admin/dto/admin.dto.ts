@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VenueStatus } from '@courthub/shared';
+import { VenueStatus } from '@sango/shared';
 
 export const AdminVenueListQuerySchema = z.object({
   status: z.nativeEnum(VenueStatus).optional(),

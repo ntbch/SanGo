@@ -10,7 +10,11 @@ import {
 } from 'lucide-react';
 import { type FormEvent, type ReactElement, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { calculateHaversineDistanceKm, HANOI_DISTRICTS } from '@courthub/shared';
+import {
+  SUPPORTED_CITIES,
+  calculateHaversineDistanceKm,
+  districtsOfCity,
+} from '@sango/shared';
 
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -62,7 +66,21 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
   const q = searchParams.get('q') ?? '';
   const sportTypeParam = searchParams.get('sportType') ?? undefined;
   const districtParam = searchParams.get('district') ?? undefined;
+  const cityParam = searchParams.get('city') ?? undefined;
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
+  /** Link cũ chỉ có ?district=: suy ra thành phố (so khớp bỏ qua hoa/thường). */
+  const effectiveCity =
+    cityParam ??
+    SUPPORTED_CITIES.find((supported) => {
+      if (districtParam === undefined) return false;
+      return districtsOfCity(supported).some(
+        (d) => d.toLowerCase() === districtParam.toLowerCase(),
+      );
+    });
+  /** Nhãn vị trí gộp để hiển thị: "Cầu Giấy, Hà Nội" / "TP. Hồ Chí Minh". */
+  const locationLabel = districtParam
+    ? `${districtParam}${effectiveCity ? `, ${effectiveCity}` : ''}`
+    : effectiveCity;
 
   const [sort, setSort] = useState<VenueSort>('newest');
   const [draftQ, setDraftQ] = useState(q);
@@ -84,6 +102,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
   const query = useVenues({
     q: q === '' ? undefined : q,
     sportType: sportTypeParam,
+    city: effectiveCity,
     district: districtParam,
     userLat: userCoords?.lat,
     userLng: userCoords?.lng,
@@ -150,12 +169,16 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
   function applyFilters(next: {
     q?: string;
     sportType?: string;
+    city?: string;
     district?: string;
     page?: number;
   }): void {
     const params = new URLSearchParams();
     if (next.q) params.set('q', next.q);
     if (next.sportType) params.set('sportType', next.sportType);
+    // Đổi thành phố -> luôn xoá quận cũ vì quận thuộc thành phố mới có thể không còn hợp lệ
+    if (next.city) params.set('city', next.city);
+    else if ('city' in next) params.delete('city');
     if (next.district) params.set('district', next.district);
     params.set('page', String(next.page ?? 1));
     setSearchParams(params);
@@ -219,6 +242,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
     applyFilters({
       q: draftQ.trim() || undefined,
       sportType: sportTypeParam,
+      city: effectiveCity,
       district: districtParam,
     });
   }
@@ -246,8 +270,8 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
             Tìm sân thể thao gần bạn
           </h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
-            Khám phá hơn 24 cụm sân tại 12 quận Hà Nội với điều hướng Google Maps và định vị thông
-            minh.
+            Khám phá cụm sân tại Hà Nội &amp; TP. Hồ Chí Minh với điều hướng Google Maps và định vị
+            thông minh.
           </p>
 
           <form
@@ -262,26 +286,59 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
               className="h-12 border-input bg-background text-foreground sm:flex-1"
             />
 
-            <select
-              id="hero-district-select"
-              aria-label="Chọn nhanh quận"
-              value={districtParam ?? ''}
-              onChange={(event) =>
-                applyFilters({
-                  q: draftQ.trim() || undefined,
-                  sportType: sportTypeParam,
-                  district: event.target.value ? event.target.value : undefined,
-                })
-              }
-              className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-44"
-            >
-              <option value="">Tất cả 12 quận</option>
-              {HANOI_DISTRICTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <select
+                id="hero-city-select"
+                aria-label="Chọn thành phố"
+                value={effectiveCity ?? ''}
+                onChange={(event) =>
+                  applyFilters({
+                    q: draftQ.trim() || undefined,
+                    sportType: sportTypeParam,
+                    city: event.target.value ? event.target.value : undefined,
+                    // Đổi thành phố -> xoá quận cũ
+                    district: undefined,
+                  })
+                }
+                className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40"
+              >
+                <option value="">Tất cả thành phố</option>
+                {SUPPORTED_CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                id="hero-district-select"
+                aria-label="Chọn nhanh quận"
+                value={districtParam ?? ''}
+                disabled={!effectiveCity}
+                onChange={(event) =>
+                  applyFilters({
+                    q: draftQ.trim() || undefined,
+                    sportType: sportTypeParam,
+                    city: effectiveCity,
+                    district: event.target.value ? event.target.value : undefined,
+                  })
+                }
+                className="h-12 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 sm:w-44"
+              >
+                {effectiveCity ? (
+                  <>
+                    <option value="">Tất cả quận/huyện</option>
+                    {districtsOfCity(effectiveCity).map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="">Chọn thành phố trước</option>
+                )}
+              </select>
+            </div>
 
             <Button type="submit" size="lg" className="rounded-lg font-bold sm:w-auto">
               Tìm sân
@@ -364,14 +421,19 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
         <div className="lg:w-56 lg:shrink-0">
           <FilterSidebar
             sportType={sportTypeParam}
+            city={effectiveCity}
             district={districtParam}
             sort={sort}
             hasGps={userCoords !== null}
             onSportTypeChange={(value) =>
-              applyFilters({ q, sportType: value, district: districtParam })
+              applyFilters({ q, sportType: value, city: cityParam, district: districtParam })
+            }
+            onCityChange={(value) =>
+              // Đổi thành phố -> luôn reset quận về "tất cả"
+              applyFilters({ q, sportType: sportTypeParam, city: value, district: undefined })
             }
             onDistrictChange={(value) =>
-              applyFilters({ q, sportType: sportTypeParam, district: value })
+              applyFilters({ q, sportType: sportTypeParam, city: cityParam, district: value })
             }
             onSortChange={setSort}
           />
@@ -387,10 +449,10 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
           <header className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold tracking-tight">
               Kết quả{data !== undefined ? ` (${data.total} sân)` : ''}
-              {districtParam ? (
+              {locationLabel ? (
                 <span className="text-sm font-normal text-muted-foreground">
                   {' '}
-                  tại {districtParam}
+                  tại {locationLabel}
                 </span>
               ) : null}
             </h2>
@@ -475,8 +537,8 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                             ? `Bạn đang ở cách Hà Nội ~${distanceToHanoiCenter} km`
                             : userCoords !== null && radiusKm !== undefined
                               ? `Không tìm thấy cụm sân nào trong bán kính ${radiusKm} km quanh bạn`
-                              : districtParam
-                                ? `Không tìm thấy cụm sân nào tại ${districtParam}`
+                              : locationLabel
+                                ? `Không tìm thấy cụm sân nào tại ${locationLabel}`
                                 : 'Không tìm thấy sân phù hợp'}
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -548,6 +610,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                               applyFilters({
                                 q,
                                 sportType: sportTypeParam,
+                                city: cityParam,
                                 district: districtParam,
                                 page: page - 1,
                               })
@@ -566,6 +629,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                               applyFilters({
                                 q,
                                 sportType: sportTypeParam,
+                                city: cityParam,
                                 district: districtParam,
                                 page: page + 1,
                               })
@@ -605,8 +669,8 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                           ? `Bạn đang ở cách Hà Nội ~${distanceToHanoiCenter} km`
                           : userCoords !== null && radiusKm !== undefined
                             ? `Không tìm thấy cụm sân nào trong bán kính ${radiusKm} km quanh bạn`
-                            : districtParam
-                              ? `Không tìm thấy cụm sân nào tại ${districtParam}`
+                            : locationLabel
+                              ? `Không tìm thấy cụm sân nào tại ${locationLabel}`
                               : 'Không tìm thấy sân phù hợp'}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -666,6 +730,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                             applyFilters({
                               q,
                               sportType: sportTypeParam,
+                              city: cityParam,
                               district: districtParam,
                               page: page - 1,
                             })
@@ -684,6 +749,7 @@ export function VenuesPage({ compact = false }: VenuesPageProps): ReactElement {
                             applyFilters({
                               q,
                               sportType: sportTypeParam,
+                              city: cityParam,
                               district: districtParam,
                               page: page + 1,
                             })

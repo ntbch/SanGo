@@ -21,7 +21,7 @@ import type {
 } from './dto/auth.dto';
 
 const BCRYPT_COST = 12;
-export const REFRESH_COOKIE = 'courthub_refresh';
+export const REFRESH_COOKIE = 'sango_refresh';
 /** Đặc tả §3.1/§7: access 15 phút — refresh 7 ngày xoay vòng. */
 export const ACCESS_TTL_SECONDS = 15 * 60;
 export const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;

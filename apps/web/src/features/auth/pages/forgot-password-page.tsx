@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, MailCheck } from 'lucide-react';
+import { ArrowRight, Mail, MailCheck } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 import { Button } from '../../../components/ui/button';
 import { Card, CardTitle } from '../../../components/ui/card';
 import {
@@ -74,7 +74,7 @@ export function ForgotPasswordPage(): ReactElement {
                       <AuthInput
                         icon={<Mail aria-hidden />}
                         type="email"
-                        placeholder="ban@courthub.vn"
+                        placeholder="ban@sango.vn"
                         autoComplete="email"
                         {...field}
                       />
@@ -109,7 +109,8 @@ export function ForgotPasswordPage(): ReactElement {
                   to={devResetLink}
                   className="font-semibold text-primary underline-offset-4 hover:underline"
                 >
-                  Đặt lại mật khẩu ngay →
+                  Đặt lại mật khẩu ngay
+                  <ArrowRight className="ml-0.5 inline size-3.5" aria-hidden />
                 </Link>
               </p>
             ) : null}

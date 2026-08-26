@@ -14,7 +14,7 @@
   2. Viết hàm `calculateHaversineDistanceKm(lat1, lon1, lat2, lon2): number` (làm tròn 1 chữ số thập phân).
   3. Viết hàm `buildGoogleMapsUrl(lat, lng, address?): string`.
   4. Unit test: kiểm tra khoảng cách Cầu Giấy $\leftrightarrow$ Hoàn Kiếm (~6.5 km), cùng tọa độ (0.0 km), URL Google Maps đúng định dạng.
-- **Gates:** `pnpm --filter @courthub/shared test` & `build` xanh 100%.
+- **Gates:** `pnpm --filter @sango/shared test` & `build` xanh 100%.
 
 ---
 
@@ -34,7 +34,7 @@
   1. Mở rộng `VenuesQueryDto`: thêm `city?`, `district?`, `userLat?`, `userLng?`, `radiusKm?`, `sortBy?: 'price_asc' | 'price_desc' | 'distance'`.
   2. `VenuesService.findAll`: áp dụng bộ lọc `city`, `district`; tính khoảng cách `distanceKm` bằng helper Haversine khi có tọa độ người dùng; lọc `distanceKm <= radiusKm`; sắp xếp theo khoảng cách.
   3. Unit test: mock Prisma với 5 sân ở các quận khác nhau $\rightarrow$ assert kết quả lọc theo quận, lọc bán kính 5km, sort gần nhất.
-- **Gates:** `pnpm --filter @courthub/api test` xanh 100%.
+- **Gates:** `pnpm --filter @sango/api test` xanh 100%.
 
 ---
 
@@ -43,7 +43,7 @@
 - **Việc làm:**
   1. Cập nhật NLU nhận diện toàn bộ 12 quận Hà Nội (kể cả có dấu và không dấu: *"ba đình"*, *"nam từ liêm"*, *"bắc từ liêm"*, *"tây hồ"*, *"hà đông"*, *"long biên"*, *"hoàn kiếm"*...).
   2. Unit test: test các câu hỏi tự nhiên như *"tìm sân pickleball ở nam từ liêm"*, *"sân bóng hà đông tối nay"* $\rightarrow$ gán đúng district.
-- **Gates:** `pnpm --filter @courthub/api test src/ai` xanh 100%.
+- **Gates:** `pnpm --filter @sango/api test src/ai` xanh 100%.
 
 ---
 
@@ -55,7 +55,7 @@
   3. Thêm nút **"🗺️ Chỉ đường trên Google Maps"** trên Card sân và trang chi tiết `/venues/:slug` (mở tab Google Maps).
   4. Cập nhật Mock Server (`apps/web/src/mock/data.ts`) đồng bộ 24 cụm sân thực tế tại 12 quận Hà Nội.
   5. Vitest: test component dropdown quận, test filter bán kính, test nút Google Maps trỏ đúng URL.
-- **Gates:** `pnpm --filter @courthub/web test` xanh 100%.
+- **Gates:** `pnpm --filter @sango/web test` xanh 100%.
 
 ---
 

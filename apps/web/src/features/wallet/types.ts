@@ -1,4 +1,4 @@
-import type { WalletLedgerDirection, WalletLedgerType } from '@courthub/shared';
+import type { WalletLedgerDirection, WalletLedgerType } from '@sango/shared';
 
 /** Một dòng biến động ví trong ledger (F6) — backend ghi append-only. */
 export interface WalletLedgerEntry {

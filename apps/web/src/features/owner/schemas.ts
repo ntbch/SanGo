@@ -1,6 +1,8 @@
 /** Schema form khu owner — khớp DTO backend (CreateVenue/CreateCourt). */
 import { z } from 'zod';
 
+import { SUPPORTED_CITIES, districtsOfCity } from '@sango/shared';
+
 export const AMENITY_OPTIONS = [
   'Ánh sáng',
   'Trạm nước',
@@ -14,6 +16,9 @@ export const venueFormSchema = z
   .object({
     name: z.string().min(3, 'Tên sân tối thiểu 3 ký tự').max(120),
     address: z.string().min(5, 'Địa chỉ quá ngắn').max(255),
+    /** Chọn thành phố trước rồi mới chọn quận/huyện (cascade). */
+    city: z.enum(SUPPORTED_CITIES, { errorMap: () => ({ message: 'Chọn thành phố' }) }),
+    district: z.string().min(1, 'Chọn quận/huyện'),
     /** Toạ độ nhập tay ở GĐ1 (bản đồ chọn điểm là GĐ2). */
     lat: z.coerce.number().min(-90, 'Vĩ độ không hợp lệ').max(90, 'Vĩ độ không hợp lệ'),
     lng: z.coerce.number().min(-180, 'Kinh độ không hợp lệ').max(180, 'Kinh độ không hợp lệ'),
@@ -26,6 +31,10 @@ export const venueFormSchema = z
   .refine((values) => values.openHour * 60 < values.closeHour * 60, {
     message: 'Giờ mở cửa phải trước giờ đóng cửa',
     path: ['closeHour'],
+  })
+  .refine((values) => districtsOfCity(values.city).includes(values.district), {
+    message: 'Quận/huyện không thuộc thành phố đã chọn',
+    path: ['district'],
   });
 
 export type VenueFormValues = z.infer<typeof venueFormSchema>;

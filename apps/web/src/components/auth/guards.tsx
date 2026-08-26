@@ -1,4 +1,4 @@
-import { type UserRole } from '@courthub/shared';
+import { type UserRole } from '@sango/shared';
 import type { ReactElement, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DayType } from '@courthub/shared';
+import { DayType } from '@sango/shared';
 
 const ruleShape = z
   .object({

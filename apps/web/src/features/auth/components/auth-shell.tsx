@@ -1,7 +1,7 @@
-import { Trophy } from 'lucide-react';
+
 import type { ReactElement } from 'react';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 
 /**
  * Vỏ trang xác thực (A5 — "auth hẹp giữa"): panel navy gradient với quầng sáng
@@ -35,9 +35,11 @@ export function AuthShell({ children }: { children: ReactElement }): ReactElemen
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14 sm:px-6 md:py-20 lg:px-10">
         {/* Brand trên nền navy — cùng ngôn ngữ footer public-layout */}
         <p className="mb-6 flex items-center gap-2 text-lg font-extrabold tracking-tight text-turf-bright">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-turf/15">
-            <Trophy className="size-5" aria-hidden />
-          </span>
+          <img
+            src="/logo-256.png"
+            alt={`Logo ${APP_NAME}`}
+            className="size-8 rounded-lg object-cover bg-white/10"
+          />
           {APP_NAME}
         </p>
         {children}

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
-import { NotificationType } from '@courthub/shared';
+import { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { roundVnd } from '../bookings/pricing.util';
 import { NotifyService } from '../notifications/notify.service';

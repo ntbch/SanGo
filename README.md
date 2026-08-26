@@ -1,8 +1,8 @@
-# CourtHub 🏟️
+# SanGo 🏟️
 
 > **Hệ thống đặt và quản lý sân thể thao trực tuyến** (Đồ án tốt nghiệp)
 
-CourtHub giải quyết trọn vẹn quy trình tìm kiếm sân, kiểm tra lịch trống theo thời gian thực, giữ chỗ tạm 10 phút, chống double-booking bằng Database Transaction & Row-level Locking, thanh toán cọc online qua VNPay Sandbox (kèm chế độ Mock fallback), check-in bằng mã đơn và đánh giá chất lượng sân.
+SanGo giải quyết trọn vẹn quy trình tìm kiếm sân, kiểm tra lịch trống theo thời gian thực, giữ chỗ tạm 10 phút, chống double-booking bằng Database Transaction & Row-level Locking, thanh toán cọc online qua VNPay Sandbox (kèm chế độ Mock fallback), check-in bằng mã đơn và đánh giá chất lượng sân.
 
 **Giai đoạn 2 (nâng cao & AI):** dashboard thống kê chủ sân (doanh thu/lượt đặt theo ngày, xếp hạng sân con — Chart.js), ghép trận mở (chủ đơn công khai "cần ghép X người", đủ người tự khoá), trợ lý đặt sân tiếng Việt nâng cấp lên **LLM agent tool-use đa lượt** (mặc định Gemini 2.5 Flash qua REST — tự quyết định gọi `searchVenues`/`checkSlots`/`getSuggestedSlots` đọc DB thật, không bịa dữ liệu, cần đăng nhập để giữ chỗ; nhớ ngữ cảnh hội thoại giữa các tin nhắn) và gợi ý khung giờ cá nhân hoá bằng thống kê lịch sử đặt. Chưa cấu hình key (`LLM_PROVIDER=none`) thì trợ lý tự chạy NLU rule-based offline.
 
@@ -13,7 +13,7 @@ CourtHub giải quyết trọn vẹn quy trình tìm kiếm sân, kiểm tra l�
 Dự án được tổ chức theo mô hình Monorepo quản lý bởi **pnpm workspaces**:
 
 ```
-courthub/
+sango/
 ├── apps/
 │   ├── api/             # NestJS 10 REST API · Prisma ORM · Swagger (/api/docs)
 │   └── web/             # React 18 · Vite · TypeScript · Tailwind CSS · TanStack Query
@@ -67,10 +67,10 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm db:up
 
 # 2. Áp dụng Prisma Migrations
-pnpm --filter @courthub/api db:migrate
+pnpm --filter @sango/api db:migrate
 
 # 3. Seed dữ liệu mẫu (3 tài khoản, 3 cụm sân, 10 sân con, bảng giá, đơn mẫu)
-pnpm --filter @courthub/api db:seed
+pnpm --filter @sango/api db:seed
 ```
 
 ### Bước 4: Chạy môi trường phát triển (Development)
@@ -93,13 +93,13 @@ pnpm dev:web
 
 ## 4. Tài khoản Seed Demo
 
-Mật khẩu dùng chung cho tất cả tài khoản demo: **`Courthub@2026`**
+Mật khẩu dùng chung cho tất cả tài khoản demo: **`Sango@2026`**
 
 | Vai trò | Email đăng nhập | Mật khẩu | Mục đích demo |
 |---|---|---|---|
-| **Admin** | `admin@courthub.vn` | `Courthub@2026` | Duyệt / Từ chối cụm sân mới (`PENDING`), quản trị hệ thống |
-| **Owner (Chủ sân)** | `owner@courthub.vn` | `Courthub@2026` | Quản lý cụm sân, sân con, cấu hình bảng giá, xem đơn và check-in khách |
-| **Customer (Khách hàng)** | `customer@courthub.vn` | `Courthub@2026` | Tìm kiếm sân, chọn slot, giữ chỗ 10 phút, đặt cọc, xem lịch sử và đánh giá |
+| **Admin** | `admin@sango.vn` | `Sango@2026` | Duyệt / Từ chối cụm sân mới (`PENDING`), quản trị hệ thống |
+| **Owner (Chủ sân)** | `owner@sango.vn` | `Sango@2026` | Quản lý cụm sân, sân con, cấu hình bảng giá, xem đơn và check-in khách |
+| **Customer (Khách hàng)** | `customer@sango.vn` | `Sango@2026` | Tìm kiếm sân, chọn slot, giữ chỗ 10 phút, đặt cọc, xem lịch sử và đánh giá |
 
 ---
 
@@ -110,7 +110,7 @@ Mật khẩu dùng chung cho tất cả tài khoản demo: **`Courthub@2026`**
 | Biến | Bắt buộc | Mặc định | Mô tả |
 |---|---|---|---|
 | `PORT` | Không | `4000` | Cổng lắng nghe của NestJS API |
-| `DATABASE_URL` | **Có** | `postgresql://courthub:courthub@localhost:5432/courthub?schema=public` | Chuỗi kết nối PostgreSQL |
+| `DATABASE_URL` | **Có** | `postgresql://sango:sango@localhost:5432/sango?schema=public` | Chuỗi kết nối PostgreSQL |
 | `JWT_SECRET` | **Có** | - | Secret khóa ký JWT Access Token |
 | `JWT_REFRESH_SECRET` | **Có** | - | Secret khóa ký JWT Refresh Token |
 | `COOKIE_SECURE` | Không | `true` | Bật cờ Secure cho cookie refresh (`false` khi test HTTP LAN) |
@@ -161,5 +161,5 @@ pnpm build
 
 ## 7. Tài liệu & Đặc tả chi tiết
 
-- Đặc tả thiết kế hệ thống chi tiết: [`docs/superpowers/specs/2026-08-24-courthub-design.md`](docs/superpowers/specs/2026-08-24-courthub-design.md)
+- Đặc tả thiết kế hệ thống chi tiết: [`docs/superpowers/specs/2026-08-24-sango-design.md`](docs/superpowers/specs/2026-08-24-sango-design.md)
 - Swagger API Docs: truy cập tại `/api/docs` khi backend đang chạy.

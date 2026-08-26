@@ -1,4 +1,4 @@
-import { UserRole } from '@courthub/shared';
+import { UserRole } from '@sango/shared';
 import {
   BarChart3,
   CalendarDays,

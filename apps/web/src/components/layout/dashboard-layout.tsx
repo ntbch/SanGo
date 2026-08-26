@@ -2,7 +2,7 @@ import { LogOut, Trophy } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
-import { APP_NAME, UserRole } from '@courthub/shared';
+import { APP_NAME, UserRole } from '@sango/shared';
 import { cn } from '../../lib/utils';
 import { logout } from '../../features/auth/api';
 import { useAuthStore } from '../../lib/auth/auth-store';
@@ -47,7 +47,7 @@ function UserMenu({ compact = false }: UserMenuProps): ReactElement {
 
   const handleLogout = async (): Promise<void> => {
     await logout();
-    toast({ title: 'Đã đăng xuất', description: 'Hẹn gặp lại bạn trên sân! 👋' });
+    toast({ title: 'Đã đăng xuất', description: 'Hẹn gặp lại bạn trên sân!' });
     navigate('/login', { replace: true });
   };
 

@@ -3,11 +3,11 @@
 
 ---
 
-- **Mã tài liệu:** `BRD-COURTHUB-GEO-20260825`
+- **Mã tài liệu:** `BRD-SANGO-GEO-20260825`
 - **Phiên bản:** `1.0.0 (Chính thức)`
 - **Bộ phận phụ trách:** Business Analyst / Product Owner
 - **Đối tượng áp dụng:** Backend (NestJS), Frontend (React), QA/QC, DevOps & AI Engineers
-- **Phạm vi triển khai:** Nền tảng Đặt sân thể thao trực tuyến CourtHub (Web & Mobile Web)
+- **Phạm vi triển khai:** Nền tảng Đặt sân thể thao trực tuyến SanGo (Web & Mobile Web)
 
 ---
 
@@ -16,7 +16,7 @@
 ### 1.1. Bối cảnh thị trường
 Tại các đô thị lớn như Hà Nội, nhu cầu tìm kiếm và đặt sân thể thao (Pickleball, Bóng đá 5-7 người, Cầu lông, Tennis) có tính chất cục bộ rất cao. Người chơi thường chỉ sẵn sàng di chuyển trong bán kính từ **3 km đến 8 km** quanh nơi ở hoặc cơ quan. 
 
-Trước đây, CourtHub chỉ hỗ trợ tìm kiếm chung chung hoặc theo tên sân, khiến:
+Trước đây, SanGo chỉ hỗ trợ tìm kiếm chung chung hoặc theo tên sân, khiến:
 1. Người dùng mất trung bình **3.5 phút** để tra cứu địa chỉ trên bản đồ ngoài.
 2. Tỷ lệ thoát trang (Bounce rate) tại trang danh sách sân cao (~42%).
 3. Khó khăn khi mở rộng mạng lưới cụm sân sang các quận mới.
@@ -31,7 +31,7 @@ Trước đây, CourtHub chỉ hỗ trợ tìm kiếm chung chung hoặc theo t�
 
 ## 2. DANH MỤC DỮ LIỆU CHUẨN: 12 QUẬN NỘI THÀNH HÀ NỘI (MASTER DATA)
 
-Hệ thống CourtHub chuẩn hóa danh mục 12 quận nội thành Hà Nội làm nền tảng cho CSDL (Prisma), Bộ lọc UI, và Từ điển AI NLU.
+Hệ thống SanGo chuẩn hóa danh mục 12 quận nội thành Hà Nội làm nền tảng cho CSDL (Prisma), Bộ lọc UI, và Từ điển AI NLU.
 
 | STT | Tên Quận Chuẩn | Mã Định Danh (Slug) | Tọa độ Trung tâm (Centroid) | Từ khóa nhận diện / Aliases NLU |
 | :---: | :--- | :--- | :--- | :--- |
@@ -104,7 +104,7 @@ Hệ thống CourtHub chuẩn hóa danh mục 12 quận nội thành Hà Nội l
 ---
 
 ### US-05: Trợ Lý AI NLU Nhận Diện Tự Nhiên Địa Giới 12 Quận
-- **Actor:** Người dùng tương tác qua khung chat Trợ lý CourtHub AI.
+- **Actor:** Người dùng tương tác qua khung chat Trợ lý SanGo AI.
 - **Mô tả:** Tôi muốn hỏi bằng ngôn ngữ tự nhiên (vd: *"tìm sân pickleball gần cầu giấy"*, *"sân bóng đá nam từ liêm tối nay"*) và Bot trả về chính xác các cụm sân ở khu vực đó.
 - **Tiêu chí nghiệm thu (AC):**
   - **AC-05.1:** Bot nhận diện được toàn bộ 12 quận kể cả có dấu, không dấu, viết hoa, viết thường.

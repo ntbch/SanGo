@@ -1,5 +1,5 @@
 # =============================================================================
-# Render Blueprint — CourtHub API (đặc tả §9)
+# Render Blueprint — SanGo API (đặc tả §9)
 # Docs: https://render.com/docs/blueprint-spec
 #
 # GHI CHÚ SCAFFOLDING: cấu hình viết sớm theo cấu trúc đã chốt — tên dịch vụ
@@ -15,7 +15,7 @@
 # =============================================================================
 services:
   - type: web
-    name: courthub-api
+    name: sango-api
     runtime: node
     plan: free
     region: singapore
@@ -25,10 +25,10 @@ services:
     buildCommand: >-
       corepack enable &&
       pnpm install --frozen-lockfile &&
-      pnpm --filter @courthub/api prisma:generate &&
-      pnpm --filter @courthub/api build &&
-      pnpm --filter @courthub/api prisma migrate deploy
-    startCommand: pnpm --filter @courthub/api start
+      pnpm --filter @sango/api prisma:generate &&
+      pnpm --filter @sango/api build &&
+      pnpm --filter @sango/api prisma migrate deploy
+    startCommand: pnpm --filter @sango/api start
     envVars:
       - key: NODE_ENV
         value: production
@@ -63,7 +63,7 @@ services:
 #     buildCommand: >-
 #       corepack enable &&
 #       pnpm install --frozen-lockfile &&
-#       pnpm --filter @courthub/api prisma:generate &&
-#       pnpm --filter @courthub/api build
-#     preDeployCommand: pnpm --filter @courthub/api prisma migrate deploy
+#       pnpm --filter @sango/api prisma:generate &&
+#       pnpm --filter @sango/api build
+#     preDeployCommand: pnpm --filter @sango/api prisma migrate deploy
 # -----------------------------------------------------------------------------

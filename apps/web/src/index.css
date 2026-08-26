@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Theme tokens CourtHub — design system "Athletic Synergy" (Stitch):
+ * Theme tokens SanGo — design system "Athletic Synergy" (Stitch):
  * nền "Field White" #f7f9fb, primary "Turf Green" đậm #006d37 (nút/chữ),
  * accent sáng #2ecc71 cho chip, navy #131b2e cho hero/footer, blue #38bdf8 nhấn phụ.
  * Chế độ dark dùng green sáng (#2ecc71) để giữ tương phản trên nền tối.

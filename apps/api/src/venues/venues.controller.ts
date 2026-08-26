@@ -14,7 +14,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/guards/roles.decorator';
 import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
-  CreateVenueSchema,
+  CreateVenueWithLocationSchema,
   OwnerVenueListQuerySchema,
   ReviewsQuerySchema,
   UpdateVenueSchema,
@@ -39,12 +39,12 @@ const venueListQueryDocs = {
     description: 'Tìm kiếm theo tên sân (không phân biệt hoa thường)',
   },
   city: {
-    schema: { type: 'string' },
-    description: 'Lọc theo thành phố (mặc định Hà Nội)',
+    schema: { type: 'string', enum: ['Hà Nội', 'TP. Hồ Chí Minh'] },
+    description: 'Lọc theo thành phố được hỗ trợ (Hà Nội / TP. Hồ Chí Minh)',
   },
   district: {
     schema: { type: 'string' },
-    description: 'Lọc theo quận/huyện',
+    description: 'Lọc theo quận/huyện — phải thuộc thành phố đã chọn ở tham số city',
   },
   userLat: {
     schema: { type: 'number' },
@@ -169,7 +169,7 @@ export class VenuesController {
   })
   create(
     @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(CreateVenueSchema)) dto: CreateVenueDto,
+    @Body(new ZodValidationPipe(CreateVenueWithLocationSchema)) dto: CreateVenueDto,
   ) {
     return this.venuesService.create(user, dto);
   }

@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { APP_NAME } from '@courthub/shared';
+import { APP_NAME } from '@sango/shared';
 import { Button } from '../../../components/ui/button';
 import { Card, CardTitle } from '../../../components/ui/card';
 import {
@@ -30,7 +30,7 @@ export function ResetPasswordPage(): ReactElement {
   const navigate = useNavigate();
 
   // SEO cơ bản cho trang public.
-  usePageMeta('Đặt lại mật khẩu', 'Đặt lại mật khẩu tài khoản CourtHub bằng link gửi qua email.');
+  usePageMeta('Đặt lại mật khẩu', 'Đặt lại mật khẩu tài khoản SanGo bằng link gửi qua email.');
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordFormSchema),

@@ -1,5 +1,39 @@
 import { z } from 'zod';
-import { SportType } from '@courthub/shared';
+import { SportType, isSupportedCity, isValidDistrictForCity } from '@sango/shared';
+
+/**
+ * Cascade TP → Quận ở tầng DTO:
+ *  - city có mặt nhưng không thuộc SUPPORTED_CITIES -> từ chối (CITY_NOT_SUPPORTED).
+ *  - district có mặt -> hợp lệ theo thành phố hiệu dụng (create: thiếu city thì suy ra
+ *    mặc định 'Hà Nội' để tránh cặp lệch ngầm với DB default). Update một phần chỉ gửi
+ *    1 trường vẫn cho qua ở đây — kiểm tra trạng thái sau merge nằm ở VenuesService.update.
+ */
+function addLocationChecks<T extends z.ZodTypeAny>(
+  schema: T,
+  opts: { resolveDefaultCity?: boolean } = {},
+): z.ZodEffects<T> {
+  return schema.superRefine((value, ctx) => {
+    const v = value as { city?: string; district?: string };
+    if (v.city !== undefined && !isSupportedCity(v.city)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `CITY_NOT_SUPPORTED: "${v.city}" chưa được hỗ trợ (chỉ Hà Nội, TP. Hồ Chí Minh)`,
+        path: ['city'],
+      });
+    }
+    if (v.district === undefined) return;
+    const effectiveCity = opts.resolveDefaultCity && v.city === undefined ? 
+      'Hà Nội' : v.city;
+    if (!effectiveCity || !isSupportedCity(effectiveCity)) return;
+    if (!isValidDistrictForCity(effectiveCity, v.district)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `DISTRICT_NOT_IN_CITY: "${v.district}" không thuộc thành phố "${effectiveCity}"`,
+        path: ['district'],
+      });
+    }
+  });
+}
 
 /** Tạo venue: owner gửi, status luôn bị server ép về PENDING (đặc tả §3.2). */
 export const CreateVenueSchema = z
@@ -21,9 +55,14 @@ export const CreateVenueSchema = z
     path: ['closeMinute'],
   });
 export type CreateVenueDto = z.infer<typeof CreateVenueSchema>;
+/** Bản create đã kèm cascade TP→Quận (thiếu city suy ra mặc định). */
+export const CreateVenueWithLocationSchema = addLocationChecks(CreateVenueSchema, {
+  resolveDefaultCity: true,
+});
 
 /** Cập nhật: không cho sửa slug/ownerId/status/rejectReason qua endpoint này. */
-export const UpdateVenueSchema = CreateVenueSchema.innerType().partial();
+const UpdateVenueBaseSchema = CreateVenueSchema.innerType().partial();
+export const UpdateVenueSchema = addLocationChecks(UpdateVenueBaseSchema);
 export type UpdateVenueDto = z.infer<typeof UpdateVenueSchema>;
 
 export const VenueListQuerySchema = z

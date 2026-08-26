@@ -18,6 +18,7 @@ import {
   useUpdateVenue,
   useVenueCourts,
 } from '../queries';
+import { SUPPORTED_CITIES, districtsOfCity } from '@sango/shared';
 import type { VenueFormValues } from '../schemas';
 import type { OwnerVenue } from '../types';
 
@@ -46,10 +47,24 @@ export function MyVenuesPage(): ReactElement {
   const courtsQuery = useVenueCourts(selected?.id);
   const courts = courtsQuery.data?.items ?? [];
 
+  /** Chuẩn hóa city legacy (hoa/thường, tên cũ) về giá trị canonical; lạ -> Hà Nội. */
+  function normalizeLegacyCity(raw?: string): VenueFormValues['city'] {
+    const match = SUPPORTED_CITIES.find((c) => c.toLowerCase() === raw?.trim().toLowerCase());
+    return (match as VenueFormValues['city']) ?? 'Hà Nội';
+  }
+
   function venueToFormValues(venue: OwnerVenue): VenueFormValues {
     return {
       name: venue.name,
       address: venue.address,
+      // Venue cũ trước chuẩn hóa: normalize city (bỏ qua hoa/thường), không khớp -> Hà Nội;
+      // district chỉ giữ khi thuộc city sau chuẩn hóa, ngược lại reset để owner chọn lại.
+      city: normalizeLegacyCity(venue.city),
+      district:
+        venue.district !== undefined &&
+        districtsOfCity(normalizeLegacyCity(venue.city)).includes(venue.district)
+          ? venue.district
+          : '',
       lat: venue.lat,
       lng: venue.lng,
       openHour: Math.floor(venue.openMinute / 60),
@@ -226,10 +241,11 @@ export function MyVenuesPage(): ReactElement {
         submitting={createMutation.isPending || updateMutation.isPending}
         serverError={friendlyApiMessage(createMutation.error ?? updateMutation.error, '')}
         onSubmit={async (values) => {
+          const { openHour, closeHour, ...rest } = values;
           const payload = {
-            ...values,
-            openMinute: values.openHour * 60,
-            closeMinute: values.closeHour * 60,
+            ...rest,
+            openMinute: openHour * 60,
+            closeMinute: closeHour * 60,
           };
           if (editingVenue === undefined) await createMutation.mutateAsync(payload);
           else await updateMutation.mutateAsync({ id: editingVenue.id, values: payload });

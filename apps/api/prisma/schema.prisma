@@ -1,4 +1,4 @@
-// CourtHub — Mô hình dữ liệu Prisma (đặc tả thiết kế §5)
+// SanGo — Mô hình dữ liệu Prisma (đặc tả thiết kế §5)
 // Quy ước:
 // - ID: UUID.
 // - Tiền: số nguyên VND.

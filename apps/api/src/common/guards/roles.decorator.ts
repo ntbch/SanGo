@@ -1,6 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const ROLES_KEY = 'courthub_roles';
+export const ROLES_KEY = 'sango_roles';
 
 /**
  * Khai báo vai trò được phép truy cập endpoint. Dùng cùng RolesGuard:

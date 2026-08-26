@@ -2,13 +2,13 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/tests'],
   testMatch: ['**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   // Workspace package @courthub/shared: dùng trực tiếp TS source khi test,
   // độc lập với thứ tự build trong CI (lint -> typecheck -> test -> build).
   moduleNameMapper: {
-    '^@courthub/shared$': '<rootDir>/../../packages/shared/src/index.ts',
+    '^@sango/shared$': '<rootDir>/../../packages/shared/src/index.ts',
   },
   // Tuần tự hoá test suites khi chạy với Postgres DB chung (tránh tranh chấp integration holds/locks)
   maxWorkers: 1,

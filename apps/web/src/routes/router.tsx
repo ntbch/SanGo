@@ -1,4 +1,4 @@
-import { UserRole } from '@courthub/shared';
+import { UserRole } from '@sango/shared';
 import { useEffect, useRef, type ReactElement } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
@@ -123,7 +123,7 @@ export function AppRoutes(): ReactElement {
             element={
               <>
                 <PageMeta
-                  title="Giải đấu CourtHub"
+                  title="Giải đấu SanGo"
                   description="Các giải đấu thể thao loại trực tiếp — bảng đấu, kết quả và đội vô địch."
                 />
                 <TournamentsPage />

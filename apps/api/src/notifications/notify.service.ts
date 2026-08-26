@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Notification } from '@prisma/client';
-import type { NotificationType } from '@courthub/shared';
+import type { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { MAILER_PORT, type MailerPort, type SendMailInput } from './mailer/mailer.port';
 import type { MailContent } from './mail-templates';

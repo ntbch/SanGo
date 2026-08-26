@@ -1,5 +1,5 @@
 /** Lớp gọi API cho tính năng xác thực (đặc tả §3.1). */
-import { type ResetPasswordDto } from '@courthub/shared';
+import { type ResetPasswordDto } from '@sango/shared';
 import { endpoints } from '../../lib/api/endpoints';
 import { apiFetch } from '../../lib/api/client';
 import { type AuthResponse } from '../../lib/api/types';

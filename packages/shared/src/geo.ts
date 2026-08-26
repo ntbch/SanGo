@@ -235,3 +235,67 @@ export function formatDistance(km: number | null | undefined): string | null {
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km.toFixed(1)} km`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Master data Thành phố → Quận/Huyện                                  */
+/* Phạm vi khớp dữ liệu seed SanGo (AloBo, chỉ HN + TP.HCM).         */
+/* ------------------------------------------------------------------ */
+
+/** Quận/huyện TP. Hồ Chí Minh xuất hiện trong dữ liệu SanGo. */
+export const HO_CHI_MINH_DISTRICTS = [
+  'Quận 1',
+  'Quận 2',
+  'Quận 3',
+  'Quận 4',
+  'Quận 7',
+  'Quận 9',
+  'Quận 10',
+  'Quận 12',
+  'Thủ Đức',
+  'Bình Thạnh',
+  'Bình Tân',
+  'Bình Chánh',
+  'Gò Vấp',
+  'Phú Nhuận',
+  'Tân Bình',
+  'Tân Phú',
+  'Hóc Môn',
+  'Nhà Bè',
+] as const;
+
+export type HoChiMinhDistrict = (typeof HO_CHI_MINH_DISTRICTS)[number];
+
+/** Thành phố SanGo đang hỗ trợ — thứ tự này cũng là thứ tự hiển thị trên UI. */
+export const SUPPORTED_CITIES = ['Hà Nội', 'TP. Hồ Chí Minh'] as const;
+export type SupportedCity = (typeof SUPPORTED_CITIES)[number];
+
+/**
+ * Quận/huyện canonical theo thành phố.
+ * Hà Nội = 12 quận nội thành (HANOI_DISTRICTS) + huyện Thanh Trì.
+ */
+export const CITY_DISTRICTS: Record<SupportedCity, readonly string[]> = {
+  'Hà Nội': [...HANOI_DISTRICTS, 'Thanh Trì'],
+  'TP. Hồ Chí Minh': HO_CHI_MINH_DISTRICTS,
+};
+
+/** Chuỗi city có phải thành phố được hỗ trợ không (so khớp bỏ qua hoa/thường). */
+export function isSupportedCity(city?: string | null): boolean {
+  if (!city) return false;
+  const normalized = city.trim().toLowerCase();
+  return SUPPORTED_CITIES.some((supported) => supported.toLowerCase() === normalized);
+}
+
+/** Quận/huyện canonical của một thành phố; thành phố lạ trả về mảng rỗng. */
+export function districtsOfCity(city: string): readonly string[] {
+  const match = SUPPORTED_CITIES.find(
+    (supported) => supported.toLowerCase() === city.trim().toLowerCase(),
+  );
+  return match ? CITY_DISTRICTS[match] : [];
+}
+
+/** Quận/huyện có thuộc thành phố đã chọn không (không phân biệt hoa/thường). */
+export function isValidDistrictForCity(city: string, district: string): boolean {
+  return districtsOfCity(city).some(
+    (canonical) => canonical.toLowerCase() === district.trim().toLowerCase(),
+  );
+}

@@ -4,6 +4,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Lightbulb,
   Loader2,
   MapPin,
 } from 'lucide-react';
@@ -293,7 +294,10 @@ export function BookingCalendarPage(): ReactElement {
       {/* Dải gợi ý khung giờ AI-2 (§3.13) — đã lọc slot còn trống (t11) */}
       {aiSuggestions.suggestions.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3">
-          <span className="text-sm font-semibold">💡 Gợi ý cho bạn</span>
+          <span className="flex items-center gap-1.5 text-sm font-semibold">
+            <Lightbulb className="size-4" aria-hidden />
+            Gợi ý cho bạn
+          </span>
           {aiSuggestions.suggestions.map((suggestion) => (
             <button
               key={suggestion.label + String(suggestion.startMinute)}

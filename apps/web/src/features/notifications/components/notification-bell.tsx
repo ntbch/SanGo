@@ -10,7 +10,7 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { NotificationType } from '@courthub/shared';
+import { NotificationType } from '@sango/shared';
 
 import { Button } from '../../../components/ui/button';
 import {

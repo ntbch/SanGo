@@ -27,7 +27,7 @@ export function TournamentsPage(): ReactElement {
   const [createOpen, setCreateOpen] = useState(false);
 
   usePageMeta(
-    'Giải đấu CourtHub',
+    'Giải đấu SanGo',
     'Các giải đấu thể thao loại trực tiếp — theo dõi bảng đấu, kết quả và đội vô địch.',
   );
 
@@ -98,8 +98,9 @@ export function TournamentsPage(): ReactElement {
                       {tour.teamCount}/{tour.maxTeams} đội
                     </span>
                     {tour.champion ? (
-                      <span className="font-semibold text-amber-600 dark:text-amber-400">
-                        🏆 {tour.champion.name}
+                      <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                        <Trophy className="size-3.5" aria-hidden />
+                        {tour.champion.name}
                       </span>
                     ) : null}
                   </div>

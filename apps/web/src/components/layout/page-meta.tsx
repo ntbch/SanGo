@@ -22,7 +22,7 @@ export function VenueDetailPageMeta(): null {
   const title = venue !== undefined ? venue.name : 'Chi tiết cụm sân';
   const description =
     venue !== undefined
-      ? venue.address + ' — xem giá từng slot, tiện ích, đánh giá và giữ chỗ online tại CourtHub.'
+      ? venue.address + ' — xem giá từng slot, tiện ích, đánh giá và giữ chỗ online tại SanGo.'
       : undefined;
   usePageMeta(title, description);
   return null;

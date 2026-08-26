@@ -3,7 +3,7 @@
  * Mô phỏng đúng hợp đồng REST của module auth (đặc tả §3.1) và shape lỗi
  * thống nhất { statusCode, message, code } để UI chạy đứng yên không lỗi.
  */
-import { calculateHaversineDistanceKm, NotificationType, UserRole } from '@courthub/shared';
+import { calculateHaversineDistanceKm, NotificationType, UserRole } from '@sango/shared';
 
 import { ApiError } from './api-error';
 import { type AuthUser } from './types';
@@ -18,24 +18,24 @@ interface MockAccount extends AuthUser {
 const accounts: MockAccount[] = [
   {
     id: 'u-customer-01',
-    email: 'customer@courthub.vn',
-    password: 'Courthub@2026',
+    email: 'customer@sango.vn',
+    password: 'Sango@2026',
     fullName: 'Nguyễn Văn Bình',
     phone: '0901234567',
     role: UserRole.CUSTOMER,
   },
   {
     id: 'u-owner-01',
-    email: 'owner@courthub.vn',
-    password: 'Courthub@2026',
+    email: 'owner@sango.vn',
+    password: 'Sango@2026',
     fullName: 'Trần Thị Cẩm Lan',
     phone: '0912345678',
     role: UserRole.OWNER,
   },
   {
     id: 'u-admin-01',
-    email: 'admin@courthub.vn',
-    password: 'Courthub@2026',
+    email: 'admin@sango.vn',
+    password: 'Sango@2026',
     fullName: 'Phạm Quốc Dũng',
     role: UserRole.ADMIN,
   },
@@ -158,7 +158,7 @@ export const MOCK_VENUES: MockVenue[] = [
     ownerId: 'u-owner',
     name: 'Sân Pickleball Saigon',
     slug: 'san-pickleball-saigon',
-    city: 'TP.HCM',
+    city: 'TP. Hồ Chí Minh',
     district: 'Gò Vấp',
     address: '12 Nguyễn Văn Bảo, P.4, Q. Gò Vấp, TP.HCM',
     lat: 10.8205,
@@ -216,7 +216,7 @@ export const MOCK_VENUES: MockVenue[] = [
     ownerId: 'u-owner',
     name: 'Cụm Cầu lông Thủ Đức',
     slug: 'cum-cau-long-thu-duc',
-    city: 'TP.HCM',
+    city: 'TP. Hồ Chí Minh',
     district: 'Thủ Đức',
     address: '456 Võ Văn Ngân, P. Bình Thọ, TP. Thủ Đức, TP.HCM',
     lat: 10.8539,
@@ -268,7 +268,7 @@ export const MOCK_VENUES: MockVenue[] = [
     ownerId: 'u-owner',
     name: 'Tennis Bình Thạnh',
     slug: 'tennis-binh-thanh',
-    city: 'TP.HCM',
+    city: 'TP. Hồ Chí Minh',
     district: 'Bình Thạnh',
     address: '78 Ngo Sĩ Liên, P.11, Q. Bình Thạnh, TP.HCM',
     lat: 10.8017,
@@ -515,8 +515,8 @@ export const MOCK_VENUES: MockVenue[] = [
     lat: 21.0283,
     lng: 105.8142,
     images: [
-      'https://picsum.photos/seed/courthub-ngoc-khanh-1/800/500',
-      'https://picsum.photos/seed/courthub-ngoc-khanh-2/800/500',
+      'https://picsum.photos/seed/sango-ngoc-khanh-1/800/500',
+      'https://picsum.photos/seed/sango-ngoc-khanh-2/800/500',
     ],
     amenities: ['Phòng thay đồ', 'Bãi xe miễn phí', 'Nước uống miễn phí', 'Wifi'],
     depositPercent: 30,
@@ -1042,8 +1042,8 @@ export const MOCK_VENUES: MockVenue[] = [
     lat: 20.9845,
     lng: 105.8541,
     images: [
-      'https://picsum.photos/seed/courthub-hoang-mai-1/800/500',
-      'https://picsum.photos/seed/courthub-hoang-mai-2/800/500',
+      'https://picsum.photos/seed/sango-hoang-mai-1/800/500',
+      'https://picsum.photos/seed/sango-hoang-mai-2/800/500',
     ],
     amenities: ['Phòng thay đồ', 'Bãi xe có mái che', 'Thuê vợt/cầu'],
     depositPercent: 25,
@@ -3622,10 +3622,10 @@ export async function handleMockRequest<T>(
   const TB = (id: string, name: string): MockBracketTeam => ({ id, name, logoUrl: null });
 
   function buildOpenTournament(): MockTournament {
-    // Khớp seed thật: CourtHub Open 2026 — QF xong hết, SF1 xong, SF2 sẵn sàng.
+    // Khớp seed thật: SanGo Open 2026 — QF xong hết, SF1 xong, SF2 sẵn sàng.
     return {
       id: 'tour-01',
-      name: 'CourtHub Open 2026',
+      name: 'SanGo Open 2026',
       description: 'Giải bóng đá 5 người khai mạc hệ thống — 8 đội đấu loại trực tiếp.',
       sportType: 'FOOTBALL5',
       maxTeams: 8,
@@ -3635,7 +3635,7 @@ export async function handleMockRequest<T>(
       championTeamId: null,
       createdAt: '2026-08-25T02:00:00.000Z',
       teamEntries: [
-        ['t-fc-ch', 'FC CourtHub'],
+        ['t-fc-ch', 'FC SanGo'],
         ['t-rangers', 'Hà Nội Rangers'],
         ['t-tayho', 'FC Tây Hồ'],
         ['t-golden', 'Golden Star FC'],
@@ -3763,7 +3763,7 @@ export async function handleMockRequest<T>(
 
   function buildFinishedTournament(): MockTournament {
     const base = buildOpenTournament();
-    // Bản FINISHED: mọi trận có kết quả, FC CourtHub vô địch.
+    // Bản FINISHED: mọi trận có kết quả, FC SanGo vô địch.
     for (const m of base.matches) {
       m.status = 'DONE';
       if (m.id === 'tm-sf2') {
@@ -4204,9 +4204,10 @@ export async function handleMockRequest<T>(
           (venue.district !== undefined && venue.district.toLowerCase().includes(q));
         const matchDistrict =
           !district || (venue.district !== undefined && venue.district.toLowerCase() === district);
+        // Không chọn city -> trả cả 2 thành phố (khớp backend thật, venues.service không lọc)
         const matchCityScope = city
-          ? venue.city !== undefined && venue.city.toLowerCase() === city
-          : venue.city === 'Hà Nội';
+          ? venue.city !== undefined && venue.city.toLowerCase() === city.toLowerCase()
+          : true;
         const matchSport =
           sportType === null ||
           sportType === '' ||

@@ -62,7 +62,7 @@ export interface SuggestedSlotsResponse {
 export interface AiChatResponse {
   intent: 'SEARCH_SLOTS' | 'HOLD_REQUEST' | 'FALLBACK';
   reply: string;
-  /** Tên tool đã chạy — UI hiện '[tool: xxx ✓]' minh bạch chống ảo giác. */
+  /** Tên tool đã chạy — UI hiện '[tool: xxx]' kèm icon BadgeCheck minh bạch chống ảo giác. */
   toolsUsed: string[];
   /** data là object phẳng theo intent (không bọc {type, payload}). */
   data: {

@@ -1,11 +1,11 @@
 /** Kiểu dữ liệu Trung tâm thông báo in-app (P2-F1) — khớp contract backend t1. */
 
 /**
- * Loại thông báo — dùng chung enum NotificationType của @courthub/shared.
+ * Loại thông báo — dùng chung enum NotificationType của @sango/shared.
  * Import lại ở đây dưới dạng type để feature tự thân rõ nghĩa.
  */
-export type { NotificationType } from '@courthub/shared';
-import { type NotificationType } from '@courthub/shared';
+export type { NotificationType } from '@sango/shared';
+import { type NotificationType } from '@sango/shared';
 
 /** Một dòng thông báo trong hộp thư — khớp model Prisma Notification. */
 export interface AppNotification {

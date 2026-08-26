@@ -1,4 +1,4 @@
-# CourtHub — Biên bản QA Regression Sprint 3
+# SanGo — Biên bản QA Regression Sprint 3
 
 > Owner: qa2 · Ngày: 2026-08-26 · Căn cứ: charter t33 + checklist sprint 3 · HEAD lúc chạy: `3f5926a`
 > Kết luận: **PASS Sprint 3** — gates xanh toàn phần, F2/F7 hoạt động đúng charter, regression S1+S2 xanh.

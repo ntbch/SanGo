@@ -10,7 +10,7 @@ thanh toán. **Actor:** khách hàng (createHold yêu cầu đã đăng nhập).
 ```
                                                         Trang booking-grid đang mở…
                                                  ┌───────────────────────────┤
-                                                 │ 🤖 Trợ lý CourtHub    — ✕ │
+                                                 │ 🤖 Trợ lý SanGo    — ✕ │
                                                  ├───────────────────────────┤
                                                  │ 🤖 Chào bạn! Mình giúp tìm │
                                                  │    sân nhé 🏸              │
