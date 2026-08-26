@@ -314,4 +314,55 @@ describe('Teams & ExpenseShare service (integration)', () => {
     });
     expect(split.sharesCreated).toBe(1);
   });
+
+  it('DEDUP (charter C): memberIds trùng nhau chỉ tạo MỘT khoản nợ cho debtor', async () => {
+    if (!dbUp) return;
+    // Fixture booking mới của captain trong team, chưa từng được chia.
+    const venue = await prisma.venue.create({
+      data: {
+        name: 'Venue Dedup ' + SUFFIX,
+        slug: 'venue-dedup-' + SUFFIX,
+        address: '321 Dedup St',
+        lat: 21.03,
+        lng: 105.84,
+        openMinute: 360,
+        closeMinute: 1320,
+        ownerId: captain.id,
+        status: 'APPROVED',
+      },
+    });
+    const court = await prisma.court.create({
+      data: {
+        venueId: venue.id,
+        name: 'Sân Dedup',
+        sportType: SportType.FOOTBALL5,
+        slotMinutes: 60,
+        defaultPricePerSlot: 240_000,
+      },
+    });
+    const booking = await prisma.booking.create({
+      data: {
+        code: `CH-${SUFFIX}-DDUP`,
+        customerId: captain.id,
+        courtId: court.id,
+        date: new Date(Date.now() + 86_400_000),
+        startMinute: 840,
+        endMinute: 900,
+        subtotal: 240_000,
+        depositAmount: 240_000,
+        status: 'CONFIRMED',
+        teamId: createdTeamId,
+      },
+    });
+
+    // member1 bị lặp 2 lần trong danh sách -> dedup về 1, chia đều cho 1 người.
+    const split = await teams.splitBookingExpense(createdTeamId, captain, {
+      bookingId: booking.id,
+      memberIds: [member1.id, member1.id],
+    });
+    expect(split.sharesCreated).toBe(1);
+    expect(split.sharePerPerson).toBe(240_000);
+    expect(split.shares[0].debtorId).toBe(member1.id);
+    expect(split.shares[0].amount).toBe(240_000);
+  });
 });

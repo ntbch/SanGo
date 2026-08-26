@@ -319,6 +319,9 @@ export class TeamsService {
       .reduce((sum, p) => sum + p.amount, 0);
 
     const totalToSplit = paidAmount > 0 ? paidAmount : booking.subtotal;
+    // Charter C (S3): dedup memberIds — trùng debtor không được sinh 2 khoản nợ
+    // giống nhau trong một lần chia tiền.
+    dto.memberIds = [...new Set(dto.memberIds)];
     const count = dto.memberIds.length;
     if (count === 0) {
       throw new BadRequestException({
