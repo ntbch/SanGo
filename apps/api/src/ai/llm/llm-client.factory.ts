@@ -18,7 +18,9 @@ export function createLlmClient(): LlmClient | undefined {
     return new GeminiLlmClient(key, process.env.LLM_MODEL || 'gemini-2.5-flash');
   }
   if (provider !== 'none') {
-    logger.warn(`LLM_PROVIDER="${provider}" không được hỗ trợ — dùng rule-based (hỗ trợ: none|gemini)`);
+    logger.warn(
+      `LLM_PROVIDER="${provider}" không được hỗ trợ — dùng rule-based (hỗ trợ: none|gemini)`,
+    );
   }
   return undefined;
 }

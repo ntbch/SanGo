@@ -72,7 +72,6 @@ interface VenueSpec {
   courts: CourtSpec[];
 }
 
-
 /** Xoá dữ liệu giải đấu theo thứ tự FK-an-toàn (match -> team -> tournament). */
 async function clearTournaments(): Promise<void> {
   await prisma.tournamentMatch.deleteMany();
@@ -210,7 +209,9 @@ async function seedSprint3Tournament(): Promise<void> {
     });
   }
 
-  console.log('   -> 7 trận đã sinh: 4 QF READY ([1v8][4v5][2v7][3v6]) chờ nhập điểm, SF/Final PENDING.');
+  console.log(
+    '   -> 7 trận đã sinh: 4 QF READY ([1v8][4v5][2v7][3v6]) chờ nhập điểm, SF/Final PENDING.',
+  );
 }
 
 /**
@@ -225,28 +226,153 @@ async function seedRankingHistory(
   console.log('📊 S3 F2: tạo booking lịch sử đa dạng cho ranking...');
   type Outcome = 'ONTIME' | 'NOSHOW' | 'LATE_CANCEL';
   interface HistSpec {
-    userIdx: number; courtIdx: number; daysAgo: number;
-    startMinute: number; endMinute: number; subtotal: number; outcome: Outcome;
+    userIdx: number;
+    courtIdx: number;
+    daysAgo: number;
+    startMinute: number;
+    endMinute: number;
+    subtotal: number;
+    outcome: Outcome;
   }
   const specs: HistSpec[] = [
     // customer: đúng giờ 5 lần cao điểm -> điểm uy tín cao nhất bảng
-    { userIdx: 0, courtIdx: 0, daysAgo: 21, startMinute: 1080, endMinute: 1140, subtotal: 450_000, outcome: 'ONTIME' },
-    { userIdx: 0, courtIdx: 0, daysAgo: 18, startMinute: 1020, endMinute: 1080, subtotal: 450_000, outcome: 'ONTIME' },
-    { userIdx: 0, courtIdx: 1, daysAgo: 14, startMinute: 960, endMinute: 1020, subtotal: 100_000, outcome: 'ONTIME' },
-    { userIdx: 0, courtIdx: 0, daysAgo: 9, startMinute: 1140, endMinute: 1200, subtotal: 450_000, outcome: 'ONTIME' },
-    { userIdx: 0, courtIdx: 1, daysAgo: 4, startMinute: 900, endMinute: 960, subtotal: 100_000, outcome: 'ONTIME' },
+    {
+      userIdx: 0,
+      courtIdx: 0,
+      daysAgo: 21,
+      startMinute: 1080,
+      endMinute: 1140,
+      subtotal: 450_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 0,
+      courtIdx: 0,
+      daysAgo: 18,
+      startMinute: 1020,
+      endMinute: 1080,
+      subtotal: 450_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 0,
+      courtIdx: 1,
+      daysAgo: 14,
+      startMinute: 960,
+      endMinute: 1020,
+      subtotal: 100_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 0,
+      courtIdx: 0,
+      daysAgo: 9,
+      startMinute: 1140,
+      endMinute: 1200,
+      subtotal: 450_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 0,
+      courtIdx: 1,
+      daysAgo: 4,
+      startMinute: 900,
+      endMinute: 960,
+      subtotal: 100_000,
+      outcome: 'ONTIME',
+    },
     // customer2: khá — 2 đúng giờ, 1 quên đá (no-show), 1 hủy sát giờ
-    { userIdx: 1, courtIdx: 1, daysAgo: 20, startMinute: 840, endMinute: 900, subtotal: 100_000, outcome: 'ONTIME' },
-    { userIdx: 1, courtIdx: 2, daysAgo: 15, startMinute: 810, endMinute: 900, subtotal: 350_000, outcome: 'ONTIME' },
-    { userIdx: 1, courtIdx: 0, daysAgo: 10, startMinute: 1080, endMinute: 1140, subtotal: 450_000, outcome: 'NOSHOW' },
-    { userIdx: 1, courtIdx: 1, daysAgo: 5, startMinute: 780, endMinute: 840, subtotal: 100_000, outcome: 'LATE_CANCEL' },
+    {
+      userIdx: 1,
+      courtIdx: 1,
+      daysAgo: 20,
+      startMinute: 840,
+      endMinute: 900,
+      subtotal: 100_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 1,
+      courtIdx: 2,
+      daysAgo: 15,
+      startMinute: 810,
+      endMinute: 900,
+      subtotal: 350_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 1,
+      courtIdx: 0,
+      daysAgo: 10,
+      startMinute: 1080,
+      endMinute: 1140,
+      subtotal: 450_000,
+      outcome: 'NOSHOW',
+    },
+    {
+      userIdx: 1,
+      courtIdx: 1,
+      daysAgo: 5,
+      startMinute: 780,
+      endMinute: 840,
+      subtotal: 100_000,
+      outcome: 'LATE_CANCEL',
+    },
     // captain3: ổn định; captain4: quen quên; captain5: chuyên hủy sát giờ
-    { userIdx: 2, courtIdx: 0, daysAgo: 16, startMinute: 960, endMinute: 1020, subtotal: 450_000, outcome: 'ONTIME' },
-    { userIdx: 2, courtIdx: 0, daysAgo: 7, startMinute: 1020, endMinute: 1080, subtotal: 450_000, outcome: 'ONTIME' },
-    { userIdx: 3, courtIdx: 1, daysAgo: 17, startMinute: 720, endMinute: 780, subtotal: 100_000, outcome: 'NOSHOW' },
-    { userIdx: 3, courtIdx: 0, daysAgo: 6, startMinute: 900, endMinute: 960, subtotal: 450_000, outcome: 'NOSHOW' },
-    { userIdx: 4, courtIdx: 2, daysAgo: 12, startMinute: 780, endMinute: 870, subtotal: 350_000, outcome: 'LATE_CANCEL' },
-    { userIdx: 4, courtIdx: 1, daysAgo: 3, startMinute: 840, endMinute: 900, subtotal: 100_000, outcome: 'LATE_CANCEL' },
+    {
+      userIdx: 2,
+      courtIdx: 0,
+      daysAgo: 16,
+      startMinute: 960,
+      endMinute: 1020,
+      subtotal: 450_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 2,
+      courtIdx: 0,
+      daysAgo: 7,
+      startMinute: 1020,
+      endMinute: 1080,
+      subtotal: 450_000,
+      outcome: 'ONTIME',
+    },
+    {
+      userIdx: 3,
+      courtIdx: 1,
+      daysAgo: 17,
+      startMinute: 720,
+      endMinute: 780,
+      subtotal: 100_000,
+      outcome: 'NOSHOW',
+    },
+    {
+      userIdx: 3,
+      courtIdx: 0,
+      daysAgo: 6,
+      startMinute: 900,
+      endMinute: 960,
+      subtotal: 450_000,
+      outcome: 'NOSHOW',
+    },
+    {
+      userIdx: 4,
+      courtIdx: 2,
+      daysAgo: 12,
+      startMinute: 780,
+      endMinute: 870,
+      subtotal: 350_000,
+      outcome: 'LATE_CANCEL',
+    },
+    {
+      userIdx: 4,
+      courtIdx: 1,
+      daysAgo: 3,
+      startMinute: 840,
+      endMinute: 900,
+      subtotal: 100_000,
+      outcome: 'LATE_CANCEL',
+    },
   ];
 
   let seq = 1;
@@ -276,7 +402,9 @@ async function seedRankingHistory(
     await prisma.booking.create({ data });
     seq++;
   }
-  console.log('   -> ' + specs.length + ' booking lịch sử (đúng giờ/no-show/hủy sát giờ) cho leaderboard.');
+  console.log(
+    '   -> ' + specs.length + ' booking lịch sử (đúng giờ/no-show/hủy sát giờ) cho leaderboard.',
+  );
 }
 async function main() {
   // --reset: chỉ dọn + seed lại PHẦN GIẢI ĐẤU, giữ nguyên venue/booking/ví/đội hiện có.
@@ -1743,7 +1871,9 @@ async function main() {
     '👥 F1 Teams: FC CourtHub (captain customer) + Pickleball Saigon Club (captain customer2)',
   );
   console.log('🏆 F7 Tournaments: CourtHub Open 2026 — bracket 8 đội, round 1 sẵn sàng nhập điểm');
-  console.log('📊 F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard');
+  console.log(
+    '📊 F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard',
+  );
   console.log('👤 Captain thêm S3: captain3..captain8@courthub.vn (cùng mật khẩu demo)');
   console.log(
     `💸 ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC CourtHub`,

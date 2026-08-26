@@ -111,7 +111,9 @@ export class AgentChatService implements ChatOrchestrator {
     private readonly tools: AiToolsService,
     private readonly fallback: ChatOrchestrator,
     /** Override cho test; mặc định theo env AI_AGENT_DEADLINE_MS hoặc 10s. */
-    private readonly deadlineMs: number = Number(process.env.AI_AGENT_DEADLINE_MS ?? DEFAULT_DEADLINE_MS),
+    private readonly deadlineMs: number = Number(
+      process.env.AI_AGENT_DEADLINE_MS ?? DEFAULT_DEADLINE_MS,
+    ),
   ) {}
 
   async chat(message: string, ctx?: ChatContext): Promise<AiChatResponse> {
@@ -168,7 +170,9 @@ export class AgentChatService implements ChatOrchestrator {
             role: 'tool',
             toolCallId: call.id,
             name: call.name,
-            content: JSON.stringify({ error: 'Bỏ qua: vượt tối đa ' + MAX_TOOL_CALLS_PER_ROUND + ' tool mỗi lượt' }),
+            content: JSON.stringify({
+              error: 'Bỏ qua: vượt tối đa ' + MAX_TOOL_CALLS_PER_ROUND + ' tool mỗi lượt',
+            }),
           });
         }
       }

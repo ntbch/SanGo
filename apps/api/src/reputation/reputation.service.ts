@@ -155,12 +155,9 @@ export class ReputationService {
       'SELECT COUNT(*)::int AS cnt FROM "bookings"',
       'WHERE "customerId" = $1::uuid',
       'AND "checkedInAt" IS NOT NULL',
-      "AND \"checkedInAt\" <= (\"date\" + (\"startMinute\" * interval '1 minute'))",
+      'AND "checkedInAt" <= ("date" + ("startMinute" * interval \'1 minute\'))',
     ].join(' ');
-    const onTimeRows = await this.prisma.$queryRawUnsafe<Array<{ cnt: number }>>(
-      onTimeSql,
-      userId,
-    );
+    const onTimeRows = await this.prisma.$queryRawUnsafe<Array<{ cnt: number }>>(onTimeSql, userId);
     const sqlOnTime = Number(onTimeRows[0]?.cnt ?? 0);
 
     const playedCount = await this.prisma.booking.count({
@@ -231,9 +228,7 @@ export class ReputationService {
 
     entries.sort(
       (a, b) =>
-        b.score - a.score ||
-        b.onTime - a.onTime ||
-        a.fullName.localeCompare(b.fullName, 'vi'),
+        b.score - a.score || b.onTime - a.onTime || a.fullName.localeCompare(b.fullName, 'vi'),
     );
 
     return {

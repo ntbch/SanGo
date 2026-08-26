@@ -114,8 +114,7 @@ describe('Reputation compute-on-read (integration)', () => {
     const startAt = date.getTime() + opts.startMinute * 60_000;
     await prisma.booking.create({
       data: {
-        code:
-          'CH-REP-' + SUFFIX + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+        code: 'CH-REP-' + SUFFIX + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
         customerId: opts.userId ?? cust.id,
         courtId,
         date,

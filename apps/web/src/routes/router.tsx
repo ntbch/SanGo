@@ -134,7 +134,10 @@ export function AppRoutes(): ReactElement {
             path="tournaments/:tournamentId"
             element={
               <>
-                <PageMeta title="Bảng đấu giải" description="Bracket loại trực tiếp và kết quả các trận." />
+                <PageMeta
+                  title="Bảng đấu giải"
+                  description="Bracket loại trực tiếp và kết quả các trận."
+                />
                 <TournamentDetailPage />
               </>
             }

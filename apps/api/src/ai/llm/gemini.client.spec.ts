@@ -80,7 +80,9 @@ describe('GeminiLlmClient', () => {
   it('candidates rỗng (safety block) -> reject để agent rơi rule-based', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({}));
     const client = new GeminiLlmClient('test-key');
-    await expect(client.generate([{ role: 'user', content: 'hi' }], [])).rejects.toThrow(/rỗng|safety/);
+    await expect(client.generate([{ role: 'user', content: 'hi' }], [])).rejects.toThrow(
+      /rỗng|safety/,
+    );
   });
 });
 

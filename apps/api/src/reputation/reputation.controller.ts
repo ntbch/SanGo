@@ -38,9 +38,7 @@ export class ReputationController {
     required: false,
     schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
   })
-  leaderboard(
-    @Query(new ZodValidationPipe(LeaderboardQuerySchema)) query: LeaderboardQueryDto,
-  ) {
+  leaderboard(@Query(new ZodValidationPipe(LeaderboardQuerySchema)) query: LeaderboardQueryDto) {
     return this.reputationService.getLeaderboard(query.limit);
   }
 }

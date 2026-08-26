@@ -9,7 +9,11 @@ import { NotificationType } from '@courthub/shared';
 import { Prisma, TournamentMatchStatus, TournamentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotifyService } from '../notifications/notify.service';
-import type { CreateTournamentDto, RegisterTeamDto, UpdateMatchScoreDto } from './dto/tournament.dto';
+import type {
+  CreateTournamentDto,
+  RegisterTeamDto,
+  UpdateMatchScoreDto,
+} from './dto/tournament.dto';
 
 type ManagerUser = { id: string; role?: string };
 
@@ -77,7 +81,10 @@ export class TournamentsService {
       },
     });
     if (!tournament) {
-      throw new NotFoundException({ message: 'Không tìm thấy giải đấu', code: 'TOURNAMENT_NOT_FOUND' });
+      throw new NotFoundException({
+        message: 'Không tìm thấy giải đấu',
+        code: 'TOURNAMENT_NOT_FOUND',
+      });
     }
     return tournament;
   }
@@ -106,17 +113,26 @@ export class TournamentsService {
 
         const tour = await tx.tournament.findUnique({ where: { id: tournamentId } });
         if (!tour) {
-          throw new NotFoundException({ message: 'Không tìm thấy giải đấu', code: 'TOURNAMENT_NOT_FOUND' });
+          throw new NotFoundException({
+            message: 'Không tìm thấy giải đấu',
+            code: 'TOURNAMENT_NOT_FOUND',
+          });
         }
         if (tour.status !== TournamentStatus.REGISTRATION) {
-          throw new ConflictException({ message: 'Giải đã khóa đăng ký', code: 'REGISTRATION_CLOSED' });
+          throw new ConflictException({
+            message: 'Giải đã khóa đăng ký',
+            code: 'REGISTRATION_CLOSED',
+          });
         }
         // Đăng ký trùng ưu tiên báo đúng ALREADY_REGISTERED kể cả khi giải đã đủ đội.
         const existing = await tx.tournamentTeam.findUnique({
           where: { tournamentId_teamId: { tournamentId, teamId: dto.teamId } },
         });
         if (existing) {
-          throw new ConflictException({ message: 'Đội đã đăng ký giải này', code: 'ALREADY_REGISTERED' });
+          throw new ConflictException({
+            message: 'Đội đã đăng ký giải này',
+            code: 'ALREADY_REGISTERED',
+          });
         }
         const count = await tx.tournamentTeam.count({ where: { tournamentId } });
         if (count >= tour.maxTeams) {
@@ -129,7 +145,10 @@ export class TournamentsService {
       });
     } catch (e) {
       if ((e as { code?: string }).code === 'P2002') {
-        throw new ConflictException({ message: 'Đội đã đăng ký giải này', code: 'ALREADY_REGISTERED' });
+        throw new ConflictException({
+          message: 'Đội đã đăng ký giải này',
+          code: 'ALREADY_REGISTERED',
+        });
       }
       throw e;
     }
@@ -150,7 +169,10 @@ export class TournamentsService {
         include: { teams: { orderBy: { joinedAt: 'asc' } } },
       });
       if (!tour) {
-        throw new NotFoundException({ message: 'Không tìm thấy giải đấu', code: 'TOURNAMENT_NOT_FOUND' });
+        throw new NotFoundException({
+          message: 'Không tìm thấy giải đấu',
+          code: 'TOURNAMENT_NOT_FOUND',
+        });
       }
       if (!this.isManager(tour.createdBy, user)) {
         throw new ForbiddenException({
@@ -159,7 +181,10 @@ export class TournamentsService {
         });
       }
       if (tour.status !== TournamentStatus.REGISTRATION) {
-        throw new ConflictException({ message: 'Giải đã bắt đầu', code: 'TOURNAMENT_ALREADY_STARTED' });
+        throw new ConflictException({
+          message: 'Giải đã bắt đầu',
+          code: 'TOURNAMENT_ALREADY_STARTED',
+        });
       }
       // MAJOR bye edge (t35): bye chỉ hỗ trợ khi ĐÃ kín hơn nửa slot. Nếu số đội
       // <= maxTeams/2, vòng-1 sẽ có ít nhất một cặp RỖNG (0 đội) — trận rỗng
@@ -186,7 +211,9 @@ export class TournamentsService {
       for (let round = 1; round <= totalRounds; round++) {
         const countInRound = slots / 2 ** round;
         for (let position = 1; position <= countInRound; position++) {
-          const created = await tx.tournamentMatch.create({ data: { tournamentId, round, position } });
+          const created = await tx.tournamentMatch.create({
+            data: { tournamentId, round, position },
+          });
           matches.set(round + '-' + position, created);
         }
       }
@@ -289,7 +316,8 @@ export class TournamentsService {
         where: { tournamentId: match.tournamentId },
         include: { team: { select: { captainId: true, name: true } } },
       });
-      const championName = entries.find((t) => t.teamId === winnerTeamId)?.team.name ?? 'Đội vô địch';
+      const championName =
+        entries.find((t) => t.teamId === winnerTeamId)?.team.name ?? 'Đội vô địch';
       await this.notify
         .dispatchBroadcast(
           entries.map((t) => t.team.captainId),

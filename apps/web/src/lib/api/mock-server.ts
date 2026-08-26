@@ -3610,7 +3610,12 @@ export async function handleMockRequest<T>(
     hostName: string;
     championTeamId: string | null;
     createdAt: string;
-    teamEntries: Array<{ id: string; seed: number | null; joinedAt: string; team: MockBracketTeam }>;
+    teamEntries: Array<{
+      id: string;
+      seed: number | null;
+      joinedAt: string;
+      team: MockBracketTeam;
+    }>;
     matches: MockBracketMatch[];
   }
 
@@ -3645,13 +3650,83 @@ export async function handleMockRequest<T>(
         team: TB(id, name),
       })),
       matches: [
-        { id: 'tm-qf1', round: 1, position: 1, homeTeamId: 't-fc-ch', awayTeamId: 't-cgyb', homeScore: 3, awayScore: 1, winnerTeamId: 't-fc-ch', status: 'DONE' },
-        { id: 'tm-qf2', round: 1, position: 2, homeTeamId: 't-tayho', awayTeamId: 't-longbien', homeScore: 2, awayScore: 2, winnerTeamId: 't-tayho', status: 'DONE' },
-        { id: 'tm-qf3', round: 1, position: 3, homeTeamId: 't-rangers', awayTeamId: 't-shark', homeScore: 4, awayScore: 0, winnerTeamId: 't-rangers', status: 'DONE' },
-        { id: 'tm-qf4', round: 1, position: 4, homeTeamId: 't-golden', awayTeamId: 't-thanxuan', homeScore: 1, awayScore: 2, winnerTeamId: 't-thanxuan', status: 'DONE' },
-        { id: 'tm-sf1', round: 2, position: 1, homeTeamId: 't-fc-ch', awayTeamId: 't-tayho', homeScore: 2, awayScore: 0, winnerTeamId: 't-fc-ch', status: 'DONE' },
-        { id: 'tm-sf2', round: 2, position: 2, homeTeamId: 't-rangers', awayTeamId: 't-thanxuan', homeScore: null, awayScore: null, winnerTeamId: null, status: 'READY' },
-        { id: 'tm-final', round: 3, position: 1, homeTeamId: 't-fc-ch', awayTeamId: null, homeScore: null, awayScore: null, winnerTeamId: null, status: 'PENDING' },
+        {
+          id: 'tm-qf1',
+          round: 1,
+          position: 1,
+          homeTeamId: 't-fc-ch',
+          awayTeamId: 't-cgyb',
+          homeScore: 3,
+          awayScore: 1,
+          winnerTeamId: 't-fc-ch',
+          status: 'DONE',
+        },
+        {
+          id: 'tm-qf2',
+          round: 1,
+          position: 2,
+          homeTeamId: 't-tayho',
+          awayTeamId: 't-longbien',
+          homeScore: 2,
+          awayScore: 2,
+          winnerTeamId: 't-tayho',
+          status: 'DONE',
+        },
+        {
+          id: 'tm-qf3',
+          round: 1,
+          position: 3,
+          homeTeamId: 't-rangers',
+          awayTeamId: 't-shark',
+          homeScore: 4,
+          awayScore: 0,
+          winnerTeamId: 't-rangers',
+          status: 'DONE',
+        },
+        {
+          id: 'tm-qf4',
+          round: 1,
+          position: 4,
+          homeTeamId: 't-golden',
+          awayTeamId: 't-thanxuan',
+          homeScore: 1,
+          awayScore: 2,
+          winnerTeamId: 't-thanxuan',
+          status: 'DONE',
+        },
+        {
+          id: 'tm-sf1',
+          round: 2,
+          position: 1,
+          homeTeamId: 't-fc-ch',
+          awayTeamId: 't-tayho',
+          homeScore: 2,
+          awayScore: 0,
+          winnerTeamId: 't-fc-ch',
+          status: 'DONE',
+        },
+        {
+          id: 'tm-sf2',
+          round: 2,
+          position: 2,
+          homeTeamId: 't-rangers',
+          awayTeamId: 't-thanxuan',
+          homeScore: null,
+          awayScore: null,
+          winnerTeamId: null,
+          status: 'READY',
+        },
+        {
+          id: 'tm-final',
+          round: 3,
+          position: 1,
+          homeTeamId: 't-fc-ch',
+          awayTeamId: null,
+          homeScore: null,
+          awayScore: null,
+          winnerTeamId: null,
+          status: 'PENDING',
+        },
       ],
     };
   }
@@ -3669,8 +3744,18 @@ export async function handleMockRequest<T>(
       championTeamId: null,
       createdAt: '2026-08-24T02:00:00.000Z',
       teamEntries: [
-        { id: 'tt-reg-1', seed: null, joinedAt: '2026-08-24T03:00:00.000Z', team: TB('team-01', 'Dragon Pickleball Club') },
-        { id: 'tt-reg-2', seed: null, joinedAt: '2026-08-24T04:00:00.000Z', team: TB('t-pb-2', 'Smash Sisters') },
+        {
+          id: 'tt-reg-1',
+          seed: null,
+          joinedAt: '2026-08-24T03:00:00.000Z',
+          team: TB('team-01', 'Dragon Pickleball Club'),
+        },
+        {
+          id: 'tt-reg-2',
+          seed: null,
+          joinedAt: '2026-08-24T04:00:00.000Z',
+          team: TB('t-pb-2', 'Smash Sisters'),
+        },
       ],
       matches: [],
     };
@@ -3710,7 +3795,11 @@ export async function handleMockRequest<T>(
   function mockTeamBrief(tour: MockTournament, teamId: string | null): MockBracketTeam | null {
     if (teamId === null) return null;
     const entry = tour.teamEntries.find((t) => t.team.id === teamId);
-    return entry ? entry.team : (MOCK_TEAMS.find((t) => t.id === teamId) ? { id: teamId, name: MOCK_TEAMS.find((t) => t.id === teamId)!.name, logoUrl: null } : null);
+    return entry
+      ? entry.team
+      : MOCK_TEAMS.find((t) => t.id === teamId)
+        ? { id: teamId, name: MOCK_TEAMS.find((t) => t.id === teamId)!.name, logoUrl: null }
+        : null;
   }
 
   function mockMatchView(tour: MockTournament, m: MockBracketMatch) {
@@ -3742,9 +3831,7 @@ export async function handleMockRequest<T>(
       status: tour.status,
       createdAt: tour.createdAt,
       champion:
-        tour.championTeamId === null
-          ? null
-          : (mockTeamBrief(tour, tour.championTeamId) ?? null),
+        tour.championTeamId === null ? null : (mockTeamBrief(tour, tour.championTeamId) ?? null),
       _count: { teams: tour.teamEntries.length },
     })) as unknown as T;
   }
@@ -3753,11 +3840,14 @@ export async function handleMockRequest<T>(
   if (method === 'POST' && rawPath0 === '/tournaments') {
     const name = requireString(payload, 'name');
     const account =
-      sessionEmail === null ? accounts[0] : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+      sessionEmail === null
+        ? accounts[0]
+        : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
     const created: MockTournament = {
       id: 'tour-' + Date.now().toString(36),
       name,
-      description: typeof payload.description === 'string' && payload.description ? payload.description : null,
+      description:
+        typeof payload.description === 'string' && payload.description ? payload.description : null,
       sportType: typeof payload.sportType === 'string' ? payload.sportType : 'FOOTBALL5',
       maxTeams: 8,
       status: 'REGISTRATION',
@@ -3813,7 +3903,9 @@ export async function handleMockRequest<T>(
     }
     const allTeams = [
       ...MOCK_TEAMS.map((t) => ({ id: t.id, name: t.name })),
-      ...MOCK_TOURNAMENTS.flatMap((t) => t.teamEntries.map((e) => ({ id: e.team.id, name: e.team.name }))),
+      ...MOCK_TOURNAMENTS.flatMap((t) =>
+        t.teamEntries.map((e) => ({ id: e.team.id, name: e.team.name })),
+      ),
     ];
     const found = allTeams.find((t) => t.id === teamId);
     if (!found) throw new ApiError(404, 'Không tìm thấy đội', 'TEAM_NOT_FOUND');
@@ -3844,7 +3936,10 @@ export async function handleMockRequest<T>(
     for (let round = 1; round <= totalRounds; round++) {
       const countInRound = slots / 2 ** round;
       for (let position = 1; position <= countInRound; position++) {
-        ids.set(round + '-' + position, 'tm-' + round + '-' + position + '-' + Date.now().toString(36));
+        ids.set(
+          round + '-' + position,
+          'tm-' + round + '-' + position + '-' + Date.now().toString(36),
+        );
       }
     }
     const matches: MockBracketMatch[] = [];
@@ -3887,7 +3982,12 @@ export async function handleMockRequest<T>(
     const id = rawPath0.split('/')[2];
     const homeScore = Number(payload.homeScore);
     const awayScore = Number(payload.awayScore);
-    if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0) {
+    if (
+      !Number.isInteger(homeScore) ||
+      !Number.isInteger(awayScore) ||
+      homeScore < 0 ||
+      awayScore < 0
+    ) {
       throw new ApiError(400, 'Tỷ số phải là số nguyên >= 0', 'SCORE_INVALID');
     }
     for (const tour of MOCK_TOURNAMENTS) {

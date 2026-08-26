@@ -97,10 +97,7 @@ export function AiChatWidget(): ReactElement {
     try {
       // Đa lượt: gửi kèm hội thoại gần nhất (bỏ bubble hold/cần đăng nhập) để agent hiểu "sân đó", "mai"...
       const history: AiChatHistoryItem[] = messages
-        .filter(
-          (m) =>
-            m.transient !== true && m.holdId === undefined && m.needLogin !== true,
-        )
+        .filter((m) => m.transient !== true && m.holdId === undefined && m.needLogin !== true)
         .slice(-8)
         .map((m) => ({ role: m.role, content: m.text }));
       const res: AiChatResponse = await chatMutation.mutateAsync({ message: text, history });

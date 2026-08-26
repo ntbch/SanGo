@@ -85,7 +85,16 @@ function expectedScore(bks) {
     if (email === 'customer@courthub.vn') {
       // user này bị script mutate (chèn no-show) + cache TTL thuần -> assert TỰ-NHẤT QUÁN công thức trên chính response
       const b = me.json?.breakdown || {};
-      const selfScore = Math.max(0, Math.min(100, W.BASE + W.ON_TIME * (b.onTimeCheckIns || 0) + W.LATE_CANCEL * (b.lateCancels || 0) + W.NO_SHOW * (b.noShows || 0)));
+      const selfScore = Math.max(
+        0,
+        Math.min(
+          100,
+          W.BASE +
+            W.ON_TIME * (b.onTimeCheckIns || 0) +
+            W.LATE_CANCEL * (b.lateCancels || 0) +
+            W.NO_SHOW * (b.noShows || 0),
+        ),
+      );
       rec(
         'F2-' + email.split('@')[0],
         'score tu-nhat-quan cong thuc (clamp 0..100) = ' + selfScore,
@@ -104,13 +113,22 @@ function expectedScore(bks) {
 
   // ===== F2-A2: user moi — diem dung BASE, chong badge (deterministic, khong cache) =====
   const newEmail = 'qa-rep-' + Date.now().toString(36) + '@courthub.vn';
-  const regNew = await api('POST', '/auth/register', null, { email: newEmail, password: 'Courthub@2026', fullName: 'QA Rep New' });
-  const newTk = regNew.json?.accessToken || (await api('POST', '/auth/login', null, { email: newEmail, password: 'Courthub@2026' })).json?.accessToken;
+  const regNew = await api('POST', '/auth/register', null, {
+    email: newEmail,
+    password: 'Courthub@2026',
+    fullName: 'QA Rep New',
+  });
+  const newTk =
+    regNew.json?.accessToken ||
+    (await api('POST', '/auth/login', null, { email: newEmail, password: 'Courthub@2026' })).json
+      ?.accessToken;
   const meNew = await api('GET', '/reputation/me', newTk);
   rec(
     'F2-new-user',
     'user moi score=50 (BASE), badge current=0',
-    meNew.status === 200 && meNew.json?.score === 50 && (meNew.json?.badges || []).every((b) => Number(b.current) === 0 && !b.unlocked),
+    meNew.status === 200 &&
+      meNew.json?.score === 50 &&
+      (meNew.json?.badges || []).every((b) => Number(b.current) === 0 && !b.unlocked),
     JSON.stringify({ got: meNew.json?.score, badges: meNew.json?.badges }),
   );
 
@@ -119,7 +137,7 @@ function expectedScore(bks) {
   // ghi su kien doi diem ngay sau GET1: booking COMPLETED khong check-in (no-show -20)
   const anyCourt = await prisma.court.findFirst();
   const pastDate = new Date(Date.now() - 86400000 * 3);
-  const nsBk = await prisma.booking.create({
+  await prisma.booking.create({
     data: {
       code: 'QA-NS-' + Date.now().toString(36),
       customerId: uMap['customer@courthub.vn'].id,
@@ -155,19 +173,6 @@ function expectedScore(bks) {
     'SELECT COUNT(*)::int AS cnt FROM bookings WHERE "customerId" = $1::uuid AND "checkedInAt" IS NOT NULL AND "checkedInAt" <= ("date" + ("startMinute" * interval \'1 minute\'))',
     uMap['customer@courthub.vn'].id,
   );
-  const totalCnt = await prisma.booking.count({
-    where: {
-      customerId: uMap['customer@courthub.vn'].id,
-      status: { in: ['CANCELLED', 'CHECKED_IN', 'COMPLETED'] },
-    },
-  });
-  const playedCnt = await prisma.booking.count({
-    where: {
-      customerId: uMap['customer@courthub.vn'].id,
-      status: { in: ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'] },
-    },
-  });
-  const expectedBookingsCurrent = Math.max(totalCnt, playedCnt);
   const badges = before.json?.badges || [];
   const b1 = badges.find((b) => b.code === 'ON_TIME_10');
   const b2 = badges.find((b) => b.code === 'BOOKINGS_10');
@@ -183,7 +188,7 @@ function expectedScore(bks) {
   rec(
     'BADGE-bookings',
     'BOOKINGS_10 current=' + (b2?.current ?? '?') + ' — unlocked khop nguong',
-    !!b2 && b2.target === 10 && b2.unlocked === (Number(b2.current) >= 10),
+    !!b2 && b2.target === 10 && b2.unlocked === Number(b2.current) >= 10,
     JSON.stringify(b2),
   );
 
@@ -360,7 +365,6 @@ function expectedScore(bks) {
     sportType: 'PICKLEBALL',
   });
   await api('POST', '/tournaments/' + mk2.json.id + '/register', custTk, { teamId: drawTeamA.id });
-  const t2teams = [drawTeamA.id];
   const moreTeams = await prisma.team.findMany({
     where: { id: { notIn: [drawTeamA.id] } },
     take: 7,
