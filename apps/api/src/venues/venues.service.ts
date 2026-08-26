@@ -37,14 +37,19 @@ export class VenuesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // TODO(unaccent): bật extension unaccent để tìm kiếm tên sân bỏ dấu tiếng Việt.
-  /** Danh sách PUBLIC — chỉ venue APPROVED (đặc tả §3.2). Lọc sportType qua sân con ACTIVE, lọc city, district, GPS cự ly & bán kính. */
   async listPublic(query: VenueListQueryDto) {
+    const sportWhere = query.sportType
+      ? query.sportType === 'FOOTBALL'
+        ? { in: [SportType.FOOTBALL5, SportType.FOOTBALL7] }
+        : query.sportType
+      : undefined;
+
     const where: Prisma.VenueWhereInput = {
       status: 'APPROVED',
       ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
       ...(query.city ? { city: { equals: query.city, mode: 'insensitive' } } : {}),
       ...(query.district ? { district: { equals: query.district, mode: 'insensitive' } } : {}),
-      ...(query.sportType ? { courts: { some: { sportType: query.sportType, status: 'ACTIVE' } } } : {}),
+      ...(sportWhere ? { courts: { some: { sportType: sportWhere, status: 'ACTIVE' } } } : {}),
     };
 
     const hasUserGps = typeof query.userLat === 'number' && typeof query.userLng === 'number';
@@ -246,6 +251,7 @@ export class VenuesService {
         priceFrom,
         priceTo,
         availableSports,
+        sportTypes: availableSports,
         courts: v.courts,
       };
     });

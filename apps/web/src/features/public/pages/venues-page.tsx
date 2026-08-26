@@ -76,7 +76,7 @@ export function VenuesPage(): ReactElement {
 
   const query = useVenues({
     q: q === '' ? undefined : q,
-    sportType: sportTypeParam === 'FOOTBALL' ? undefined : sportTypeParam,
+    sportType: sportTypeParam,
     city: effectiveCity,
     district: districtParam,
     userLat: userCoords?.lat,

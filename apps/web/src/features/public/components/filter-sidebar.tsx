@@ -91,90 +91,152 @@ export function FilterSidebar({
         ) : null}
       </div>
 
-      {/* Môn thể thao — Gộp Bóng đá */}
-      <div className="space-y-2">
-        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Môn thể thao
-        </Label>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Chọn loại sân">
-          <Button
-            type="button"
-            variant={sportType === undefined ? 'default' : 'outline'}
-            size="sm"
-            className={cn('rounded-xl text-xs h-8 px-3', sportType === undefined && 'font-bold')}
-            onClick={() => onSportTypeChange(undefined)}
-          >
-            Tất cả
-          </Button>
-          <Button
-            type="button"
-            variant={isFootball ? 'default' : 'outline'}
-            size="sm"
-            className={cn('rounded-xl text-xs h-8 px-3', isFootball && 'font-bold')}
-            onClick={() => onSportTypeChange(isFootball ? undefined : 'FOOTBALL')}
-          >
-            ⚽ Bóng đá
-          </Button>
-          <Button
-            type="button"
-            variant={sportType === SportType.BADMINTON ? 'default' : 'outline'}
-            size="sm"
-            className={cn('rounded-xl text-xs h-8 px-3', sportType === SportType.BADMINTON && 'font-bold')}
-            onClick={() => onSportTypeChange(sportType === SportType.BADMINTON ? undefined : SportType.BADMINTON)}
-          >
-            🏸 Cầu lông
-          </Button>
-          <Button
-            type="button"
-            variant={sportType === SportType.PICKLEBALL ? 'default' : 'outline'}
-            size="sm"
-            className={cn('rounded-xl text-xs h-8 px-3', sportType === SportType.PICKLEBALL && 'font-bold')}
-            onClick={() => onSportTypeChange(sportType === SportType.PICKLEBALL ? undefined : SportType.PICKLEBALL)}
-          >
-            🏓 Pickleball
-          </Button>
-          <Button
-            type="button"
-            variant={sportType === SportType.TENNIS ? 'default' : 'outline'}
-            size="sm"
-            className={cn('rounded-xl text-xs h-8 px-3', sportType === SportType.TENNIS && 'font-bold')}
-            onClick={() => onSportTypeChange(sportType === SportType.TENNIS ? undefined : SportType.TENNIS)}
-          >
-            🎾 Tennis
-          </Button>
+      {/* Môn thể thao — Lưới chọn sang trọng */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Môn thể thao
+          </Label>
+          {sportType !== undefined ? (
+            <button
+              type="button"
+              onClick={() => onSportTypeChange(undefined)}
+              className="text-[11px] font-semibold text-primary hover:underline"
+            >
+              Xem tất cả
+            </button>
+          ) : null}
         </div>
 
-        {/* Chọn Bóng đá -> bung ra 2 mục con sân 5 / sân 7 */}
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Chọn loại sân">
+          <button
+            type="button"
+            className={cn(
+              'col-span-2 flex items-center justify-center gap-2 rounded-xl border p-2 text-xs font-semibold transition-all duration-200',
+              sportType === undefined
+                ? 'border-primary bg-primary text-primary-foreground shadow-xs font-bold'
+                : 'border-border/70 bg-background hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => onSportTypeChange(undefined)}
+          >
+            <span>🏆</span>
+            <span>Tất cả môn</span>
+          </button>
+
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-200',
+              isFootball
+                ? 'border-primary bg-primary text-primary-foreground shadow-xs font-bold'
+                : 'border-border/70 bg-background hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() => onSportTypeChange(isFootball ? undefined : 'FOOTBALL')}
+          >
+            <span>⚽</span>
+            <span>Bóng đá</span>
+          </button>
+
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-200',
+              sportType === SportType.BADMINTON
+                ? 'border-primary bg-primary text-primary-foreground shadow-xs font-bold'
+                : 'border-border/70 bg-background hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() =>
+              onSportTypeChange(sportType === SportType.BADMINTON ? undefined : SportType.BADMINTON)
+            }
+          >
+            <span>🏸</span>
+            <span>Cầu lông</span>
+          </button>
+
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-200',
+              sportType === SportType.PICKLEBALL
+                ? 'border-primary bg-primary text-primary-foreground shadow-xs font-bold'
+                : 'border-border/70 bg-background hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() =>
+              onSportTypeChange(sportType === SportType.PICKLEBALL ? undefined : SportType.PICKLEBALL)
+            }
+          >
+            <span>🏓</span>
+            <span>Pickleball</span>
+          </button>
+
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-200',
+              sportType === SportType.TENNIS
+                ? 'border-primary bg-primary text-primary-foreground shadow-xs font-bold'
+                : 'border-border/70 bg-background hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+            )}
+            onClick={() =>
+              onSportTypeChange(sportType === SportType.TENNIS ? undefined : SportType.TENNIS)
+            }
+          >
+            <span>🎾</span>
+            <span>Tennis</span>
+          </button>
+        </div>
+
+        {/* Segmented control con cho Bóng đá */}
         {isFootball ? (
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 pl-1 text-xs">
-            <span className="text-[11px] font-semibold text-muted-foreground">Loại sân:</span>
-            <button
-              type="button"
-              onClick={() => onSportTypeChange('FOOTBALL5')}
-              className={cn(
-                'rounded-lg border px-2 py-0.5 text-xs transition',
-                sportType === 'FOOTBALL5'
-                  ? 'border-primary bg-primary font-bold text-primary-foreground'
-                  : 'border-border bg-muted/50 text-foreground hover:bg-muted',
-              )}
-            >
-              ⚽ Bóng đá 5
-            </button>
-            <button
-              type="button"
-              onClick={() => onSportTypeChange('FOOTBALL7')}
-              className={cn(
-                'rounded-lg border px-2 py-0.5 text-xs transition',
-                sportType === 'FOOTBALL7'
-                  ? 'border-primary bg-primary font-bold text-primary-foreground'
-                  : 'border-border bg-muted/50 text-foreground hover:bg-muted',
-              )}
-            >
-              ⚽ Bóng đá 7
-            </button>
-            {sportType === undefined || sportType === 'FOOTBALL' ? (
-              <span className="text-[10px] text-muted-foreground">(đang lọc cả 2 loại)</span>
-            ) : null}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
+              <span>Loại sân bóng đá:</span>
+              <span className="text-[10px] font-normal text-muted-foreground">
+                {sportType === 'FOOTBALL5'
+                  ? 'Sân 5 người'
+                  : sportType === 'FOOTBALL7'
+                    ? 'Sân 7 người'
+                    : 'Cả sân 5 & 7'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1 bg-background/90 p-1 rounded-lg border border-border/60">
+              <button
+                type="button"
+                onClick={() => onSportTypeChange('FOOTBALL')}
+                className={cn(
+                  'rounded-md py-1 text-[11px] font-semibold transition-all text-center',
+                  sportType === 'FOOTBALL' || sportType === undefined
+                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                )}
+              >
+                Tất cả
+              </button>
+              <button
+                type="button"
+                onClick={() => onSportTypeChange('FOOTBALL5')}
+                className={cn(
+                  'rounded-md py-1 text-[11px] font-semibold transition-all text-center',
+                  sportType === 'FOOTBALL5'
+                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                )}
+              >
+                Sân 5
+              </button>
+              <button
+                type="button"
+                onClick={() => onSportTypeChange('FOOTBALL7')}
+                className={cn(
+                  'rounded-md py-1 text-[11px] font-semibold transition-all text-center',
+                  sportType === 'FOOTBALL7'
+                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                )}
+              >
+                Sân 7
+              </button>
+            </div>
           </div>
         ) : null}
       </div>

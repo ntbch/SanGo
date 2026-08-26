@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SportType, isSupportedCity, isValidDistrictForCity } from '@sango/shared';
+import { isSupportedCity, isValidDistrictForCity } from '@sango/shared';
 
 /**
  * Cascade TP → Quận ở tầng DTO:
@@ -66,7 +66,7 @@ export type UpdateVenueDto = z.infer<typeof UpdateVenueSchema>;
 
 export const VenueListQuerySchema = z
   .object({
-    sportType: z.nativeEnum(SportType).optional(),
+    sportType: z.enum(['FOOTBALL', 'FOOTBALL5', 'FOOTBALL7', 'PICKLEBALL', 'BADMINTON', 'TENNIS']).optional(),
     q: z.string().trim().max(100).optional(),
     city: z.string().trim().max(100).optional(),
     district: z.string().trim().max(100).optional(),
