@@ -185,4 +185,61 @@ export class ReputationService {
       target: def.target,
     }));
   }
+
+  /**
+   * Bảng xếp hạng (F2): chỉ người chơi có ít nhất một đơn ở trạng thái chấm điểm.
+   * Tính lại từng người qua computeReputation, sort score desc — hoà thì ưu tiên
+   * onTime nhiều hơn rồi tên tiếng Việt cho thứ tự ổn định giữa các lần gọi.
+   */
+  async getLeaderboard(limit: number) {
+    const distinct = await this.prisma.booking.findMany({
+      where: {
+        status: {
+          in: [BookingStatus.CANCELLED, BookingStatus.CHECKED_IN, BookingStatus.COMPLETED],
+        },
+      },
+      select: { customerId: true },
+      distinct: ['customerId'],
+    });
+    const ids = distinct.map((d) => d.customerId);
+    if (ids.length === 0) {
+      return { items: [], total: 0, generatedAt: new Date().toISOString() };
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, fullName: true },
+    });
+
+    const entries: Array<{
+      userId: string;
+      fullName: string;
+      score: number;
+      onTime: number;
+      noShow: number;
+    }> = [];
+    for (const u of users) {
+      const rep = await this.computeReputation(u.id);
+      entries.push({
+        userId: u.id,
+        fullName: u.fullName,
+        score: rep.score,
+        onTime: rep.breakdown.onTimeCheckIns,
+        noShow: rep.breakdown.noShows,
+      });
+    }
+
+    entries.sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.onTime - a.onTime ||
+        a.fullName.localeCompare(b.fullName, 'vi'),
+    );
+
+    return {
+      items: entries.slice(0, limit),
+      total: entries.length,
+      generatedAt: new Date().toISOString(),
+    };
+  }
 }

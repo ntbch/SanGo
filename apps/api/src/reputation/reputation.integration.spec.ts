@@ -102,6 +102,7 @@ describe('Reputation compute-on-read (integration)', () => {
 
   /** Tạo nhanh một booking với trạng thái/thời điểm tuỳ chọn. */
   async function mkBooking(opts: {
+    userId?: string;
     status: 'CANCELLED' | 'CHECKED_IN' | 'COMPLETED';
     daysFromNow: number;
     startMinute: number;
@@ -115,7 +116,7 @@ describe('Reputation compute-on-read (integration)', () => {
       data: {
         code:
           'CH-REP-' + SUFFIX + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
-        customerId: cust.id,
+        customerId: opts.userId ?? cust.id,
         courtId,
         date,
         startMinute: opts.startMinute,
@@ -220,5 +221,60 @@ describe('Reputation compute-on-read (integration)', () => {
     const fresh = await reputation.getMyReputation(cust.id);
     expect(fresh.score).toBe(before.score + 10);
     expect(fresh.breakdown.onTimeCheckIns).toBe(before.breakdown.onTimeCheckIns + 1);
+  });
+
+  it('LEADERBOARD (gap t31): sort score desc, trả đủ trường FE cần, limit hoạt động', async () => {
+    if (!dbUp) return;
+    (reputation as unknown as { cache: Map<string, unknown> }).cache.clear();
+    const rival = await prisma.user.create({
+      data: {
+        email: `itrep-rival-${SUFFIX}@courthub.vn`,
+        passwordHash: await bcrypt.hash('IntegrationPass1!', 4),
+        fullName: 'Á Quân',
+        role: 'CUSTOMER',
+      },
+    });
+    try {
+      // Rival chơi sạch 2 trận đúng giờ -> 70đ, vượt cust đang 45đ.
+      for (const d of [-6, -7]) {
+        await mkBooking({
+          userId: rival.id,
+          status: 'CHECKED_IN',
+          daysFromNow: d,
+          startMinute: 600,
+          checkedInOffsetMin: -15,
+        });
+      }
+
+      const board = await reputation.getLeaderboard(10);
+      expect(board.total).toBeGreaterThanOrEqual(2);
+      // Leaderboard là GLOBAL (gồm cả user seed) -> chỉ assert tương đối trong tập của test.
+      const rivalRow = board.items.find((i) => i.userId === rival.id);
+      expect(rivalRow).toBeDefined();
+      expect(rivalRow!.score).toBe(70);
+      // Đủ trường FE cần: tên, score, onTime, noShow (+userId để điều hướng).
+      expect(rivalRow!).toMatchObject({
+        fullName: 'Á Quân',
+        onTime: 2,
+        noShow: 0,
+      });
+      const custIdx = board.items.findIndex((i) => i.userId === cust.id);
+      const rivalIdx = board.items.findIndex((i) => i.userId === rival.id);
+      expect(custIdx).toBeGreaterThan(-1);
+      // 70đ của rival phải đứng TRÊN 45đ của cust (sort score desc).
+      expect(rivalIdx).toBeLessThan(custIdx);
+      // Sort tổng thể giảm dần theo score.
+      for (let i = 1; i < board.items.length; i++) {
+        expect(board.items[i - 1].score).toBeGreaterThanOrEqual(board.items[i].score);
+      }
+
+      // limit hoạt động.
+      const top1 = await reputation.getLeaderboard(1);
+      expect(top1.items.length).toBe(1);
+      expect(top1.items[0].score).toBeGreaterThanOrEqual(board.items[0].score);
+    } finally {
+      await prisma.booking.deleteMany({ where: { customerId: rival.id } }).catch(() => undefined);
+      await prisma.user.deleteMany({ where: { id: rival.id } }).catch(() => undefined);
+    }
   });
 });

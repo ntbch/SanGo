@@ -1,9 +1,11 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../common/guards/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import type { AuthUser } from '../common/guards/jwt-auth.guard';
+import { ZodValidationPipe } from '../auth/zod-validation.pipe';
+import { LeaderboardQuerySchema, type LeaderboardQueryDto } from './dto/reputation.dto';
 import { ReputationService } from './reputation.service';
 
 @ApiTags('reputation')
@@ -22,5 +24,23 @@ export class ReputationController {
   })
   me(@CurrentUser() user: AuthUser) {
     return this.reputationService.getMyReputation(user.id);
+  }
+
+  @Get('leaderboard')
+  @ApiOperation({
+    summary: 'Bảng xếp hạng uy tín theo điểm giảm dần (F2)',
+    description:
+      'Chỉ tính người chơi có ít nhất một đơn ở trạng thái chấm điểm. ' +
+      'Số liệu compute-on-read có thể trễ tối đa 5 phút do cache TTL thuần.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+  })
+  leaderboard(
+    @Query(new ZodValidationPipe(LeaderboardQuerySchema)) query: LeaderboardQueryDto,
+  ) {
+    return this.reputationService.getLeaderboard(query.limit);
   }
 }
