@@ -241,4 +241,22 @@ describe('Tournaments single-elimination bracket (integration)', () => {
     expect(finished.status).toBe('FINISHED');
     expect(finished.championTeamId).not.toBeNull();
   });
+
+  it('MAJOR bye edge (t35): start giải 3 đội (<= maxTeams/2) -> 400 NOT_ENOUGH_TEAMS', async () => {
+    if (!dbUp) return;
+    const tour = await tournaments.createTournament(admin, {
+      name: 'Tour Bye Edge ' + SUFFIX,
+      sportType: SportType.FOOTBALL5,
+    });
+    const ids: string[] = [];
+    for (let i = 1; i <= 3; i++) ids.push(await mkTeam(i));
+    for (let i = 0; i < 3; i++) {
+      await tournaments.registerTeam(captains[i], tour.id, { teamId: ids[i] });
+    }
+
+    // 3 đội <= maxTeams/2 (=4): vòng-1 sẽ có cặp RỖNG kẹt PENDING -> chặn start.
+    await expect(tournaments.startTournament(admin, tour.id)).rejects.toMatchObject({
+      response: { code: 'NOT_ENOUGH_TEAMS' },
+    });
+  });
 });

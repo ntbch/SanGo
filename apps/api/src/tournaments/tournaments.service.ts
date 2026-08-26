@@ -161,9 +161,12 @@ export class TournamentsService {
       if (tour.status !== TournamentStatus.REGISTRATION) {
         throw new ConflictException({ message: 'Giải đã bắt đầu', code: 'TOURNAMENT_ALREADY_STARTED' });
       }
-      if (tour.teams.length < 2) {
+      // MAJOR bye edge (t35): bye chỉ hỗ trợ khi ĐÃ kín hơn nửa slot. Nếu số đội
+      // <= maxTeams/2, vòng-1 sẽ có ít nhất một cặp RỖNG (0 đội) — trận rỗng
+      // không thể auto-DONE như bye 1 đội và sẽ kẹt PENDING vĩnh viễn.
+      if (tour.teams.length <= tour.maxTeams / 2) {
         throw new BadRequestException({
-          message: 'Cần ít nhất 2 đội để bắt đầu giải',
+          message: `Quá ít đội để bắt đầu giải: có ${tour.teams.length}/${tour.maxTeams} đội — bye chỉ hỗ trợ khi hơn nửa slot đã kín`,
           code: 'NOT_ENOUGH_TEAMS',
         });
       }
