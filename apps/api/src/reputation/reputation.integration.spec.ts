@@ -182,6 +182,25 @@ describe('Reputation compute-on-read (integration)', () => {
     expect(onTime10?.current).toBeGreaterThanOrEqual(1);
   });
 
+  it('SCORE-3 (chốt captain): huỷ ĐÚNG mốc 12h là huỷ bình thường — không trừ điểm', async () => {
+    if (!dbUp) return;
+    const clearCache = () =>
+      (reputation as unknown as { cache: Map<string, unknown> }).cache.clear();
+    clearCache();
+    // Baseline TRƯỚC khi thêm đơn huỷ ranh giới.
+    const before = await reputation.getMyReputation(cust.id);
+    await mkBooking({
+      status: 'CANCELLED',
+      daysFromNow: -6,
+      startMinute: 600,
+      cancelledOffsetMin: -12 * 60, // đúng T-12h -> thuộc tier 50%, KHÔNG trừ điểm
+    });
+    clearCache();
+    const after = await reputation.getMyReputation(cust.id);
+    expect(after.breakdown.lateCancels).toBe(before.breakdown.lateCancels);
+    expect(after.score).toBe(before.score);
+  });
+
   it('CACHE: đọc liên tiếp trong TTL dùng kết quả cache, xoá cache thấy dữ liệu mới', async () => {
     if (!dbUp) return;
     // Bỏ cache của test trước để 'before' phản ánh đúng dữ liệu hiện có.

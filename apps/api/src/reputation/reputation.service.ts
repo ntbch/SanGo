@@ -27,7 +27,9 @@ export const REPUTATION_WEIGHTS = {
   NO_SHOW: -20,
 } as const;
 
-/** Ngưỡng hủy sát giờ (đặc tả hoàn tiền §6.4): dưới 12 tiếng trước giờ chơi. */
+/** Ngưỡng hủy sát giờ: <12h trước giờ chơi — CHỐT captain: dùng chung mốc 12h
+ * của tier hoàn tiền (bookings.service refundQuote: >24h 100%, 12–24h 50%, <12h 0%).
+ * Từ 12h trở lên chỉ là huỷ bình thường, không trừ điểm. */
 export const LATE_CANCEL_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 export const BADGE_DEFS = [
