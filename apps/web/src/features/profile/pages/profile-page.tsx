@@ -325,7 +325,10 @@ export function ProfilePage(): ReactElement {
                   onChange={(e) => setSportsProfile({ ...sportsProfile, favoriteSport: e.target.value })}
                   className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
                 >
-                  <option value="FOOTBALL5">Bóng đá</option>
+                  <optgroup label="Bóng đá">
+                    <option value="FOOTBALL5">Bóng đá 5</option>
+                    <option value="FOOTBALL7">Bóng đá 7</option>
+                  </optgroup>
                   <option value="BADMINTON">Cầu lông</option>
                   <option value="PICKLEBALL">Pickleball</option>
                   <option value="TENNIS">Tennis</option>

@@ -98,7 +98,7 @@ export const VenueMapQuerySchema = z
         /^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/,
         'bbox phải có định dạng minLat,minLng,maxLat,maxLng',
       ),
-    sportType: z.nativeEnum(SportType).optional(),
+    sportType: z.enum(['FOOTBALL', 'FOOTBALL5', 'FOOTBALL7', 'PICKLEBALL', 'BADMINTON', 'TENNIS']).optional(),
     q: z.string().trim().max(100).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
   })

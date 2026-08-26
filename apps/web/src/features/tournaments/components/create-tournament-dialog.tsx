@@ -27,13 +27,7 @@ import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { useCreateTournament } from '../queries';
 import { createTournamentFormSchema, type CreateTournamentFormValues } from '../schemas';
 
-const SPORT_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'FOOTBALL5', label: 'Bóng đá 5' },
-  { value: 'FOOTBALL7', label: 'Bóng đá 7' },
-  { value: 'PICKLEBALL', label: 'Pickleball' },
-  { value: 'BADMINTON', label: 'Cầu lông' },
-  { value: 'TENNIS', label: 'Tennis' },
-];
+
 
 export function CreateTournamentDialog({
   open,
@@ -106,11 +100,13 @@ export function CreateTournamentDialog({
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none"
                       {...field}
                     >
-                      {SPORT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
+                      <optgroup label="Bóng đá">
+                        <option value="FOOTBALL5">Bóng đá 5</option>
+                        <option value="FOOTBALL7">Bóng đá 7</option>
+                      </optgroup>
+                      <option value="PICKLEBALL">Pickleball</option>
+                      <option value="BADMINTON">Cầu lông</option>
+                      <option value="TENNIS">Tennis</option>
                     </select>
                   </FormControl>
                   <FormMessage />

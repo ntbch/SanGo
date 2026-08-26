@@ -78,7 +78,13 @@ export function MapPage(): ReactElement {
         if (!matchName && !matchAddr) return false;
       }
       if (sportFilter) {
-        if (!item.sportTypes?.includes(sportFilter)) return false;
+        if (sportFilter === 'FOOTBALL') {
+          if (!(item.sportTypes?.includes('FOOTBALL5') || item.sportTypes?.includes('FOOTBALL7'))) {
+            return false;
+          }
+        } else if (!item.sportTypes?.includes(sportFilter)) {
+          return false;
+        }
       }
       return true;
     });
@@ -144,7 +150,7 @@ export function MapPage(): ReactElement {
           <div className="hidden sm:flex items-center gap-1">
             {[
               { id: '', label: 'Tất cả môn' },
-              { id: 'FOOTBALL5', label: 'Bóng đá' },
+              { id: 'FOOTBALL', label: 'Bóng đá' },
               { id: 'BADMINTON', label: 'Cầu lông' },
               { id: 'PICKLEBALL', label: 'Pickleball' },
               { id: 'TENNIS', label: 'Tennis' },
@@ -154,7 +160,9 @@ export function MapPage(): ReactElement {
                 type="button"
                 onClick={() => setSportFilter(s.id)}
                 className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-                  sportFilter === s.id
+                  sportFilter === s.id ||
+                    (s.id === 'FOOTBALL' &&
+                      (sportFilter === 'FOOTBALL5' || sportFilter === 'FOOTBALL7'))
                     ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
@@ -163,6 +171,29 @@ export function MapPage(): ReactElement {
               </button>
             ))}
           </div>
+          {sportFilter === 'FOOTBALL' || sportFilter === 'FOOTBALL5' || sportFilter === 'FOOTBALL7' ? (
+            <div className="flex w-full flex-wrap items-center gap-1 pl-1">
+              <span className="text-[10px] font-semibold text-muted-foreground">Loại sân:</span>
+              {[
+                { id: 'FOOTBALL5', label: '⚽ Bóng đá 5' },
+                { id: 'FOOTBALL7', label: '⚽ Bóng đá 7' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSportFilter(s.id)}
+                  className={
+                    'rounded-lg border px-2 py-0.5 text-[11px] font-semibold transition ' +
+                    (sportFilter === s.id
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-muted/60 text-muted-foreground hover:bg-muted')
+                  }
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <Button
             type="button"

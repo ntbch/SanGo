@@ -10,6 +10,7 @@ import {
   calculateHaversineDistanceKm,
   isSupportedCity,
   isValidDistrictForCity,
+  SportType,
 } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { uniqueSlug } from './slug.util';
@@ -43,9 +44,7 @@ export class VenuesService {
       ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
       ...(query.city ? { city: { equals: query.city, mode: 'insensitive' } } : {}),
       ...(query.district ? { district: { equals: query.district, mode: 'insensitive' } } : {}),
-      ...(query.sportType
-        ? { courts: { some: { sportType: query.sportType, status: 'ACTIVE' } } }
-        : {}),
+      ...(query.sportType ? { courts: { some: { sportType: query.sportType, status: 'ACTIVE' } } } : {}),
     };
 
     const hasUserGps = typeof query.userLat === 'number' && typeof query.userLng === 'number';
@@ -168,7 +167,17 @@ export class VenuesService {
       lng: { gte: minLng, lte: maxLng },
       ...(query.q ? { name: { contains: query.q, mode: 'insensitive' } } : {}),
       ...(query.sportType
-        ? { courts: { some: { sportType: query.sportType, status: 'ACTIVE' } } }
+        ? {
+            courts: {
+              some: {
+                status: 'ACTIVE',
+                sportType:
+                  query.sportType === 'FOOTBALL'
+                    ? { in: [SportType.FOOTBALL5, SportType.FOOTBALL7] }
+                    : query.sportType,
+              },
+            },
+          }
         : {}),
     };
 
@@ -193,7 +202,14 @@ export class VenuesService {
         courts: {
           where: {
             status: 'ACTIVE',
-            ...(query.sportType ? { sportType: query.sportType } : {}),
+            ...(query.sportType
+              ? {
+                  sportType:
+                    query.sportType === 'FOOTBALL'
+                      ? { in: [SportType.FOOTBALL5, SportType.FOOTBALL7] }
+                      : query.sportType,
+                }
+              : {}),
           },
           select: {
             id: true,

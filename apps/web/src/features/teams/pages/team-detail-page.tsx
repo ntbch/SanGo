@@ -64,8 +64,8 @@ const SPORT_LABELS: Record<string, string> = {
   PICKLEBALL: 'Pickleball',
   BADMINTON: 'Cầu lông',
   TENNIS: 'Tennis',
-  FOOTBALL5: 'Bóng đá 5',
-  FOOTBALL7: 'Bóng đá 7',
+  FOOTBALL5: 'Bóng đá',
+  FOOTBALL7: 'Bóng đá',
 };
 
 function memberBadge(
