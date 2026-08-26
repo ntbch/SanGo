@@ -173,6 +173,7 @@ model User {
   teamMemberships   TeamMember[]
   expenseSharesPaid ExpenseShare[]     @relation("ExpenseSharePayer")
   expenseSharesOwed ExpenseShare[]     @relation("ExpenseShareDebtor")
+  tournamentsCreated Tournament[]
 
   @@map("users")
 }
@@ -523,6 +524,11 @@ model Team {
   bookings Booking[]
   holds    BookingHold[]
   expenseShares ExpenseShare[]
+  tournamentEntries TournamentTeam[]
+  championOf   Tournament[]      @relation("TournamentChampion")
+  matchHome    TournamentMatch[] @relation("MatchHome")
+  matchAway    TournamentMatch[] @relation("MatchAway")
+  matchWins    TournamentMatch[] @relation("MatchWinner")
 
   @@index([captainId])
   @@map("teams")
@@ -569,6 +575,11 @@ model ExpenseShare {
 
   @@index([teamId, status])
   @@index([debtorId, status])
+  /// MAJOR dọn nợ S2: (teamId, bookingId) là UNIQUE khi bookingId != null —
+  /// enforce bằng PARTIAL UNIQUE INDEX trong migration (Prisma DSL chưa hỗ trợ
+  /// partial unique); bookingId null (ghi nợ thủ công) được phép lặp.
+  /// App-level vẫn giữ check BOOKING_ALREADY_SPLIT để trả lỗi thân thiện.
+  @@index([teamId, bookingId])
   @@map("expense_shares")
 }
 
@@ -644,4 +655,86 @@ model Notification {
 
   @@index([userId, readAt])
   @@map("notifications")
+}
+
+/// Trạng thái giải đấu (S3-F7): REGISTRATION -> ONGOING -> FINISHED.
+enum TournamentStatus {
+  REGISTRATION
+  ONGOING
+  FINISHED
+}
+
+/// Trạng thái một trận trong bracket: PENDING (chưa có đội) -> READY (đủ đội) -> DONE (có kết quả).
+enum TournamentMatchStatus {
+  PENDING
+  READY
+  DONE
+}
+
+/// Giải đấu loại trực tiếp demo-first (S3-F7): 8 đội tự sinh bracket,
+/// v1 KHÔNG gắn booking sân — nhập điểm tay bởi host/admin.
+model Tournament {
+  id             String           @id @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  sportType      SportType
+  maxTeams       Int              @default(8)
+  status         TournamentStatus @default(REGISTRATION)
+  createdBy      String           @db.Uuid
+  /// Đội vô địch được ghi sau trận chung kết (null khi giải chưa xong).
+  championTeamId String?          @db.Uuid
+  createdAt      DateTime         @default(now())
+
+  creator  User              @relation(fields: [createdBy], references: [id])
+  champion Team?             @relation("TournamentChampion", fields: [championTeamId], references: [id])
+  teams    TournamentTeam[]
+  matches  TournamentMatch[]
+
+  @@index([status])
+  @@map("tournaments")
+}
+
+/// Lượt đăng ký đội vào giải — UNIQUE(tournamentId, teamId) chặn đăng ký trùng ở mức DB.
+model TournamentTeam {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @db.Uuid
+  teamId       String   @db.Uuid
+  /// Hạt giống bảng đấu (1 = top seed); null = bốc thăm tự do.
+  seed         Int?
+  joinedAt     DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@index([teamId])
+  @@map("tournament_teams")
+}
+
+/// Một trận trong bracket single-elimination — nextMatchId nối cây nhánh.
+model TournamentMatch {
+  id           String                @id @default(uuid()) @db.Uuid
+  tournamentId String                @db.Uuid
+  round        Int
+  position     Int
+  homeTeamId   String?               @db.Uuid
+  awayTeamId   String?               @db.Uuid
+  homeScore    Int?
+  awayScore    Int?
+  winnerTeamId String?               @db.Uuid
+  /// Trận tiếp theo trong bracket (null = đây là trận chung kết).
+  nextMatchId  String?               @db.Uuid
+  status       TournamentMatchStatus @default(PENDING)
+  createdAt    DateTime              @default(now())
+
+  tournament Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  homeTeam   Team?            @relation("MatchHome", fields: [homeTeamId], references: [id])
+  awayTeam   Team?            @relation("MatchAway", fields: [awayTeamId], references: [id])
+  winner     Team?            @relation("MatchWinner", fields: [winnerTeamId], references: [id])
+  nextMatch  TournamentMatch? @relation("BracketNext", fields: [nextMatchId], references: [id])
+  feeders    TournamentMatch[] @relation("BracketNext")
+
+  @@unique([tournamentId, round, position])
+  @@index([tournamentId, status])
+  @@map("tournament_matches")
 }

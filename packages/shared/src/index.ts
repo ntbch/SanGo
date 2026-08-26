@@ -127,6 +127,20 @@ export enum VenueServiceType {
   OTHER = 'OTHER',
 }
 
+/** Trạng thái giải đấu (S3-F7) — trùng khớp TournamentStatus trong Prisma. */
+export enum TournamentStatus {
+  REGISTRATION = 'REGISTRATION',
+  ONGOING = 'ONGOING',
+  FINISHED = 'FINISHED',
+}
+
+/** Trạng thái trận trong bracket giải đấu (S3-F7) — trùng khớp TournamentMatchStatus. */
+export enum TournamentMatchStatus {
+  PENDING = 'PENDING',
+  READY = 'READY',
+  DONE = 'DONE',
+}
+
 /* ------------------------------------------------------------------ */
 /* Hằng số nghiệp vụ cơ bản                                            */
 /* ------------------------------------------------------------------ */
