@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { APP_NAME } from '@sango/shared';
-import { safeInternalTarget } from '../../../components/auth/guards';
+import { landingPathForRole, safeInternalTarget } from '../../../components/auth/guards';
 import { Button } from '../../../components/ui/button';
 import { Card, CardTitle } from '../../../components/ui/card';
 import {
@@ -43,11 +43,12 @@ export function LoginPage(): ReactElement {
     try {
       const { accessToken, user } = await login(values);
       // P1-F1: ?next=<đường hiện tại> từ hành động khách cần tài khoản (Giữ chỗ/
-      // Tham gia trận/AI giữ chỗ); fallback state.from của ProtectedRoute rồi /dashboard.
+      // Tham gia trận/AI giữ chỗ); fallback state.from rồi trang đích theo vai trò
+      // (customer về trang chủ, chủ sân/quản trị vào bảng điều khiển).
       const target =
         safeInternalTarget(searchParams.get('next')) ??
         safeInternalTarget((location.state as { from?: string } | null)?.from ?? null) ??
-        '/dashboard';
+        landingPathForRole(user.role);
       // QA-T4-01: điều hướng TRƯỚC khi setSession — nếu setSession trước,
       // GuestRoute thấy user!=null sẽ <Navigate to=/dashboard> ghi đè đích next.
       navigate(target, { replace: true });
@@ -152,8 +153,7 @@ export function LoginPage(): ReactElement {
         {env.useMock && (
           <div className="mt-4 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Chế độ demo (mock)</p>
-            Đăng nhập thử với mật khẩu{' '}
-            <code className="font-score text-primary">Sango@2026</code>:
+            Đăng nhập thử với mật khẩu <code className="font-score text-primary">Sango@2026</code>:
             <ul className="mt-1 list-inside list-disc">
               {MOCK_HINT_ACCOUNTS.map((account) => (
                 <li key={account} className="font-score">

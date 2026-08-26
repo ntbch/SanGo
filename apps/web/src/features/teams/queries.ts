@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ExpenseShareItem } from './types';
 
 import {
+  contributeTeamFund,
   createExpenseShare,
   createTeam,
+  createTeamFundExpense,
   fetchMyTeams,
   fetchTeam,
   fetchTeamExpenses,
@@ -145,6 +147,35 @@ export function useUpdateExpenseStatus() {
       shareId: string;
       status: 'UNPAID' | 'PAID';
     }): Promise<ExpenseShareItem> => updateExpenseStatus(teamId, shareId, status),
+    onSuccess: () => invalidateTeams(qc),
+  });
+}
+export function useContributeTeamFund() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, amount, note }: { teamId: string; amount: number; note?: string }) =>
+      contributeTeamFund(teamId, { amount, note }),
+    onSuccess: () => {
+      invalidateTeams(qc);
+      void qc.invalidateQueries({ queryKey: ['wallet'] });
+    },
+  });
+}
+
+export function useCreateTeamFundExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      teamId,
+      title,
+      amount,
+      billImageUrl,
+    }: {
+      teamId: string;
+      title: string;
+      amount: number;
+      billImageUrl?: string;
+    }) => createTeamFundExpense(teamId, { title, amount, billImageUrl }),
     onSuccess: () => invalidateTeams(qc),
   });
 }

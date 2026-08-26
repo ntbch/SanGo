@@ -1,94 +1,22 @@
-import { LogOut, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 
 import { APP_NAME, UserRole } from '@sango/shared';
 import { cn } from '../../lib/utils';
-import { logout } from '../../features/auth/api';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { navItemsForRole } from './navigation';
 import { NotificationBell } from '../../features/notifications/components/notification-bell';
 import { WalletBalanceBadge } from '../../features/wallet/components/wallet-balance-badge';
 import { ThemeToggle } from '../theme/theme-toggle';
 import { Badge, type BadgeProps } from '../ui/badge';
-import { Button } from '../ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { toast } from '../ui/use-toast';
+import { UserMenu } from './user-menu';
 
 const ROLE_META: Record<UserRole, { label: string; variant: BadgeProps['variant'] }> = {
   [UserRole.CUSTOMER]: { label: 'Khách hàng', variant: 'secondary' },
   [UserRole.OWNER]: { label: 'Chủ sân', variant: 'success' },
   [UserRole.ADMIN]: { label: 'Quản trị', variant: 'warning' },
 };
-
-function initialsOf(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.charAt(0) ?? '?';
-  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
-  return (first + last).toUpperCase();
-}
-
-interface UserMenuProps {
-  compact?: boolean;
-}
-
-function UserMenu({ compact = false }: UserMenuProps): ReactElement {
-  const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-
-  if (!user) return <span />;
-
-  const handleLogout = async (): Promise<void> => {
-    await logout();
-    toast({ title: 'Đã đăng xuất', description: 'Hẹn gặp lại bạn trên sân!' });
-    navigate('/login', { replace: true });
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className={cn('h-auto w-full justify-start gap-2 px-2 py-2', compact && 'w-auto')}
-          aria-label="Menu tài khoản"
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-            {initialsOf(user.fullName)}
-          </span>
-          {!compact && (
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate text-sm font-medium">{user.fullName}</span>
-              <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
-            </span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={compact ? 'end' : 'start'} className="w-56">
-        <DropdownMenuLabel>
-          <span className="block truncate">{user.fullName}</span>
-          <span className="block truncate text-xs font-normal text-muted-foreground">
-            {user.email}
-          </span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={() => void handleLogout()}
-          className="text-destructive focus:text-destructive"
-        >
-          <LogOut aria-hidden />
-          Đăng xuất
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 /** Khung dashboard A4: sidebar trái cố định w-64 + topbar mờ; nội dung fluid không mx-auto. */
 export function DashboardLayout(): ReactElement {

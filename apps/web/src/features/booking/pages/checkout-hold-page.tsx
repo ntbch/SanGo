@@ -22,6 +22,8 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
 import { formatVnd, minutesToTime } from '../../public/format';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
+import { apiFetch } from '../../../lib/api/client';
+import { endpoints } from '../../../lib/api/endpoints';
 import { CountdownTimer } from '../components/countdown-timer';
 import {
   useApplyVoucher,
@@ -76,10 +78,14 @@ export function CheckoutHoldPage(): ReactElement {
 
       // Nếu có paymentUrl (VNPay hoặc mock callback endpoint)
       if (res.mode === 'mock') {
-        // Trong mock mode, gọi thẳng API callback hoặc mở paymentUrl
-        window.location.href = res.paymentUrl;
+        // Mock: bấm xác nhận -> gọi THẲNG callback API (kèm amount đối chiếu) ->
+        // điều hướng /thanh-toan/ket-qua?status=...&txnRef=...&code=...
+        const cb = await apiFetch<{ redirectUrl: string }>(
+          endpoints.payments.mockCallback(res.txnRef) + '&amount=' + String(res.amount),
+        );
+        window.location.href = cb.redirectUrl;
       } else if (res.paymentUrl) {
-        // VNPay sandbox
+        // VNPay sandbox: rời trang sang cổng, gateway quay lại callback (302) của backend.
         window.location.href = res.paymentUrl;
       }
     } catch (err) {

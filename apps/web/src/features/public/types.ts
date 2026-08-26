@@ -80,6 +80,8 @@ export interface MapVenueItem {
   lng: number;
   images: string[];
   amenities: string[];
+  /** Môn chơi tại cụm sân (tuỳ chọn) — dùng lọc trên bản đồ F5. */
+  sportTypes?: string[];
   depositPercent: number;
   openMinute: number;
   closeMinute: number;

@@ -43,6 +43,20 @@ describe('Trang xác thực (mock mode)', () => {
     expect(screen.getByText(/Xin chào Trần Thị Cẩm Lan/)).toBeTruthy();
   });
 
+  it('đăng nhập customer thành công → về trang chủ (không vào dashboard quản lý)', async () => {
+    renderApp({ route: '/login' });
+
+    fireEvent.change(await screen.findByLabelText('Email'), {
+      target: { value: 'customer@sango.vn' },
+    });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'Sango@2026' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    // Customer thấy ngay hero khám phá sân của trang chủ
+    expect(await screen.findByRole('link', { name: 'Khám phá sân' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Tổng quan' })).toBeNull();
+  });
+
   it('form đăng ký thiếu họ tên hiện lỗi', async () => {
     renderApp({ route: '/register' });
     await screen.findByRole('button', { name: 'Đăng ký' });

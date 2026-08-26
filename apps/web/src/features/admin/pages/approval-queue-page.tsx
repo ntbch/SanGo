@@ -22,23 +22,27 @@ import { minutesToTime } from '../../owner/format';
 import { useApproveVenue, useAdminVenues, useRejectVenue } from '../queries';
 import type { AdminVenueItem } from '../types';
 
-type StatusFilter = 'PENDING' | 'APPROVED' | 'REJECTED';
+import { VenueStatus } from '@sango/shared';
 
-const FILTER_LABELS: Record<StatusFilter, string> = {
-  PENDING: 'Chờ duyệt',
-  APPROVED: 'Đã duyệt',
-  REJECTED: 'Bị từ chối',
+type StatusFilter = VenueStatus;
+
+const FILTER_LABELS: Record<VenueStatus, string> = {
+  [VenueStatus.PENDING]: 'Chờ duyệt',
+  [VenueStatus.APPROVED]: 'Đã duyệt',
+  [VenueStatus.REJECTED]: 'Bị từ chối',
+  [VenueStatus.SUSPENDED]: 'Tạm ngưng',
 };
 
-const STATUS_VARIANTS = {
-  APPROVED: 'success',
-  PENDING: 'warning',
-  REJECTED: 'destructive',
-} as const;
+const STATUS_VARIANTS: Record<VenueStatus, 'success' | 'warning' | 'destructive' | 'secondary'> = {
+  [VenueStatus.APPROVED]: 'success',
+  [VenueStatus.PENDING]: 'warning',
+  [VenueStatus.REJECTED]: 'destructive',
+  [VenueStatus.SUSPENDED]: 'secondary',
+};
 
 /** Trang quản trị: hàng chờ duyệt cụm sân mới — Duyệt hoặc Từ chối (+lý do). */
 export function ApprovalQueuePage(): ReactElement {
-  const [filter, setFilter] = useState<StatusFilter>('PENDING');
+  const [filter, setFilter] = useState<StatusFilter>(VenueStatus.PENDING);
   const [q, setQ] = useState('');
   const [rejectTarget, setRejectTarget] = useState<AdminVenueItem | undefined>(undefined);
   const [reason, setReason] = useState('');

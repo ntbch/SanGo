@@ -1,4 +1,4 @@
-import { type UserRole } from '@sango/shared';
+import { UserRole } from '@sango/shared';
 import type { ReactElement, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 
@@ -12,9 +12,14 @@ export function safeInternalTarget(raw: string | null | undefined): string | nul
   return raw;
 }
 
+/** Trang đích mặc định sau đăng nhập: khách hàng về trang chủ công khai, chủ sân/quản trị vào bảng điều khiển. */
+export function landingPathForRole(role: UserRole | undefined): string {
+  return role === UserRole.CUSTOMER ? '/' : '/dashboard';
+}
+
 interface ProtectedRouteProps {
   children: ReactNode;
-  /** Nếu khai báo thì chỉ các vai trò này được đi tiếp, ngược lại về /dashboard. */
+  /** Nếu khai báo thì chỉ các vai trò này được đi tiếp, ngược lại về trang đích theo vai trò. */
   roles?: readonly UserRole[];
 }
 
@@ -27,7 +32,7 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps): ReactE
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={landingPathForRole(user.role)} replace />;
   }
 
   return <>{children}</>;
@@ -52,7 +57,7 @@ export function GuestRoute({ children }: GuestRouteProps): ReactElement {
     const next =
       safeInternalTarget(searchParams.get('next')) ??
       safeInternalTarget((location.state as { from?: string } | null)?.from);
-    return <Navigate to={next ?? '/dashboard'} replace />;
+    return <Navigate to={next ?? landingPathForRole(user.role)} replace />;
   }
 
   // Dùng như pathless layout route thì render con qua Outlet.

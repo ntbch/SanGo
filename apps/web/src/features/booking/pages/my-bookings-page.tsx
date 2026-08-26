@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Plus, ShoppingBag, Star, Loader2, UsersRound } from 'lucide-react';
+import { Calendar, Clock, Plus, ShoppingBag, Star, Loader2, UsersRound, QrCode } from 'lucide-react';
+import { generateQrSvg } from '../../../lib/qrcode';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -29,11 +30,12 @@ import { useMatchParticipants } from '../../matches/queries';
 import { AddOnsDialog } from '../components/addons-dialog';
 import type { CustomerBooking } from '../types';
 
-type TabFilter = 'upcoming' | 'history' | 'cancelled';
+type TabFilter = 'all' | 'upcoming' | 'completed' | 'cancelled';
 
 const TAB_LABELS: Record<TabFilter, string> = {
-  upcoming: 'Sắp chơi',
-  history: 'Lịch sử',
+  all: 'Tất cả',
+  upcoming: 'Sắp diễn ra',
+  completed: 'Hoàn thành',
   cancelled: 'Đã huỷ',
 };
 
@@ -50,10 +52,11 @@ const STATUS_BADGES: Record<
 };
 
 export function MyCustomerBookingsPage(): ReactElement {
-  const [tab, setTab] = useState<TabFilter>('upcoming');
+  const [tab, setTab] = useState<TabFilter>('all');
   const { toast } = useToast();
 
-  const bookingsQuery = useMyBookings({ filter: tab, page: 1 });
+  const bookingsQuery = useMyBookings(tab === 'all' ? { page: 1 } : { filter: tab === 'completed' ? 'history' : tab, page: 1 });
+  const [qrTarget, setQrTarget] = useState<CustomerBooking | undefined>(undefined);
   const cancelMutation = useCancelCustomerBooking();
   const reviewMutation = useSubmitBookingReview();
 
@@ -254,6 +257,16 @@ export function MyCustomerBookingsPage(): ReactElement {
 
                   {/* Actions */}
                   <div className="flex shrink-0 flex-col sm:flex-row gap-2 self-center sm:self-start">
+                    {(b.status === 'CONFIRMED' || b.status === 'CHECKED_IN') ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="font-semibold"
+                        onClick={() => setQrTarget(b)}
+                      >
+                        <QrCode className="mr-1.5 size-3.5" aria-hidden /> Mã QR
+                      </Button>
+                    ) : null}
                     {canCancel ? (
                       <Button
                         variant="outline"
@@ -517,6 +530,45 @@ export function MyCustomerBookingsPage(): ReactElement {
           if (!open) setAddonTarget(undefined);
         }}
       />
+
+      {/* Modal QR Check-in */}
+      <Dialog
+        open={Boolean(qrTarget)}
+        onOpenChange={(open) => {
+          if (!open) setQrTarget(undefined);
+        }}
+      >
+        <DialogContent className="sm:max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle className="text-center">Mã Check-in Sân</DialogTitle>
+            <DialogDescription className="text-center">
+              Đưa mã QR này cho quản lý sân khi đến nhận sân.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4">
+            <div className="rounded-xl border border-border/80 bg-white p-4 shadow-sm text-slate-900">
+              {qrTarget ? (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: generateQrSvg(qrTarget.code, 180),
+                  }}
+                />
+              ) : null}
+            </div>
+            <div className="mt-3 font-mono text-base font-bold tracking-wider text-primary">
+              {qrTarget?.code}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {qrTarget?.venueName} · {qrTarget?.courtName}
+            </p>
+          </div>
+          <DialogFooter className="sm:justify-center">
+            <Button variant="outline" size="sm" onClick={() => setQrTarget(undefined)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

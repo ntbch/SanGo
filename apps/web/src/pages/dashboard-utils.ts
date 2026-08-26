@@ -1,6 +1,6 @@
 import { vnToday } from '@sango/shared';
 
-import type { OwnerBooking } from '../features/owner/types';
+import type { OwnerAnalyticsResponse, OwnerBooking } from '../features/owner/types';
 
 /** Mẩu dữ liệu tối thiểu để chọn "đơn sắp tới gần nhất". */
 export interface UpcomingLike {
@@ -113,4 +113,53 @@ export function countByVenueStatus(items: ReadonlyArray<{ status: string }>): Ve
     }
   }
   return counts;
+}
+/* --------------------- Bổ sung t5: tổng quan chỉ-xem --------------------- */
+
+/**
+ * Doanh thu "ước tính" hôm nay: tổng amountPaid của các đơn phát sinh TRONG
+ * ngày chưa bị huỷ/no-show. Đơn chờ thanh toán vẫn được tính vì có thể thu
+ * về trong ngày — đây là con số ước tính, không phải doanh thu ghi nhận.
+ */
+export function estimateRevenueToday(
+  bookings: readonly OwnerBooking[],
+  now: Date = new Date(),
+): number {
+  const today = todayIso(now);
+  let total = 0;
+  for (const booking of bookings) {
+    if (booking.date !== today) continue;
+    if (booking.status === 'CANCELLED' || booking.status === 'NO_SHOW') continue;
+    total += booking.amountPaid;
+  }
+  return total;
+}
+
+/** Một điểm xu hướng đã gộp nhiều cụm sân — cùng shape với series của /owner/analytics. */
+export interface TrendPoint {
+  date: string;
+  bookings: number;
+  revenue: number;
+}
+
+/**
+ * CỘNG DỒN chuỗi ngày từ N lần gọi GET /owner/analytics?venueId=...&days=X
+ * thành một xu hướng duy nhất cho owner nhiều sân. Ngày không có dữ liệu được
+ * zero-fill qua Map; kết quả sắp tăng dần theo date để vẽ biểu đồ thẳng hàng.
+ * Entry undefined/lỗi query được bỏ qua thay vì làm đổ cả biểu đồ.
+ */
+export function mergeAnalyticsSeries(
+  responses: ReadonlyArray<Pick<OwnerAnalyticsResponse, 'series'> | undefined>,
+): TrendPoint[] {
+  const byDate = new Map<string, TrendPoint>();
+  for (const response of responses) {
+    if (!response) continue;
+    for (const point of response.series ?? []) {
+      const acc = byDate.get(point.date) ?? { date: point.date, bookings: 0, revenue: 0 };
+      acc.bookings += point.bookings;
+      acc.revenue += point.revenue;
+      byDate.set(point.date, acc);
+    }
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }

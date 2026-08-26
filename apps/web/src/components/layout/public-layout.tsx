@@ -4,7 +4,9 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { APP_NAME, UserRole } from '@sango/shared';
 import { NotificationBell } from '../../features/notifications/components/notification-bell';
+import { WalletBalanceBadge } from '../../features/wallet/components/wallet-balance-badge';
 import { ThemeToggle } from '../theme/theme-toggle';
+import { UserMenu, type UserMenuLink } from './user-menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,19 @@ import { useAuthStore } from '../../lib/auth/auth-store';
 const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
 
 /**
+ * Trang cá nhân của khách hàng trong khung public — URL giữ /dashboard/* để
+ * không vỡ link cũ (cổng thanh toán, chuông thông báo, kết quả thanh toán…).
+ */
+const CUSTOMER_LINKS: readonly UserMenuLink[] = [
+  { to: '/bookings', label: 'Đơn đặt sân' },
+  { to: '/wallet', label: 'Ví của tôi' },
+  { to: '/teams', label: 'Đội nhóm' },
+  { to: '/ranking', label: 'Bảng xếp hạng' },
+  { to: '/notifications', label: 'Thông báo' },
+  { to: '/profile', label: 'Hồ sơ' },
+];
+
+/**
  * Khung trang công khai: header trong suốt mờ (docked) + footer navy full-bleed.
  * Trang chủ ("/") cần hero tràn viền nên render Outlet không bọc container;
  * các trang còn lại giữ container 1280px như cũ để không vỡ layout hiện có.
@@ -31,11 +46,13 @@ export function PublicLayout(): ReactElement {
   // "Bảng điều khiển" chỉ dành cho chủ sân/quản trị; khách hàng đi bằng nav "Đơn đặt sân".
   const isStaff = user?.role === UserRole.OWNER || user?.role === UserRole.ADMIN;
 
-  // Điều hướng chính: mục "Đơn đặt sân" chỉ dành cho thành viên đã đăng nhập.
+  // Điều hướng chính: thêm tab "Bản đồ" theo spec P2/P3.
   const navItems = [
     { to: '/venues', label: 'Tìm sân' },
+    { to: '/map', label: 'Bản đồ' },
     { to: '/matches', label: 'Ghép trận' },
-    ...(user ? [{ to: '/dashboard/my-bookings', label: 'Đơn đặt sân' }] : []),
+    { to: '/tournaments', label: 'Giải đấu' },
+    ...(user ? [{ to: '/bookings', label: 'Đơn của tôi' }] : []),
   ];
 
   return (
@@ -97,6 +114,16 @@ export function PublicLayout(): ReactElement {
                       <Link to="/dashboard">Bảng điều khiển</Link>
                     </DropdownMenuItem>
                   </>
+                ) : user ? (
+                  <>
+                    {/* Khách hàng không có sidebar — mọi trang cá nhân nằm ở đây (bỏ mục trùng nav) */}
+                    <DropdownMenuSeparator />
+                    {CUSTOMER_LINKS.filter((l) => l.to !== '/bookings').map((item) => (
+                      <DropdownMenuItem key={item.to} asChild>
+                        <Link to={item.to}>{item.label}</Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
                 ) : null}
                 {!user ? (
                   <>
@@ -111,6 +138,7 @@ export function PublicLayout(): ReactElement {
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
+            {user ? <WalletBalanceBadge /> : null}
             {user ? <NotificationBell /> : null}
             <ThemeToggle />
             {isStaff ? (
@@ -120,7 +148,11 @@ export function PublicLayout(): ReactElement {
               >
                 <Link to="/dashboard">Bảng điều khiển</Link>
               </Button>
-            ) : user ? null : (
+            ) : null}
+            {/* Menu tài khoản dùng chung mọi vai trò — khách hàng nhận thêm liên kết trang cá nhân */}
+            {user ? (
+              <UserMenu compact links={isStaff ? undefined : CUSTOMER_LINKS} />
+            ) : (
               <>
                 <Button
                   variant="ghost"
@@ -171,16 +203,22 @@ export function PublicLayout(): ReactElement {
           </div>
           <nav
             aria-label="Liên kết chân trang"
-            className="flex flex-wrap gap-x-8 gap-y-2 text-sm font-medium"
+            className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium"
           >
             <Link to="/venues" className="transition-colors duration-200 hover:text-turf-bright">
               Tìm sân
             </Link>
+            <Link to="/map" className="transition-colors duration-200 hover:text-turf-bright">
+              Bản đồ
+            </Link>
             <Link to="/matches" className="transition-colors duration-200 hover:text-turf-bright">
               Ghép trận
             </Link>
-            <Link to="/register" className="transition-colors duration-200 hover:text-turf-bright">
-              Đăng ký chủ sân
+            <Link to="/about" className="transition-colors duration-200 hover:text-turf-bright">
+              Về chúng tôi
+            </Link>
+            <Link to="/partner" className="transition-colors duration-200 hover:text-turf-bright">
+              Dành cho chủ sân
             </Link>
           </nav>
         </div>

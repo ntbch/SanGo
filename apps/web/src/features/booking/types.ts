@@ -29,7 +29,8 @@ export interface SelectedSlot {
 export interface CreateHoldPayload {
   courtId: string;
   date: string;
-  slots: Array<{ startMinute: number; endMinute: number }>;
+  /** Mảng PHÚT BẮT ĐẦU các slot liền kề (vd [1020, 1110]) — khớp CreateHoldSchema backend. */
+  slots: number[];
   /** Ghép trận mở (§3.11): công khai tìm người ghép. */
   isPublicMatch?: boolean;
   /** 1..10 — bắt buộc khi isPublicMatch (khớp CreateHoldSchema backend). */

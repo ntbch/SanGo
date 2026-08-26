@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-import { formatPinPrice, InteractiveVenuesMap } from '../../../../src/features/public/components/interactive-venues-map';
+import {
+  formatPinPrice,
+  InteractiveVenuesMap,
+} from '../../../../src/features/public/components/interactive-venues-map';
 import type { MapVenueItem } from '../../../../src/features/public/types';
 
 describe('InteractiveVenuesMap (F5)', () => {

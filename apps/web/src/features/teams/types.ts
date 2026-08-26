@@ -77,10 +77,26 @@ export interface ExpenseShareItem {
   debtor: { id: string; fullName: string; avatarUrl?: string | null };
 }
 
-/** Phản hồi GET /teams/:id/expenses — danh sách + tổng quan nợ của chính tôi. */
+/** Nhật ký thu chi quỹ đội (Spec P5). */
+export interface TeamFundLog {
+  id: string;
+  teamId: string;
+  type: 'INCOME' | 'EXPENSE';
+  title: string;
+  amount: number;
+  creatorName: string;
+  billImageUrl?: string | null;
+  createdAt: string;
+}
+
+/** Phản hồi GET /teams/:id/expenses — danh sách + tổng quan nợ của chính tôi + treasury. */
 export interface TeamExpensesResponse {
+  treasuryBalance?: number;
+  monthlyIncome?: number;
+  monthlyExpense?: number;
   totalUnpaid: number;
   myOwed: number;
   myReceivable: number;
   shares: ExpenseShareItem[];
+  fundLogs?: TeamFundLog[];
 }

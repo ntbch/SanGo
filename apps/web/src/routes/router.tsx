@@ -1,6 +1,6 @@
 import { UserRole } from '@sango/shared';
 import { useEffect, useRef, type ReactElement } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute, GuestRoute } from '../components/auth/guards';
 import { DashboardLayout } from '../components/layout/dashboard-layout';
@@ -21,6 +21,11 @@ import { VenueDetailPage } from '../features/public/pages/venue-detail-page';
 import { MatchesPage } from '../features/matches/pages/matches-page';
 import { AiChatWidget } from '../features/ai/components/ai-chat-widget';
 import { VenuesPage } from '../features/public/pages/venues-page';
+import { MapPage } from '../features/public/pages/map-page';
+import { AdminBookingsPage } from '../features/admin/pages/admin-bookings-page';
+import { AdminStatsPage } from '../features/admin/pages/admin-stats-page';
+import { AdminUsersPage } from '../features/admin/pages/admin-users-page';
+import { AdminVenuesPage } from '../features/admin/pages/admin-venues-page';
 import { ApprovalQueuePage } from '../features/admin/pages/approval-queue-page';
 import { BookingCalendarPage } from '../features/booking/pages/booking-calendar-page';
 import { CheckoutHoldPage } from '../features/booking/pages/checkout-hold-page';
@@ -44,13 +49,10 @@ import { useAuthStore } from '../lib/auth/auth-store';
 
 import { DashboardPage } from '../pages/dashboard-page';
 import { HomePage } from '../pages/home-page';
-
+import { AboutPage } from '../pages/about-page';
+import { PartnerPage } from '../pages/partner-page';
 import { NotFoundPage } from '../pages/not-found-page';
 
-/**
- * Khôi phục phiên sau F5: đổi cookie refresh httpOnly lấy access token mới
- * đúng MỘT lần khi app khởi động (đặc tả §7 — access token chỉ nằm trong memory).
- */
 function useSessionBootstrap(): void {
   const bootstrappedRef = useRef(false);
 
@@ -63,17 +65,15 @@ function useSessionBootstrap(): void {
   }, []);
 }
 
-/** Cây route toàn app — bọc trong Router ở tầng App để test dễ thay MemoryRouter. */
 export function AppRoutes(): ReactElement {
   useSessionBootstrap();
 
   return (
     <>
       <Toaster />
-      {/* Floating AI assistant — hiển thị toàn app (wireframe 08, §3.12) */}
       <AiChatWidget />
       <Routes>
-        {/* Khu công khai — guest xem được; SEO title/meta riêng từng trang (P1-F1) */}
+        {/* Khu công khai + Customer routes (PublicLayout có header/footer) */}
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route
@@ -82,7 +82,7 @@ export function AppRoutes(): ReactElement {
               <>
                 <PageMeta
                   title="Tìm sân thể thao gần bạn"
-                  description="Khám phá các cụm sân thể thao tại Hà Nội: lọc theo quận, môn chơi, giá và khoảng cách GPS rồi giữ chỗ online."
+                  description="Khám phá các cụm sân thể thao: lọc theo quận, môn chơi, giá và khoảng cách GPS rồi giữ chỗ online."
                 />
                 <VenuesPage />
               </>
@@ -107,11 +107,23 @@ export function AppRoutes(): ReactElement {
             }
           />
           <Route
+            path="map"
+            element={
+              <>
+                <PageMeta
+                  title="Bản đồ sân thể thao"
+                  description="Khám phá tất cả các cụm sân trên bản đồ tương tác trực quan."
+                />
+                <MapPage />
+              </>
+            }
+          />
+          <Route
             path="matches"
             element={
               <>
                 <PageMeta
-                  title="Ghép trận mở"
+                  title="Ghép trận thể thao"
                   description="Các đơn đặt sân đang công khai tìm người ghép — xem danh sách trận mở và tham gia ngay."
                 />
                 <MatchesPage />
@@ -142,20 +154,103 @@ export function AppRoutes(): ReactElement {
               </>
             }
           />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="partner" element={<PartnerPage />} />
           <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
+
+          {/* Customer clean URLs (yêu cầu đăng nhập, hiển thị trong PublicLayout) */}
+          <Route
+            path="bookings"
+            element={
+              <ProtectedRoute>
+                <MyCustomerBookingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="wallet"
+            element={
+              <ProtectedRoute>
+                <WalletPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="vi/wallet"
+            element={
+              <ProtectedRoute>
+                <WalletPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="teams"
+            element={
+              <ProtectedRoute>
+                <MyTeamsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="teams/new"
+            element={
+              <ProtectedRoute>
+                <CreateTeamPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="teams/join"
+            element={
+              <ProtectedRoute>
+                <TeamJoinPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="teams/:teamId"
+            element={
+              <ProtectedRoute>
+                <TeamDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="ranking"
+            element={
+              <ProtectedRoute>
+                <RankingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
-        {/* Auth fullscreen (A5) — ngoài PublicLayout: không navbar/footer, AuthShell phủ viewport */}
+        {/* Auth fullscreen (GuestRoute) */}
         <Route element={<GuestRoute />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
-          {/* Quên/đặt lại mật khẩu (P1-F2): slug tiếng Việt là chính, giữ alias cũ. */}
           <Route path="quen-mat-khau" element={<ForgotPasswordPage />} />
           <Route path="dat-lai-mat-khau" element={<ResetPasswordPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
-        {/* Thanh toán checkout yêu cầu đăng nhập */}
+        {/* Thanh toán checkout */}
         <Route
           path="/thanh-toan/checkout/:holdId"
           element={
@@ -165,31 +260,17 @@ export function AppRoutes(): ReactElement {
           }
         />
 
-        {/* Dashboard yêu cầu đăng nhập; route con giới hạn theo vai trò */}
+        {/* Dashboard dành riêng cho OWNER và ADMIN (DashboardLayout có sidebar quản trị) */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={[UserRole.OWNER, UserRole.ADMIN]}>
               <DashboardLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<DashboardPage />} />
-          <Route path="my-bookings" element={<MyCustomerBookingsPage />} />
-          {/* Hồ sơ cá nhân — mọi vai trò (P1-F2) */}
-          <Route path="profile" element={<ProfilePage />} />
-          {/* F6 Ví — mọi vai trò đăng nhập */}
-          <Route path="wallet" element={<WalletPage />} />
-          {/* F8 Trung tâm thông báo — mọi vai trò đăng nhập */}
-          <Route path="notifications" element={<NotificationsPage />} />
-          {/* F1 Teams — đội nhóm & sổ quỹ chia tiền (mọi vai trò) */}
-          <Route path="teams" element={<MyTeamsPage />} />
-          <Route path="teams/new" element={<CreateTeamPage />} />
-          {/* S2-F1: trang đích link mời — tĩnh, xếp trước :teamId (RRv6 tự ưu tiên) */}
-          <Route path="teams/join" element={<TeamJoinPage />} />
-          <Route path="teams/:teamId" element={<TeamDetailPage />} />
-          {/* S3-F2: bảng xếp hạng uy tín (mọi vai trò) */}
-          <Route path="ranking" element={<RankingPage />} />
+          {/* Owner routes */}
           <Route
             path="manage"
             element={
@@ -214,7 +295,6 @@ export function AppRoutes(): ReactElement {
               </ProtectedRoute>
             }
           />
-          {/* F3 Voucher — quản lý mã giảm của chủ sân */}
           <Route
             path="vouchers"
             element={
@@ -223,7 +303,6 @@ export function AppRoutes(): ReactElement {
               </ProtectedRoute>
             }
           />
-          {/* F4 Dịch vụ — menu nước uống/đồ thuê của từng cụm sân */}
           <Route
             path="services"
             element={
@@ -232,6 +311,8 @@ export function AppRoutes(): ReactElement {
               </ProtectedRoute>
             }
           />
+
+          {/* Admin routes */}
           <Route
             path="admin"
             element={
@@ -240,30 +321,50 @@ export function AppRoutes(): ReactElement {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="admin-stats"
+            element={
+              <ProtectedRoute roles={[UserRole.ADMIN]}>
+                <AdminStatsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin-users"
+            element={
+              <ProtectedRoute roles={[UserRole.ADMIN]}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin-venues"
+            element={
+              <ProtectedRoute roles={[UserRole.ADMIN]}>
+                <AdminVenuesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin-bookings"
+            element={
+              <ProtectedRoute roles={[UserRole.ADMIN]}>
+                <AdminBookingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
-        {/* F6: /vi/wallet — đích redirect từ mock gateway nạp ví (wallets.service.redirect) */}
-        <Route
-          path="/vi/wallet"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<WalletPage />} />
-        </Route>
-        {/* F6: alias /wallet — một số luồng gateway trả về path ngắn hơn */}
-        <Route
-          path="/wallet"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<WalletPage />} />
-        </Route>
+        {/* Legacy redirect aliases từ /dashboard/* cho CUSTOMER */}
+        <Route path="/dashboard/my-bookings" element={<Navigate to="/bookings" replace />} />
+        <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
+        <Route path="/dashboard/notifications" element={<Navigate to="/notifications" replace />} />
+        <Route path="/dashboard/teams" element={<Navigate to="/teams" replace />} />
+        <Route path="/dashboard/teams/new" element={<Navigate to="/teams/new" replace />} />
+        <Route path="/dashboard/teams/join" element={<Navigate to="/teams/join" replace />} />
+        <Route path="/dashboard/teams/:teamId" element={<Navigate to="/teams" replace />} />
+        <Route path="/dashboard/ranking" element={<Navigate to="/ranking" replace />} />
+        <Route path="/dashboard/profile" element={<Navigate to="/profile" replace />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

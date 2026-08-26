@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { vnToday } from '@sango/shared';
 
-import type { OwnerBooking } from '../../src/features/owner/types';
+import type { OwnerAnalyticsResponse, OwnerBooking } from '../../src/features/owner/types';
 import {
   aggregateOwnerKpis,
   countByVenueStatus,
+  estimateRevenueToday,
   isoDaysAgo,
+  mergeAnalyticsSeries,
   pickNearestBooking,
   todayIso,
 } from '../../src/pages/dashboard-utils';
@@ -137,5 +139,64 @@ describe('countByVenueStatus', () => {
       APPROVED: 0,
       REJECTED: 0,
     });
+  });
+});
+/* --------------------- Bổ sung t5: tổng quan chỉ-xem --------------------- */
+
+describe('estimateRevenueToday', () => {
+  it('cộng amountPaid của đơn HÔM NAY chưa bị huỷ/no-show (ước tính)', () => {
+    const total = estimateRevenueToday(
+      [
+        booking({ id: '1', date: '2026-08-25', status: 'CONFIRMED', amountPaid: 36000 }),
+        booking({ id: '2', date: '2026-08-25', status: 'CHECKED_IN', amountPaid: 90000 }),
+        // Chờ thanh toán vẫn tính vào ước tính (amountPaid hiện tại = 0).
+        booking({ id: '3', date: '2026-08-25', status: 'PENDING_PAYMENT', amountPaid: 0 }),
+        // Huỷ/no-show thì loại khỏi ước tính.
+        booking({ id: '4', date: '2026-08-25', status: 'CANCELLED', amountPaid: 50000 }),
+        booking({ id: '5', date: '2026-08-25', status: 'NO_SHOW', amountPaid: 70000 }),
+        // Khác ngày thì loại.
+        booking({ id: '6', date: '2026-08-24', status: 'COMPLETED', amountPaid: 400000 }),
+      ],
+      NOW,
+    );
+
+    expect(total).toBe(126000);
+  });
+
+  it('không có đơn hợp lệ -> 0 thay vì NaN', () => {
+    expect(estimateRevenueToday([], NOW)).toBe(0);
+  });
+});
+
+describe('mergeAnalyticsSeries - cộng dồn xu hướng nhiều cụm sân', () => {
+  /** Dựng response tối thiểu chỉ với series (đủ contract của hàm gộp). */
+  const resp = (
+    series: OwnerAnalyticsResponse['series'],
+  ): Pick<OwnerAnalyticsResponse, 'series'> => ({ series });
+
+  it('cộng dồn bookings/revenue theo ngày rồi sắp tăng dần theo date', () => {
+    const merged = mergeAnalyticsSeries([
+      resp([
+        { date: '2026-08-24', bookings: 1, revenue: 100 },
+        { date: '2026-08-25', bookings: 2, revenue: 200 },
+      ]),
+      resp([
+        { date: '2026-08-25', bookings: 3, revenue: 300 },
+        { date: '2026-08-26', bookings: 4, revenue: 400 },
+      ]),
+    ]);
+
+    expect(merged).toEqual([
+      { date: '2026-08-24', bookings: 1, revenue: 100 },
+      { date: '2026-08-25', bookings: 5, revenue: 500 },
+      { date: '2026-08-26', bookings: 4, revenue: 400 },
+    ]);
+  });
+
+  it('bỏ qua response lỗi (undefined) thay vì làm đổ biểu đồ', () => {
+    expect(
+      mergeAnalyticsSeries([undefined, resp([{ date: '2026-08-25', bookings: 1, revenue: 1 }])]),
+    ).toEqual([{ date: '2026-08-25', bookings: 1, revenue: 1 }]);
+    expect(mergeAnalyticsSeries([resp([]), undefined])).toEqual([]);
   });
 });

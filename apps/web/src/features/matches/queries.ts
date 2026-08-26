@@ -7,6 +7,8 @@ import { fetchMatchParticipants, fetchOpenMatches, joinOpenMatch, leaveOpenMatch
 /** Danh sách trận mở — queryKey gồm filter để đổi sportType/ngày refetch đúng. */
 export function useOpenMatches(filters: {
   sportType?: string;
+  /** Nhóm môn gộp (vd FOOTBALL = sân 5 + sân 7). */
+  sportGroup?: string;
   date?: string;
   page?: number;
 }): ReturnType<typeof useQuery<OpenMatchesResponse>> {
@@ -15,6 +17,7 @@ export function useOpenMatches(filters: {
     queryFn: () =>
       fetchOpenMatches({
         ...(filters.sportType ? { sportType: filters.sportType as never } : {}),
+        ...(filters.sportGroup ? { sportGroup: filters.sportGroup as never } : {}),
         ...(filters.date ? { date: filters.date } : {}),
         page: filters.page ?? 1,
       }),

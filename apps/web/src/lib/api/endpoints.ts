@@ -48,14 +48,38 @@ export interface SlotsQuery {
 }
 
 export interface MyBookingsQuery {
-  filter?: 'upcoming' | 'history' | 'cancelled';
+  filter?: 'all' | 'upcoming' | 'completed' | 'history' | 'cancelled';
   page?: number;
 }
 
 export interface AdminVenuesQuery {
-  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   page?: number;
+  limit?: number;
   q?: string;
+}
+
+/** Bộ lọc danh sách người dùng cho ADMIN — GET /admin/users (t7). */
+export interface AdminUsersQuery {
+  page?: number;
+  limit?: number;
+  /** Tìm theo tên/email/SĐT (backend LIKE). */
+  q?: string;
+  role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
+  status?: 'ACTIVE' | 'LOCKED';
+}
+
+/** Bộ lọc đơn toàn hệ thống cho ADMIN — GET /admin/bookings (t9). */
+export interface AdminBookingsQuery {
+  page?: number;
+  limit?: number;
+  /** YYYY-MM-DD — lọc ngày chơi. */
+  date?: string;
+  status?: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  /** UUID cụm sân. */
+  venueId?: string;
+  /** Tìm contains theo code hoặc tên khách. */
+  search?: string;
 }
 
 export interface OwnerBookingsQuery {
@@ -181,6 +205,16 @@ export const endpoints = {
   },
 
   admin: {
+    /** Tổng quan hệ thống cho dashboard/trang thống kê ADMIN — days 1..90, mặc định 14. */
+    stats: (query: { days?: number } = {}): string => '/admin/stats' + qs(query),
+    /** Danh sách người dùng hệ thống có lọc/phân trang (t7). */
+    users: (query: AdminUsersQuery = {}): string => '/admin/users' + qs(query),
+    /** Khoá/mở khoá một người dùng — PATCH body {status} (t7). */
+    userStatus: (id: string): string => '/admin/users/' + seg(id) + '/status',
+    /** Tạm ngưng/kích hoạt lại một cụm sân — PATCH body {status} (t8). */
+    venueStatus: (id: string): string => '/admin/venues/' + seg(id) + '/status',
+    /** Danh sách đơn toàn hệ thống có lọc/phân trang (t9). */
+    bookings: (query: AdminBookingsQuery = {}): string => '/admin/bookings' + qs(query),
     venues: (query: AdminVenuesQuery = {}): string => '/admin/venues' + qs(query),
     venue: (id: string): string => '/admin/venues/' + seg(id),
     approve: (id: string): string => '/admin/venues/' + seg(id) + '/approve',

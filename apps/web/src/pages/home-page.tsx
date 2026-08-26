@@ -153,7 +153,7 @@ export function HomePage(): ReactElement {
                     ))}
                   </>
                 ) : (
-                  <option value="">Chọn thành phố trước</option>
+                  <option value="">Chọn thành phố</option>
                 )}
               </select>
             </label>

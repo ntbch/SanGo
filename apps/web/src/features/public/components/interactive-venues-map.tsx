@@ -65,9 +65,21 @@ function createPricePinIcon(label: string, isSelected: boolean, isHovered: boole
   });
 }
 
+/** Tự động invalidateSize khi map mount hoặc container thay đổi kích thước. */
+function MapResizer(): null {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
 /** Hook lắng nghe di chuyển / zoom của bản đồ kèm debounce 300ms. */
 function ViewportTracker({ onBoundsChange }: { onBoundsChange: (bbox: string) => void }): null {
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const emitBounds = (map: L.Map) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -120,7 +132,7 @@ export function InteractiveVenuesMap({
   onSelectVenue,
   initialCenter = [21.0285, 105.8542], // Hà Nội center
   initialZoom = 12,
-  className = 'size-full min-h-[450px]',
+  className = 'size-full min-h-[500px]',
 }: InteractiveVenuesMapProps): ReactElement {
   const selectedVenue = useMemo(
     () => items.find((v) => v.id === selectedVenueId),
@@ -145,9 +157,10 @@ export function InteractiveVenuesMap({
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        <MapResizer />
         <ViewportTracker onBoundsChange={onBoundsChange} />
         <MapFlyController target={flyTarget} />
 

@@ -172,7 +172,8 @@ export function BookingCalendarPage(): ReactElement {
       const hold = await holdMutation.mutateAsync({
         courtId: activeCourt.id,
         date,
-        slots: sortedSlots.map((s) => ({ startMinute: s.startMinute, endMinute: s.endMinute })),
+        // CreateHoldSchema backend: mảng phút BẮT ĐẦU int, KHÔNG gửi slot object.
+        slots: sortedSlots.map((s) => s.startMinute),
         ...(isPublicMatch ? { isPublicMatch: true, slotsNeeded } : {}),
         // S2-F1: gắn đội để đơn xuất hiện trong lịch sử & quỹ chia tiền của đội.
         ...(teamId ? { teamId } : {}),

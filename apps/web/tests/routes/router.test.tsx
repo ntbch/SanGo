@@ -31,20 +31,30 @@ describe('routing + role guards', () => {
     expect(await screen.findByRole('heading', { name: 'Đăng nhập SanGo' })).toBeTruthy();
   });
 
-  it('CUSTOMER thấy tổng quan nhưng không thấy mục quản trị', async () => {
+  it('CUSTOMER vào /dashboard → về trang chủ, không còn bảng tổng quan kiểu quản lý', async () => {
     asUser(UserRole.CUSTOMER);
     renderApp({ route: '/dashboard' });
 
-    expect(await screen.findByRole('heading', { name: 'Tổng quan' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Khám phá sân' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Tổng quan' })).toBeNull();
     expect(screen.queryByText('Quản trị hệ thống')).toBeNull();
   });
 
-  it('CUSTOMER lách vào /dashboard/admin → bị đẩy về tổng quan', async () => {
+  it('CUSTOMER lách vào /dashboard/admin → bị đẩy về trang chủ', async () => {
     asUser(UserRole.CUSTOMER);
     renderApp({ route: '/dashboard/admin' });
 
-    expect(await screen.findByRole('heading', { name: 'Tổng quan' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Khám phá sân' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Quản trị hệ thống' })).toBeNull();
+  });
+
+  it('CUSTOMER mở /dashboard/wallet trong khung public (navbar thay sidebar)', async () => {
+    asUser(UserRole.CUSTOMER);
+    renderApp({ route: '/dashboard/wallet' });
+
+    // Navbar công khai xuất hiện thay cho khung quản lý có sidebar
+    expect(await screen.findByRole('navigation', { name: 'Điều hướng công khai' })).toBeTruthy();
+    expect(screen.queryByText('Quản trị hệ thống')).toBeNull();
   });
 
   it('OWNER vào được trang quản lý sân', async () => {
@@ -160,7 +170,7 @@ describe('guest browsing công khai (P1-F1)', () => {
     expect(await screen.findByText('Sân Thể Thao Quần Ngựa')).toBeTruthy();
   });
 
-  it('?next= ngoài domain (//evil.com) → bỏ qua, về /dashboard sau đăng nhập', async () => {
+  it('?next= ngoài domain (//evil.com) → bỏ qua, về trang chủ sau đăng nhập customer', async () => {
     const user = userEvent.setup();
     renderApp({
       route: '/login?next=' + encodeURIComponent('//evil.com'),
@@ -176,7 +186,7 @@ describe('guest browsing công khai (P1-F1)', () => {
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('route-loc').textContent).toBe('/dashboard');
+      expect(screen.getByTestId('route-loc').textContent).toBe('/');
     });
   });
 
@@ -233,7 +243,7 @@ describe('guest browsing công khai (P1-F1)', () => {
     expect(screen.getByTestId('route-loc').textContent).not.toBe('/dashboard');
   });
 
-  it('QA-T4-01 v2: GuestRoute cũng chặn open-redirect khi tôn trọng next', async () => {
+  it('QA-T4-01 v2: GuestRoute cũng chặn open-redirect khi tôn trọng next (customer về /)', async () => {
     asUser(UserRole.CUSTOMER);
     renderApp({
       route: '/login?next=' + encodeURIComponent('//evil.com'),
@@ -246,7 +256,7 @@ describe('guest browsing công khai (P1-F1)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('route-loc').textContent).toBe('/dashboard');
+      expect(screen.getByTestId('route-loc').textContent).toBe('/');
     });
   });
 });

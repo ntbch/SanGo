@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatJoinedCount, hostInitial, validateOpenMatchInput } from '../../../src/features/matches/match-utils';
+import {
+  formatJoinedCount,
+  hostInitial,
+  validateOpenMatchInput,
+} from '../../../src/features/matches/match-utils';
 
 describe('validateOpenMatchInput', () => {
   it('bắt buộc slotsNeeded là số nguyên trong khoảng 1..10 khi bật công khai', () => {

@@ -36,4 +36,6 @@ export const NOTIFICATION_TYPE_META: Record<
   [NotificationType.SERVICE]: { Icon: Wrench, className: 'text-sky-500' },
   [NotificationType.TEAM]: { Icon: Users, className: 'text-violet-500' },
   [NotificationType.TOURNAMENT]: { Icon: Trophy, className: 'text-amber-500' },
+  [NotificationType.MATCH_REQUEST]: { Icon: UserPlus, className: 'text-violet-500' },
+  [NotificationType.FUND_DRIVE]: { Icon: Wallet, className: 'text-emerald-500' },
 };

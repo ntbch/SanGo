@@ -1,11 +1,13 @@
 import { type ReactElement } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Calendar, CheckCircle2, Home, QrCode, XCircle } from 'lucide-react';
+import { Calendar, Check, Home, QrCode, RotateCcw, X } from 'lucide-react';
 
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
+import { generateQrSvg } from '../../../lib/qrcode';
+import { formatVnd } from '../../public/format';
 
-/** Trang kết quả thanh toán — card trắng bo-xl căn giữa kiểu Stitch k_t_qu_thanh_to_n. */
+/** Trang kết quả thanh toán — chuẩn UI/UX Pro-Max với animated checkmark + QR Check-in. */
 export function PaymentResultPage(): ReactElement {
   const [searchParams] = useSearchParams();
 
@@ -15,30 +17,36 @@ export function PaymentResultPage(): ReactElement {
   const bookingCode =
     searchParams.get('code') || searchParams.get('txnRef') || searchParams.get('vnp_TxnRef') || '';
   const message = searchParams.get('message') || '';
+  const amountStr = searchParams.get('amount') || searchParams.get('vnp_Amount');
+  const amount = amountStr ? (amountStr.length > 6 && amountStr.endsWith('00') && !amountStr.includes('.') ? Number(amountStr) / 100 : Number(amountStr)) : null;
 
   const isSuccess = status === 'SUCCESS' || status === '00';
-  // PA(chốt A): backend đính kèm type=ADD_ON trên luồng dịch vụ đi kèm.
   const isAddOn = searchParams.get('type') === 'ADD_ON';
 
   return (
-    <div className="mx-auto w-full max-w-xl">
-      <Card className="rounded-xl border-border/60 p-6 text-center shadow-[0_12px_30px_rgba(15,23,42,0.1)] sm:p-10">
-        {/* Icon trạng thái — success dùng cặp token accent, failure dùng destructive */}
+    <div className="mx-auto w-full max-w-xl py-6">
+      <Card className="overflow-hidden rounded-2xl border-border/60 p-6 text-center shadow-lg sm:p-10 bg-card">
+        {/* Animated Checkmark / Failure Icon */}
         <div className="flex justify-center">
           {isSuccess ? (
-            <div className="flex size-20 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <CheckCircle2 className="size-10" aria-hidden />
+            <div className="relative flex size-20 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <span className="absolute size-full animate-ping rounded-full bg-emerald-500/20 duration-1000" />
+              <div className="relative flex size-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
+                <Check className="size-8 stroke-[3]" aria-hidden />
+              </div>
             </div>
           ) : (
-            <div className="flex size-20 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-              <XCircle className="size-10" aria-hidden />
+            <div className="relative flex size-20 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+              <div className="flex size-14 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md">
+                <X className="size-8 stroke-[3]" aria-hidden />
+              </div>
             </div>
           )}
         </div>
 
         <h1
-          className={`mt-5 text-2xl font-extrabold tracking-tight sm:text-3xl ${
-            isSuccess ? 'text-primary' : 'text-destructive'
+          className={`mt-6 text-2xl font-extrabold tracking-tight sm:text-3xl ${
+            isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
           }`}
         >
           {isSuccess
@@ -50,62 +58,72 @@ export function PaymentResultPage(): ReactElement {
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
           {isSuccess
             ? isAddOn
-              ? 'Dịch vụ đi kèm đã được ghi nhận vào đơn. Xem chi tiết trong mục Đơn của tôi.'
-              : 'Đơn đặt sân của bạn đã được xác nhận. Vui lòng lưu mã đơn để check-in tại sân.'
-            : message || 'Giao dịch thanh toán chưa được hoàn tất hoặc đã bị huỷ.'}
+              ? 'Dịch vụ đi kèm đã được xác nhận vào đơn. Bạn có thể xem chi tiết trong mục Đơn đặt sân.'
+              : 'Đơn đặt sân của bạn đã được xác nhận. Vui lòng lưu mã đơn hoặc quét QR bên dưới khi đến sân.'
+            : message || 'Giao dịch thanh toán chưa được hoàn tất hoặc đã bị huỷ bởi người dùng.'}
         </p>
 
-        {/* Mã đơn — dữ liệu kỹ thuật hiển thị bằng font-score */}
-        {bookingCode ? (
-          <div className="mt-6 space-y-1 rounded-xl border border-border/60 bg-muted/50 px-4 py-4">
-            <p className="font-score text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Mã đơn đặt sân
-            </p>
-            <p className="font-score text-xl font-bold tracking-wide text-primary">{bookingCode}</p>
+        {/* Thông tin đơn và QR code check-in khi thành công */}
+        {isSuccess && bookingCode ? (
+          <div className="mt-6 space-y-4 rounded-xl border border-border/60 bg-muted/40 p-5 text-center">
+            <div className="flex flex-col items-center justify-center">
+              <div className="rounded-xl border border-border/80 bg-white p-3 shadow-xs text-slate-900">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: generateQrSvg(bookingCode, 160),
+                  }}
+                />
+              </div>
+              <div className="mt-3 font-mono text-xl font-extrabold tracking-widest text-primary">
+                #{bookingCode}
+              </div>
+              {amount && !isNaN(amount) && amount > 0 ? (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Đã thanh toán: <strong className="text-foreground font-mono">{formatVnd(amount)}</strong>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-start gap-2 rounded-lg bg-background p-3 text-left text-xs text-muted-foreground border border-border/60">
+              <QrCode className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+              <div>
+                <p className="font-semibold text-foreground">Hướng dẫn nhận sân:</p>
+                <p>Đến sân trước 10-15 phút và xuất trình mã QR này cho quản lý sân để check-in.</p>
+              </div>
+            </div>
+          </div>
+        ) : !isSuccess && bookingCode ? (
+          <div className="mt-6 rounded-xl border border-border/60 bg-muted/40 p-4 text-xs font-mono text-muted-foreground">
+            Mã giao dịch: <span className="font-bold text-foreground">{bookingCode}</span>
           </div>
         ) : null}
 
-        {isSuccess && !isAddOn ? (
-          <div className="mt-4 space-y-1.5 rounded-xl border border-primary/20 bg-accent/60 p-4 text-left text-xs leading-relaxed text-accent-foreground">
-            <p className="flex items-center gap-1.5 font-semibold">
-              <QrCode className="size-4" aria-hidden /> Hướng dẫn check-in
-            </p>
-            <p>1. Đến sân trước giờ chơi 10–15 phút.</p>
-            <p>
-              2. Đưa mã đơn hoặc mã QR trong mục <strong>Đơn của tôi</strong> cho chủ sân.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="mt-8 flex flex-col gap-2 sm:flex-row">
+        {/* Action buttons */}
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           {isSuccess ? (
             <>
-              <Button
-                asChild
-                className="w-full rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
-              >
-                <Link to="/dashboard/my-bookings">
-                  <Calendar aria-hidden /> Xem đơn của tôi
+              <Button asChild size="lg" className="w-full sm:w-auto font-bold px-6">
+                <Link to="/bookings">
+                  <Calendar className="mr-2 size-4" aria-hidden /> Xem đơn của tôi
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="w-full rounded-lg font-bold">
-                <Link to="/venues">
-                  <Home aria-hidden /> Trang chủ
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto font-semibold px-6">
+                <Link to="/">
+                  <Home className="mr-2 size-4" aria-hidden /> Về trang chủ
                 </Link>
               </Button>
             </>
           ) : (
             <>
-              <Button
-                asChild
-                className="w-full rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
-              >
+              <Button asChild size="lg" className="w-full sm:w-auto font-bold px-6">
                 <Link to="/venues">
-                  <ArrowRight aria-hidden /> Đặt lại sân
+                  <RotateCcw className="mr-2 size-4" aria-hidden /> Chọn giờ khác
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="w-full rounded-lg font-bold">
-                <Link to="/dashboard/my-bookings">Xem đơn đã đặt</Link>
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto font-semibold px-6">
+                <Link to="/bookings">
+                  <Calendar className="mr-2 size-4" aria-hidden /> Đơn đã đặt
+                </Link>
               </Button>
             </>
           )}

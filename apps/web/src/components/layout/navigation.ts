@@ -27,7 +27,13 @@ const ALL_ROLES: readonly UserRole[] = [UserRole.CUSTOMER, UserRole.OWNER, UserR
 
 /** Menu sidebar của dashboard — lọc theo vai trò người dùng. */
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: ALL_ROLES },
+  // Tổng quan chỉ dành cho chủ sân/quản trị — khách hàng không có bảng điều khiển kiểu quản lý.
+  {
+    to: '/dashboard',
+    label: 'Tổng quan',
+    icon: LayoutDashboard,
+    roles: [UserRole.OWNER, UserRole.ADMIN],
+  },
   { to: '/dashboard/my-bookings', label: 'Đơn của tôi', icon: CalendarDays, roles: ALL_ROLES },
   { to: '/dashboard/wallet', label: 'Ví của tôi', icon: Wallet, roles: ALL_ROLES },
   { to: '/dashboard/notifications', label: 'Thông báo', icon: Bell, roles: ALL_ROLES },
@@ -45,6 +51,31 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/dashboard/admin',
     label: 'Quản trị hệ thống',
     icon: ShieldCheck,
+    roles: [UserRole.ADMIN],
+  },
+  // t5: stub quản trị — placeholder "Đang triển khai", chỉ ADMIN thấy menu
+  {
+    to: '/dashboard/admin-stats',
+    label: 'Thống kê nền tảng',
+    icon: BarChart3,
+    roles: [UserRole.ADMIN],
+  },
+  {
+    to: '/dashboard/admin-users',
+    label: 'Người dùng',
+    icon: UserRound,
+    roles: [UserRole.ADMIN],
+  },
+  {
+    to: '/dashboard/admin-venues',
+    label: 'Cụm sân',
+    icon: MapPinned,
+    roles: [UserRole.ADMIN],
+  },
+  {
+    to: '/dashboard/admin-bookings',
+    label: 'Đơn hàng',
+    icon: CalendarDays,
     roles: [UserRole.ADMIN],
   },
 ];

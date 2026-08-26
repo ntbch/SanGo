@@ -127,7 +127,7 @@ export function CreateTournamentDialog({
                     <textarea
                       rows={3}
                       className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none"
-                      placeholder="Giải bóng đá 5 người khai mạc..."
+                      placeholder="Giải bóng đá khai mạc..."
                       {...field}
                     />
                   </FormControl>

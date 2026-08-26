@@ -1,7 +1,7 @@
 /** Lớp gọi API F1 Team Profile & Sổ quỹ chia tiền — khớp teams.controller.ts. */
 import { apiFetch } from '../../lib/api/client';
 import { endpoints } from '../../lib/api/endpoints';
-import type { ExpenseShareItem, MyTeamMembership, Team, TeamExpensesResponse } from './types';
+import type { ExpenseShareItem, MyTeamMembership, Team, TeamExpensesResponse, TeamFundLog } from './types';
 
 export interface CreateTeamPayload {
   name: string;
@@ -92,5 +92,26 @@ export function updateExpenseStatus(
   return apiFetch(endpoints.teams.updateExpenseStatus(id, shareId), {
     method: 'PATCH',
     body: { status },
+  });
+}
+/** POST /teams/:id/treasury/contribute — Đóng quỹ đội bằng Ví cá nhân (P5). */
+export function contributeTeamFund(
+  id: string,
+  payload: { amount: number; note?: string },
+): Promise<{ success: boolean; newBalance: number }> {
+  return apiFetch<{ success: boolean; newBalance: number }>(endpoints.teams.detail(id) + '/treasury/contribute', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+/** POST /teams/:id/treasury/expense — Đội trưởng ghi khoản chi quỹ kèm ảnh hóa đơn (P5). */
+export function createTeamFundExpense(
+  id: string,
+  payload: { title: string; amount: number; billImageUrl?: string },
+): Promise<TeamFundLog> {
+  return apiFetch<TeamFundLog>(endpoints.teams.detail(id) + '/treasury/expense', {
+    method: 'POST',
+    body: payload,
   });
 }

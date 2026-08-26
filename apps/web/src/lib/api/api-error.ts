@@ -44,6 +44,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
   BOOKING_NOT_FOUND: 'Không tìm thấy đơn đặt sân.',
   FORBIDDEN_ROLE: 'Bạn không có quyền thực hiện thao tác này.',
   VENUE_FORBIDDEN: 'Bạn không có quyền quản lý cụm sân này.',
+  // Quản trị người dùng (t7):
+  CANNOT_LOCK_SELF: 'Bạn không thể khoá tài khoản của chính mình.',
+  CANNOT_LOCK_ADMIN: 'Không thể khoá tài khoản quản trị viên khác.',
 };
 
 /**

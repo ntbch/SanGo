@@ -1,4 +1,3 @@
-
 import type { ReactElement } from 'react';
 
 import { APP_NAME } from '@sango/shared';

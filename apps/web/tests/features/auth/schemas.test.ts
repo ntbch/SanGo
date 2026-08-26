@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { forgotPasswordSchema, loginSchema, registerFormSchema } from '../../../src/features/auth/schemas';
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerFormSchema,
+} from '../../../src/features/auth/schemas';
 
 describe('loginForm (dựa shared LoginDto)', () => {
   it('mật khẩu rỗng theo message contract', () => {
