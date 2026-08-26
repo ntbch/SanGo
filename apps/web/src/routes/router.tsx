@@ -33,6 +33,8 @@ import { CreateTeamPage } from '../features/teams/pages/create-team-page';
 import { TeamDetailPage } from '../features/teams/pages/team-detail-page';
 import { TeamJoinPage } from '../features/teams/pages/team-join-page';
 import { RankingPage } from '../features/reputation/pages/ranking-page';
+import { TournamentsPage } from '../features/tournaments/pages/tournaments-page';
+import { TournamentDetailPage } from '../features/tournaments/pages/tournament-detail-page';
 import { MyVenuesPage } from '../features/owner/pages/my-venues-page';
 import { OwnerBookingsPage } from '../features/owner/pages/owner-bookings-page';
 import { StatisticsPage } from '../features/owner/pages/statistics-page';
@@ -113,6 +115,27 @@ export function AppRoutes(): ReactElement {
                   description="Các đơn đặt sân đang công khai tìm người ghép — xem danh sách trận mở và tham gia ngay."
                 />
                 <MatchesPage />
+              </>
+            }
+          />
+          <Route
+            path="tournaments"
+            element={
+              <>
+                <PageMeta
+                  title="Giải đấu CourtHub"
+                  description="Các giải đấu thể thao loại trực tiếp — bảng đấu, kết quả và đội vô địch."
+                />
+                <TournamentsPage />
+              </>
+            }
+          />
+          <Route
+            path="tournaments/:tournamentId"
+            element={
+              <>
+                <PageMeta title="Bảng đấu giải" description="Bracket loại trực tiếp và kết quả các trận." />
+                <TournamentDetailPage />
               </>
             }
           />

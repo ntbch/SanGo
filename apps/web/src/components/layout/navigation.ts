@@ -12,6 +12,7 @@ import {
   Bell,
   TicketPercent,
   Medal,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -34,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard/ranking', label: 'Bảng xếp hạng', icon: Medal, roles: ALL_ROLES },
   { to: '/dashboard/profile', label: 'Hồ sơ', icon: UserRound, roles: ALL_ROLES },
   { to: '/matches', label: 'Ghép trận', icon: Users, roles: ALL_ROLES },
+  { to: '/tournaments', label: 'Giải đấu', icon: Trophy, roles: ALL_ROLES },
   { to: '/dashboard/manage', label: 'Quản lý sân', icon: MapPinned, roles: [UserRole.OWNER] },
   { to: '/dashboard/bookings', label: 'Đơn đặt', icon: CalendarDays, roles: [UserRole.OWNER] },
   { to: '/dashboard/statistics', label: 'Thống kê', icon: BarChart3, roles: [UserRole.OWNER] },

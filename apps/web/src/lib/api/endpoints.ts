@@ -267,4 +267,22 @@ export const endpoints = {
     /** Bảng xếp hạng theo score giảm dần (F2). */
     leaderboard: (limit = 20): string => '/reputation/leaderboard' + qs({ limit }),
   },
+
+  tournaments: {
+    /** Danh sách giải đấu (S3-F7). */
+    list: (): string => '/tournaments',
+    /** Tạo giải mới — OWNER/ADMIN. */
+    create: (): string => '/tournaments',
+    /** Chi tiết giải + bracket đầy đủ theo round/position. */
+    detail: (id: string): string => '/tournaments/' + seg(id),
+    /** Đăng ký đội vào giải — chỉ CAPTAIN của đội. */
+    register: (id: string): string => '/tournaments/' + seg(id) + '/register',
+    /** Khóa đăng ký + tự sinh bracket single-elimination. */
+    start: (id: string): string => '/tournaments/' + seg(id) + '/start',
+  },
+
+  tournamentMatches: {
+    /** Nhập tỷ số trận giải (host/admin) — winner tự đẩy sang vòng sau. */
+    updateScore: (matchId: string): string => '/matches/' + seg(matchId) + '/score',
+  },
 } as const;

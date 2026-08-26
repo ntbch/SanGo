@@ -47,6 +47,12 @@ let sessionEmail: string | null = null;
 /** Token đặt lại mật khẩu đang chờ dùng (P1-F2) — token -> email, TTL giả lập 30 phút. */
 const MOCK_RESET_TOKENS = new Map<string, string>();
 
+/**
+ * Cầu nối reset tournaments (S3-F7): dữ liệu giải sống trong handleMockRequest,
+ * handler tự gán hàm reset vào đây để resetMockSession gọi được.
+ */
+let resetMockTournamentsBridge: (() => void) | null = null;
+
 /** Số tin nhắn AI đã gửi trong phiên — demo throttle 20 tin/h (§3.12). */
 let MOCK_AI_CALLS = 0;
 
@@ -71,6 +77,8 @@ export function resetMockSession(): void {
   resetMockVouchers();
   // Teams dựng lại từ seed — thành viên/quỹ cách ly giữa các test (F1).
   resetMockTeams();
+  // Giải đấu dựng lại từ seed — bracket/tỷ số cách ly giữa các test (S3-F7).
+  resetMockTournamentsBridge?.();
   // Dịch vụ đi kèm dựng lại từ seed — menu/addon cách ly giữa các test (F4).
   resetMockVenueServices();
 }
@@ -3569,6 +3577,347 @@ export async function handleMockRequest<T>(
       .slice(0, limit)
       .map((row) => ({ ...row, isMe: row.userId === account.id }));
     return { items } as unknown as T;
+  }
+
+  /* ===================== TOURNAMENTS mock (S3-F7) ===================== */
+
+  interface MockBracketTeam {
+    id: string;
+    name: string;
+    logoUrl: string | null;
+  }
+
+  interface MockBracketMatch {
+    id: string;
+    round: number;
+    position: number;
+    homeTeamId: string | null;
+    awayTeamId: string | null;
+    homeScore: number | null;
+    awayScore: number | null;
+    winnerTeamId: string | null;
+    status: 'PENDING' | 'READY' | 'DONE';
+  }
+
+  interface MockTournament {
+    id: string;
+    name: string;
+    description: string | null;
+    sportType: string;
+    maxTeams: number;
+    status: 'REGISTRATION' | 'ONGOING' | 'FINISHED';
+    createdBy: string;
+    hostName: string;
+    championTeamId: string | null;
+    createdAt: string;
+    teamEntries: Array<{ id: string; seed: number | null; joinedAt: string; team: MockBracketTeam }>;
+    matches: MockBracketMatch[];
+  }
+
+  const TB = (id: string, name: string): MockBracketTeam => ({ id, name, logoUrl: null });
+
+  function buildOpenTournament(): MockTournament {
+    // Khớp seed thật: CourtHub Open 2026 — QF xong hết, SF1 xong, SF2 sẵn sàng.
+    return {
+      id: 'tour-01',
+      name: 'CourtHub Open 2026',
+      description: 'Giải bóng đá 5 người khai mạc hệ thống — 8 đội đấu loại trực tiếp.',
+      sportType: 'FOOTBALL5',
+      maxTeams: 8,
+      status: 'ONGOING',
+      createdBy: 'u-owner-01',
+      hostName: 'Trần Thị Cẩm Lan',
+      championTeamId: null,
+      createdAt: '2026-08-25T02:00:00.000Z',
+      teamEntries: [
+        ['t-fc-ch', 'FC CourtHub'],
+        ['t-rangers', 'Hà Nội Rangers'],
+        ['t-tayho', 'FC Tây Hồ'],
+        ['t-golden', 'Golden Star FC'],
+        ['t-longbien', 'Long Biên United'],
+        ['t-thanxuan', 'Than Xuân FC'],
+        ['t-shark', 'Shark Football'],
+        ['t-cgyb', 'Cầu Giấy Young Boys'],
+      ].map(([id, name], i) => ({
+        id: `tt-${i + 1}`,
+        seed: i + 1,
+        joinedAt: new Date(Date.now() - (8 - i) * 60_000).toISOString(),
+        team: TB(id, name),
+      })),
+      matches: [
+        { id: 'tm-qf1', round: 1, position: 1, homeTeamId: 't-fc-ch', awayTeamId: 't-cgyb', homeScore: 3, awayScore: 1, winnerTeamId: 't-fc-ch', status: 'DONE' },
+        { id: 'tm-qf2', round: 1, position: 2, homeTeamId: 't-tayho', awayTeamId: 't-longbien', homeScore: 2, awayScore: 2, winnerTeamId: 't-tayho', status: 'DONE' },
+        { id: 'tm-qf3', round: 1, position: 3, homeTeamId: 't-rangers', awayTeamId: 't-shark', homeScore: 4, awayScore: 0, winnerTeamId: 't-rangers', status: 'DONE' },
+        { id: 'tm-qf4', round: 1, position: 4, homeTeamId: 't-golden', awayTeamId: 't-thanxuan', homeScore: 1, awayScore: 2, winnerTeamId: 't-thanxuan', status: 'DONE' },
+        { id: 'tm-sf1', round: 2, position: 1, homeTeamId: 't-fc-ch', awayTeamId: 't-tayho', homeScore: 2, awayScore: 0, winnerTeamId: 't-fc-ch', status: 'DONE' },
+        { id: 'tm-sf2', round: 2, position: 2, homeTeamId: 't-rangers', awayTeamId: 't-thanxuan', homeScore: null, awayScore: null, winnerTeamId: null, status: 'READY' },
+        { id: 'tm-final', round: 3, position: 1, homeTeamId: 't-fc-ch', awayTeamId: null, homeScore: null, awayScore: null, winnerTeamId: null, status: 'PENDING' },
+      ],
+    };
+  }
+
+  function buildRegistrationTournament(): MockTournament {
+    return {
+      id: 'tour-02',
+      name: 'Pickleball Mùa Thu Cup',
+      description: 'Giải pickleball đồng đội — đang mở đăng ký cho các captain.',
+      sportType: 'PICKLEBALL',
+      maxTeams: 8,
+      status: 'REGISTRATION',
+      createdBy: 'u-owner-01',
+      hostName: 'Trần Thị Cẩm Lan',
+      championTeamId: null,
+      createdAt: '2026-08-24T02:00:00.000Z',
+      teamEntries: [
+        { id: 'tt-reg-1', seed: null, joinedAt: '2026-08-24T03:00:00.000Z', team: TB('team-01', 'Dragon Pickleball Club') },
+        { id: 'tt-reg-2', seed: null, joinedAt: '2026-08-24T04:00:00.000Z', team: TB('t-pb-2', 'Smash Sisters') },
+      ],
+      matches: [],
+    };
+  }
+
+  function buildFinishedTournament(): MockTournament {
+    const base = buildOpenTournament();
+    // Bản FINISHED: mọi trận có kết quả, FC CourtHub vô địch.
+    for (const m of base.matches) {
+      m.status = 'DONE';
+      if (m.id === 'tm-sf2') {
+        m.homeScore = 1;
+        m.awayScore = 3;
+        m.winnerTeamId = 't-thanxuan';
+      }
+      if (m.id === 'tm-final') {
+        m.homeTeamId = 't-fc-ch';
+        m.awayTeamId = 't-thanxuan';
+        m.homeScore = 5;
+        m.awayScore = 2;
+        m.winnerTeamId = 't-fc-ch';
+      }
+    }
+    base.status = 'FINISHED';
+    base.championTeamId = 't-fc-ch';
+    base.createdAt = '2026-07-01T02:00:00.000Z';
+    return { ...base, id: 'tour-03', name: 'Spring Cup 2026' };
+  }
+
+  let MOCK_TOURNAMENTS: MockTournament[] = [
+    buildOpenTournament(),
+    buildRegistrationTournament(),
+    buildFinishedTournament(),
+  ];
+
+  /** Map teamId -> brief cho match include. */
+  function mockTeamBrief(tour: MockTournament, teamId: string | null): MockBracketTeam | null {
+    if (teamId === null) return null;
+    const entry = tour.teamEntries.find((t) => t.team.id === teamId);
+    return entry ? entry.team : (MOCK_TEAMS.find((t) => t.id === teamId) ? { id: teamId, name: MOCK_TEAMS.find((t) => t.id === teamId)!.name, logoUrl: null } : null);
+  }
+
+  function mockMatchView(tour: MockTournament, m: MockBracketMatch) {
+    return {
+      ...m,
+      homeTeam: mockTeamBrief(tour, m.homeTeamId),
+      awayTeam: mockTeamBrief(tour, m.awayTeamId),
+      winnerTeamId: m.winnerTeamId,
+    };
+  }
+
+  function resetMockTournaments(): void {
+    MOCK_TOURNAMENTS = [
+      buildOpenTournament(),
+      buildRegistrationTournament(),
+      buildFinishedTournament(),
+    ];
+  }
+  resetMockTournamentsBridge = resetMockTournaments;
+
+  // GET /tournaments — danh sách kèm champion + số đội.
+  if (method === 'GET' && rawPath0 === '/tournaments') {
+    return MOCK_TOURNAMENTS.map((tour) => ({
+      id: tour.id,
+      name: tour.name,
+      description: tour.description,
+      sportType: tour.sportType,
+      maxTeams: tour.maxTeams,
+      status: tour.status,
+      createdAt: tour.createdAt,
+      champion:
+        tour.championTeamId === null
+          ? null
+          : (mockTeamBrief(tour, tour.championTeamId) ?? null),
+      _count: { teams: tour.teamEntries.length },
+    })) as unknown as T;
+  }
+
+  // POST /tournaments — tạo giải REGISTRATION mới (owner/admin).
+  if (method === 'POST' && rawPath0 === '/tournaments') {
+    const name = requireString(payload, 'name');
+    const account =
+      sessionEmail === null ? accounts[0] : (accounts.find((a) => a.email === sessionEmail) ?? accounts[0]);
+    const created: MockTournament = {
+      id: 'tour-' + Date.now().toString(36),
+      name,
+      description: typeof payload.description === 'string' && payload.description ? payload.description : null,
+      sportType: typeof payload.sportType === 'string' ? payload.sportType : 'FOOTBALL5',
+      maxTeams: 8,
+      status: 'REGISTRATION',
+      createdBy: account.id,
+      hostName: account.fullName,
+      championTeamId: null,
+      createdAt: new Date().toISOString(),
+      teamEntries: [],
+      matches: [],
+    };
+    MOCK_TOURNAMENTS.unshift(created);
+    return {
+      ...created,
+      champion: null,
+      _count: { teams: 0 },
+    } as unknown as T;
+  }
+
+  // GET /tournaments/:id — chi tiết + bracket theo round/position.
+  if (method === 'GET' && new RegExp('^/tournaments/[^/]+$').test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const tour = MOCK_TOURNAMENTS.find((t) => t.id === id);
+    if (!tour) throw new ApiError(404, 'Không tìm thấy giải đấu', 'TOURNAMENT_NOT_FOUND');
+    return {
+      ...tour,
+      // BE trả quan hệ tên 'teams' — alias từ teamEntries của mock.
+      teams: tour.teamEntries,
+      // BE trả quan hệ object cho createdBy — mock giữ scalar nên ghi đè ở đây.
+      createdBy: { id: tour.createdBy, fullName: tour.hostName },
+      champion:
+        tour.championTeamId === null ? null : (mockTeamBrief(tour, tour.championTeamId) ?? null),
+      creator: { id: tour.createdBy, fullName: tour.hostName },
+      matches: [...tour.matches]
+        .sort((a, b) => a.round - b.round || a.position - b.position)
+        .map((m) => mockMatchView(tour, m)),
+    } as unknown as T;
+  }
+
+  // POST /tournaments/:id/register — captain đăng ký đội (REGISTRATION).
+  if (method === 'POST' && new RegExp('^/tournaments/[^/]+/register$').test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const teamId = requireString(payload, 'teamId');
+    const tour = MOCK_TOURNAMENTS.find((t) => t.id === id);
+    if (!tour) throw new ApiError(404, 'Không tìm thấy giải đấu', 'TOURNAMENT_NOT_FOUND');
+    if (tour.status !== 'REGISTRATION') {
+      throw new ApiError(409, 'Giải đã khóa đăng ký', 'REGISTRATION_CLOSED');
+    }
+    if (tour.teamEntries.some((t) => t.team.id === teamId)) {
+      throw new ApiError(409, 'Đội đã đăng ký giải này rồi', 'TEAM_ALREADY_REGISTERED');
+    }
+    if (tour.teamEntries.length >= tour.maxTeams) {
+      throw new ApiError(409, 'Giải đã đủ số đội', 'TOURNAMENT_FULL');
+    }
+    const allTeams = [
+      ...MOCK_TEAMS.map((t) => ({ id: t.id, name: t.name })),
+      ...MOCK_TOURNAMENTS.flatMap((t) => t.teamEntries.map((e) => ({ id: e.team.id, name: e.team.name }))),
+    ];
+    const found = allTeams.find((t) => t.id === teamId);
+    if (!found) throw new ApiError(404, 'Không tìm thấy đội', 'TEAM_NOT_FOUND');
+    tour.teamEntries.push({
+      id: 'tt-' + Date.now().toString(36),
+      seed: null,
+      joinedAt: new Date().toISOString(),
+      team: { id: found.id, name: found.name, logoUrl: null },
+    });
+    return { ok: true } as T;
+  }
+
+  // POST /tournaments/:id/start — khóa đăng ký + sinh bracket (host/admin).
+  if (method === 'POST' && new RegExp('^/tournaments/[^/]+/start$').test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const tour = MOCK_TOURNAMENTS.find((t) => t.id === id);
+    if (!tour) throw new ApiError(404, 'Không tìm thấy giải đấu', 'TOURNAMENT_NOT_FOUND');
+    if (tour.status !== 'REGISTRATION') {
+      throw new ApiError(409, 'Giải đã khởi động trước đó', 'TOURNAMENT_ALREADY_STARTED');
+    }
+    if (tour.teamEntries.length < 2) {
+      throw new ApiError(400, 'Cần tối thiểu 2 đội để khởi động giải', 'NOT_ENOUGH_TEAMS');
+    }
+    tour.status = 'ONGOING';
+    const slots = tour.maxTeams;
+    const totalRounds = Math.log2(slots);
+    const ids = new Map<string, string>();
+    for (let round = 1; round <= totalRounds; round++) {
+      const countInRound = slots / 2 ** round;
+      for (let position = 1; position <= countInRound; position++) {
+        ids.set(round + '-' + position, 'tm-' + round + '-' + position + '-' + Date.now().toString(36));
+      }
+    }
+    const matches: MockBracketMatch[] = [];
+    for (const [key, mid] of ids) {
+      const [r, p] = key.split('-').map(Number);
+      matches.push({
+        id: mid,
+        round: r,
+        position: p,
+        homeTeamId: null,
+        awayTeamId: null,
+        homeScore: null,
+        awayScore: null,
+        winnerTeamId: null,
+        status: 'PENDING',
+      });
+    }
+    // QF cặp chuẩn theo thứ tự đăng ký (demo-first — không bốc thăm).
+    for (let pos = 1; pos <= slots / 2; pos++) {
+      const home = tour.teamEntries[(pos - 1) * 2];
+      const away = tour.teamEntries[(pos - 1) * 2 + 1];
+      const m = matches.find((x) => x.round === 1 && x.position === pos)!;
+      m.homeTeamId = home?.team.id ?? null;
+      m.awayTeamId = away?.team.id ?? null;
+      m.status = home && away ? 'READY' : 'PENDING';
+    }
+    tour.matches = matches.sort((a, b) => a.round - b.round || a.position - b.position);
+    return {
+      ...tour,
+      teams: tour.teamEntries,
+      createdBy: { id: tour.createdBy, fullName: tour.hostName },
+      champion: null,
+      creator: { id: tour.createdBy, fullName: tour.hostName },
+      matches: tour.matches.map((m) => mockMatchView(tour, m)),
+    } as unknown as T;
+  }
+
+  // PATCH /matches/:id/score — nhập tỷ số trận READY; winner đẩy sang vòng sau.
+  if (method === 'PATCH' && new RegExp('^/matches/[^/]+/score$').test(rawPath0)) {
+    const id = rawPath0.split('/')[2];
+    const homeScore = Number(payload.homeScore);
+    const awayScore = Number(payload.awayScore);
+    if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0) {
+      throw new ApiError(400, 'Tỷ số phải là số nguyên >= 0', 'SCORE_INVALID');
+    }
+    for (const tour of MOCK_TOURNAMENTS) {
+      const m = tour.matches.find((x) => x.id === id);
+      if (!m) continue;
+      if (m.status !== 'READY') {
+        throw new ApiError(409, 'Chỉ nhập tỷ số cho trận đã đủ hai đội', 'MATCH_NOT_READY');
+      }
+      m.homeScore = homeScore;
+      m.awayScore = awayScore;
+      m.winnerTeamId =
+        homeScore === awayScore ? null : homeScore > awayScore ? m.homeTeamId : m.awayTeamId;
+      m.status = 'DONE';
+      // Đẩy winner sang vòng sau: next = (round+1, ceil(position/2)); lẻ -> home, chẵn -> away.
+      const next = tour.matches.find(
+        (x) => x.round === m.round + 1 && x.position === Math.ceil(m.position / 2),
+      );
+      if (next !== undefined && m.winnerTeamId !== null) {
+        if (m.position % 2 === 1) next.homeTeamId = m.winnerTeamId;
+        else next.awayTeamId = m.winnerTeamId;
+        if (next.homeTeamId !== null && next.awayTeamId !== null) next.status = 'READY';
+      }
+      // Hết trận chung kết -> ghi champion + FINISHED.
+      if (next === undefined && m.winnerTeamId !== null) {
+        tour.championTeamId = m.winnerTeamId;
+        tour.status = 'FINISHED';
+      }
+      return mockMatchView(tour, m) as unknown as T;
+    }
+    throw new ApiError(404, 'Không tìm thấy trận đấu', 'MATCH_NOT_FOUND');
   }
 
   /* ===================== WALLET mock (F6) ===================== */
