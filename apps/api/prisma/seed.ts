@@ -11,6 +11,8 @@
  *    3 đơn CONFIRMED đã trả cùng 1 ngày tới (demo hủy hàng loạt N2),
  *    thông báo WALLET chưa đọc sẵn cho chuông thông báo.
  *  - 4 tài khoản demo (mật khẩu in rõ ở cuối log)
+ *  - SPRINT 3 (F7/F2): giải 'CourtHub Open 2026' 8 đội bracket sẵn round 1,
+ *    booking lịch sử đa dạng cho ranking; chạy với cờ '--reset' để chỉ reset phần giải đấu
  */
 import { PrismaClient, type SportType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -70,11 +72,227 @@ interface VenueSpec {
   courts: CourtSpec[];
 }
 
+
+/** Xoá dữ liệu giải đấu theo thứ tự FK-an-toàn (match -> team -> tournament). */
+async function clearTournaments(): Promise<void> {
+  await prisma.tournamentMatch.deleteMany();
+  await prisma.tournamentTeam.deleteMany();
+  await prisma.tournament.deleteMany();
+}
+
+/** Lấy hoặc tạo user CUSTOMER theo email (dùng cho captain bổ sung của S3). */
+async function ensureCustomer(email: string, fullName: string, phone: string) {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return existing;
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  return prisma.user.create({ data: { email, passwordHash, fullName, phone, role: 'CUSTOMER' } });
+}
+
+/** Lấy hoặc tạo đội mẫu theo tên, gắn captain + member CAPTAIN tương ứng. */
+async function ensureTeam(name: string, sportType: SportType, captainId: string) {
+  const existing = await prisma.team.findFirst({ where: { name } });
+  if (existing) return existing;
+  const team = await prisma.team.create({
+    data: { name, sportType, description: 'Đội mẫu Sprint 3 cho giải đấu demo.', captainId },
+  });
+  await prisma.teamMember.create({
+    data: { teamId: team.id, userId: captainId, role: 'CAPTAIN', status: 'ACTIVE' },
+  });
+  return team;
+}
+
+/**
+ * SPRINT 3 (F7): giải 'CourtHub Open 2026' — 8 đội FOOTBALL5, bracket single-elimination
+ * đã start đủ round 1 (4 trận QF READY cặp chuẩn [1v8,4v5,2v7,3v6], SF/chung kết PENDING)
+ * để FE nhập điểm trực tiếp lúc bảo vệ. Chạy độc lập với phần seed còn lại.
+ */
+async function seedSprint3Tournament(): Promise<void> {
+  const host = await prisma.user.findUnique({ where: { email: 'owner@courthub.vn' } });
+  if (!host) {
+    throw new Error('Chưa có owner@courthub.vn — hãy chạy seed đầy đủ trước khi reset giải đấu.');
+  }
+  const customer = await prisma.user.findUnique({ where: { email: 'customer@courthub.vn' } });
+  const customer2 = await prisma.user.findUnique({ where: { email: 'customer2@courthub.vn' } });
+  if (!customer || !customer2) {
+    throw new Error('Thiếu tài khoản demo customer/customer2 — hãy chạy seed đầy đủ trước.');
+  }
+
+  console.log('👤 S3: tạo 6 captain bổ sung cho giải đấu (captain3..captain8)...');
+  const extraDefs: Array<[string, string, string]> = [
+    ['captain3@courthub.vn', 'Vũ Đình Cầu', '0900000013'],
+    ['captain4@courthub.vn', 'Bùi Minh Bóng', '0900000014'],
+    ['captain5@courthub.vn', 'Đỗ Thanh Long', '0900000015'],
+    ['captain6@courthub.vn', 'Hoàng Văn Nhất', '0900000016'],
+    ['captain7@courthub.vn', 'Ngô Khánh Linh', '0900000017'],
+    ['captain8@courthub.vn', 'Dương Tuấn Kiệt', '0900000018'],
+  ];
+  const extras = [];
+  for (const [email, fullName, phone] of extraDefs) {
+    extras.push(await ensureCustomer(email, fullName, phone));
+  }
+
+  console.log('🏆 S3 F7: dựng giải CourtHub Open 2026 (8 đội single-elimination)...');
+  await clearTournaments();
+
+  const teamDefs: Array<{ name: string; captainId: string }> = [
+    { name: 'FC CourtHub', captainId: customer.id },
+    { name: 'Hà Nội Rangers', captainId: customer2.id },
+    { name: 'FC Tây Hồ', captainId: extras[0].id },
+    { name: 'Golden Star FC', captainId: extras[1].id },
+    { name: 'Long Biên United', captainId: extras[2].id },
+    { name: 'Than Xuân FC', captainId: extras[3].id },
+    { name: 'Shark Football', captainId: extras[4].id },
+    { name: 'Cầu Giấy Young Boys', captainId: extras[5].id },
+  ];
+  const teams = [];
+  for (let i = 0; i < teamDefs.length; i++) {
+    teams.push(await ensureTeam(teamDefs[i].name, 'FOOTBALL5', teamDefs[i].captainId));
+  }
+
+  const tour = await prisma.tournament.create({
+    data: {
+      name: 'CourtHub Open 2026',
+      description: 'Giải bóng đá 5 người khai mạc hệ thống — 8 đội đấu loại trực tiếp.',
+      sportType: 'FOOTBALL5',
+      maxTeams: 8,
+      status: 'ONGOING',
+      createdBy: host.id,
+    },
+  });
+
+  // Đăng ký đúng thứ tự seed: joinedAt cách nhau để seed 1..8 deterministic.
+  const baseTime = Date.now();
+  for (let i = 0; i < teams.length; i++) {
+    await prisma.tournamentTeam.create({
+      data: {
+        tournamentId: tour.id,
+        teamId: teams[i].id,
+        seed: i + 1, // thứ tự đăng ký = hạt giống (1 = top seed)
+        joinedAt: new Date(baseTime - (8 - i) * 60_000),
+      },
+    });
+  }
+
+  // Sinh bracket y hệt logic service: 7 trận, nextMatchId nối cây, QF cặp chuẩn.
+  const slots = 8;
+  const totalRounds = 3;
+  const matches = new Map<string, string>();
+  for (let round = 1; round <= totalRounds; round++) {
+    const countInRound = slots / 2 ** round;
+    for (let position = 1; position <= countInRound; position++) {
+      const m = await prisma.tournamentMatch.create({
+        data: { tournamentId: tour.id, round, position },
+      });
+      matches.set(round + '-' + position, m.id);
+    }
+  }
+  for (const [key, id] of matches) {
+    const [r, p] = key.split('-').map(Number);
+    if (r < totalRounds) {
+      await prisma.tournamentMatch.update({
+        where: { id },
+        data: { nextMatchId: matches.get(r + 1 + '-' + Math.ceil(p / 2))! },
+      });
+    }
+  }
+
+  const slotOrder = [1, 8, 4, 5, 2, 7, 3, 6]; // seed chuẩn: mạnh cách nhau
+  for (let pos = 1; pos <= slots / 2; pos++) {
+    const homeSeed = slotOrder[(pos - 1) * 2];
+    const awaySeed = slotOrder[(pos - 1) * 2 + 1];
+    await prisma.tournamentMatch.update({
+      where: { id: matches.get('1-' + pos)! },
+      data: {
+        homeTeamId: teams[homeSeed - 1].id,
+        awayTeamId: teams[awaySeed - 1].id,
+        status: 'READY',
+      },
+    });
+  }
+
+  console.log('   -> 7 trận đã sinh: 4 QF READY ([1v8][4v5][2v7][3v6]) chờ nhập điểm, SF/Final PENDING.');
+}
+
+/**
+ * SPRINT 3 (F2): booking lịch sử đa dạng để ranking compute-on-read có số liệu đẹp:
+ * đúng giờ nhiều (customer), trung tính (customer2), no-show nặng (captain4/5), hủy sát giờ.
+ * KHÔNG tạo payment/ledger — chỉ dữ liệu trạng thái phục vụ tính điểm.
+ */
+async function seedRankingHistory(
+  courts: Array<{ id: string }>,
+  users: Array<{ id: string }>,
+): Promise<void> {
+  console.log('📊 S3 F2: tạo booking lịch sử đa dạng cho ranking...');
+  type Outcome = 'ONTIME' | 'NOSHOW' | 'LATE_CANCEL';
+  interface HistSpec {
+    userIdx: number; courtIdx: number; daysAgo: number;
+    startMinute: number; endMinute: number; subtotal: number; outcome: Outcome;
+  }
+  const specs: HistSpec[] = [
+    // customer: đúng giờ 5 lần cao điểm -> điểm uy tín cao nhất bảng
+    { userIdx: 0, courtIdx: 0, daysAgo: 21, startMinute: 1080, endMinute: 1140, subtotal: 450_000, outcome: 'ONTIME' },
+    { userIdx: 0, courtIdx: 0, daysAgo: 18, startMinute: 1020, endMinute: 1080, subtotal: 450_000, outcome: 'ONTIME' },
+    { userIdx: 0, courtIdx: 1, daysAgo: 14, startMinute: 960, endMinute: 1020, subtotal: 100_000, outcome: 'ONTIME' },
+    { userIdx: 0, courtIdx: 0, daysAgo: 9, startMinute: 1140, endMinute: 1200, subtotal: 450_000, outcome: 'ONTIME' },
+    { userIdx: 0, courtIdx: 1, daysAgo: 4, startMinute: 900, endMinute: 960, subtotal: 100_000, outcome: 'ONTIME' },
+    // customer2: khá — 2 đúng giờ, 1 quên đá (no-show), 1 hủy sát giờ
+    { userIdx: 1, courtIdx: 1, daysAgo: 20, startMinute: 840, endMinute: 900, subtotal: 100_000, outcome: 'ONTIME' },
+    { userIdx: 1, courtIdx: 2, daysAgo: 15, startMinute: 810, endMinute: 900, subtotal: 350_000, outcome: 'ONTIME' },
+    { userIdx: 1, courtIdx: 0, daysAgo: 10, startMinute: 1080, endMinute: 1140, subtotal: 450_000, outcome: 'NOSHOW' },
+    { userIdx: 1, courtIdx: 1, daysAgo: 5, startMinute: 780, endMinute: 840, subtotal: 100_000, outcome: 'LATE_CANCEL' },
+    // captain3: ổn định; captain4: quen quên; captain5: chuyên hủy sát giờ
+    { userIdx: 2, courtIdx: 0, daysAgo: 16, startMinute: 960, endMinute: 1020, subtotal: 450_000, outcome: 'ONTIME' },
+    { userIdx: 2, courtIdx: 0, daysAgo: 7, startMinute: 1020, endMinute: 1080, subtotal: 450_000, outcome: 'ONTIME' },
+    { userIdx: 3, courtIdx: 1, daysAgo: 17, startMinute: 720, endMinute: 780, subtotal: 100_000, outcome: 'NOSHOW' },
+    { userIdx: 3, courtIdx: 0, daysAgo: 6, startMinute: 900, endMinute: 960, subtotal: 450_000, outcome: 'NOSHOW' },
+    { userIdx: 4, courtIdx: 2, daysAgo: 12, startMinute: 780, endMinute: 870, subtotal: 350_000, outcome: 'LATE_CANCEL' },
+    { userIdx: 4, courtIdx: 1, daysAgo: 3, startMinute: 840, endMinute: 900, subtotal: 100_000, outcome: 'LATE_CANCEL' },
+  ];
+
+  let seq = 1;
+  for (const spec of specs) {
+    const isoDate = addDays(vnToday(), -spec.daysAgo);
+    const startAt = toDate(isoDate).getTime() + spec.startMinute * 60_000;
+    const data: Parameters<typeof prisma.booking.create>[0]['data'] = {
+      code: 'BK-HIST-' + String(seq).padStart(3, '0'),
+      customerId: users[spec.userIdx].id,
+      courtId: courts[spec.courtIdx].id,
+      date: toDate(isoDate),
+      startMinute: spec.startMinute,
+      endMinute: spec.endMinute,
+      subtotal: spec.subtotal,
+      depositAmount: roundPrice((spec.subtotal * 30) / 100),
+    };
+    if (spec.outcome === 'LATE_CANCEL') {
+      data.status = 'CANCELLED';
+      data.cancelledAt = new Date(startAt - 6 * 60 * 60_000); // hủy cách kickoff 6 tiếng (<12h)
+      data.cancelReason = 'Đổi lịch gấp, mong sân thông cảm!';
+    } else {
+      data.status = 'COMPLETED';
+      if (spec.outcome === 'ONTIME') {
+        data.checkedInAt = new Date(startAt - 10 * 60_000); // check-in sớm 10 phút
+      } // NOSHOW: COMPLETED mà không có checkedInAt
+    }
+    await prisma.booking.create({ data });
+    seq++;
+  }
+  console.log('   -> ' + specs.length + ' booking lịch sử (đúng giờ/no-show/hủy sát giờ) cho leaderboard.');
+}
 async function main() {
+  // --reset: chỉ dọn + seed lại PHẦN GIẢI ĐẤU, giữ nguyên venue/booking/ví/đội hiện có.
+  if (process.argv.includes('--reset')) {
+    console.log('🔄 --reset: dọn bảng tournament* (FK-an-toàn) rồi seed lại giải demo S3...');
+    await clearTournaments();
+    await seedSprint3Tournament();
+    return;
+  }
+
   console.log('🧹 Dọn dữ liệu cũ...');
-  // Thứ tự FK-an-toàn: con trước cha; bảng F6/F3/F8/S2 xoá trước users.
+  // Thứ tự FK-an-toàn: con trước cha; bảng F6/F3/F8/S2/S3 xoá trước users.
+  await clearTournaments(); // giải đấu xoá trước teams (FK championTeamId)
   await prisma.expenseShare.deleteMany();
   await prisma.teamMember.deleteMany();
+  await prisma.venueService.deleteMany(); // S2-F4: RESTRICT tới venues -> phải xoá trước
   await prisma.team.deleteMany();
   await prisma.bookingAddOn.deleteMany();
   await prisma.voucherRedemption.deleteMany();
@@ -1365,6 +1583,16 @@ async function main() {
     rainySeq++;
   }
 
+  // Ranking cần cả captain3..5 -> đảm bảo tồn tại trước khi dựng lịch sử đấu.
+  const rankUsers = [
+    customer,
+    customer2,
+    await ensureCustomer('captain3@courthub.vn', 'Vũ Đình Cầu', '0900000013'),
+    await ensureCustomer('captain4@courthub.vn', 'Bùi Minh Bóng', '0900000014'),
+    await ensureCustomer('captain5@courthub.vn', 'Đỗ Thanh Long', '0900000015'),
+  ];
+  await seedRankingHistory([football5A, badminton1, tennis1], rankUsers);
+
   console.log('🔔 F8: 2 thông báo WALLET chưa đọc để chuông thông báo có badge sẵn...');
   for (const c of [customer, customer2]) {
     await prisma.notification.create({
@@ -1494,6 +1722,8 @@ async function main() {
     svcCount++;
   }
 
+  await seedSprint3Tournament();
+
   console.log('\n============================================================');
   console.log('✨ SEED DỮ LIỆU THÀNH CÔNG!');
   console.log('============================================================');
@@ -1512,6 +1742,9 @@ async function main() {
   console.log(
     '👥 F1 Teams: FC CourtHub (captain customer) + Pickleball Saigon Club (captain customer2)',
   );
+  console.log('🏆 F7 Tournaments: CourtHub Open 2026 — bracket 8 đội, round 1 sẵn sàng nhập điểm');
+  console.log('📊 F2 Ranking: booking lịch sử đa dạng (đúng giờ/no-show/hủy sát giờ) cho leaderboard');
+  console.log('👤 Captain thêm S3: captain3..captain8@courthub.vn (cùng mật khẩu demo)');
   console.log(
     `💸 ExpenseShare: 1 khoản ${Math.floor(depositOf(450_000, 30) / 2).toLocaleString('vi-VN')}đ UNPAID từ booking đội FC CourtHub`,
   );
