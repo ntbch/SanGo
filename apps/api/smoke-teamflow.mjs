@@ -71,10 +71,18 @@ async function api(method, path, token, body) {
         select: { startMinute: true },
       })
     ).forEach((h) => busy.add(h.startMinute));
-    for (const s of [1020, 600, 660, 720, 780, 540])
-      if (!busy.has(s)) {
+    const vMeta = await prisma.venue.findUnique({
+      where: { id: venue.id },
+      select: { openMinute: true, closeMinute: true },
+    });
+    for (
+      let m = vMeta.openMinute;
+      m + court.slotMinutes <= vMeta.closeMinute;
+      m += court.slotMinutes
+    )
+      if (!busy.has(m)) {
         date = d;
-        minute = s;
+        minute = m;
         break outer;
       }
   }

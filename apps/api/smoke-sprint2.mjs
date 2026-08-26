@@ -80,23 +80,31 @@ async function waitApi() {
     include: { courts: { take: 3 } },
   });
   // Chọn ngày+slot còn trống cho court (tránh dữ liệu smoke các lần chạy trước)
-  async function pickSlot(courtId) {
+  async function pickSlot(court) {
+    const vMeta = await prisma.venue.findUnique({
+      where: { id: court.venueId },
+      select: { openMinute: true, closeMinute: true },
+    });
     for (let off = 1; off <= 9; off++) {
       const d = new Date(Date.now() + off * 86400000).toISOString().slice(0, 10);
       const day = new Date(d + 'T00:00:00Z');
       const busy = new Set();
       const bks = await prisma.booking.findMany({
-        where: { courtId, date: day, status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
+        where: { courtId: court.id, date: day, status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
         select: { startMinute: true },
       });
       bks.forEach((b) => busy.add(b.startMinute));
       const hds = await prisma.bookingHold.findMany({
-        where: { courtId, date: day, status: 'ACTIVE' },
+        where: { courtId: court.id, date: day, status: 'ACTIVE' },
         select: { startMinute: true },
       });
       hds.forEach((h) => busy.add(h.startMinute));
-      for (const s of [1020, 600, 660, 720, 780])
-        if (!busy.has(s)) return { date: d, minute: s, dow: day.getUTCDay() };
+      for (
+        let m = vMeta.openMinute;
+        m + court.slotMinutes <= vMeta.closeMinute;
+        m += court.slotMinutes
+      )
+        if (!busy.has(m)) return { date: d, minute: m, dow: day.getUTCDay() };
     }
     throw new Error('khong con slot trong');
   }
@@ -184,7 +192,7 @@ async function waitApi() {
 
   // ---- S3 BOOKING THEO DOI ----
   const court = vOwner.courts[0];
-  const pick3 = await pickSlot(court.id);
+  const pick3 = await pickSlot(court);
   const h = await api('POST', '/bookings/holds', cust2.token, {
     courtId: court.id,
     date: pick3.date,
@@ -357,14 +365,14 @@ async function waitApi() {
   );
 
   // ---- S6 MAJOR-1: ma usageLimit=1 rieng, 2 user tranh luot cuoi (B1+B2) ----
-  const pickA = await pickSlot(court.id);
+  const pickA = await pickSlot(court);
   const vCode = 'QAEXH-' + Date.now().toString(36).toUpperCase().slice(-6);
   const mkVoucher = await api('POST', '/owner/vouchers', owner.token, {
     code: vCode,
     percentOff: 20,
     dayOfWeek: pickA.dow,
-    validFromMinute: 360,
-    validToMinute: 1320,
+    validFromMinute: 0,
+    validToMinute: 1440,
     usageLimit: 1,
     perUserLimit: 1,
   });
@@ -406,7 +414,18 @@ async function waitApi() {
 
   // Luot 2: customer2 apply CUNG ma (snapshot OK vi per-user chua dung) -> checkout phai bi chan do quota can
   let mB = pickA.minute;
-  for (const cand of [600, 660, 720, 780, 840, 900, 540])
+  const vMeta6 = await prisma.venue.findUnique({
+    where: { id: court.venueId },
+    select: { openMinute: true, closeMinute: true },
+  });
+  const gridCandidates = [];
+  for (
+    let m = vMeta6.openMinute;
+    m + court.slotMinutes <= vMeta6.closeMinute;
+    m += court.slotMinutes
+  )
+    gridCandidates.push(m);
+  for (const cand of gridCandidates)
     if (cand !== pickA.minute) {
       const probe = await prisma.bookingHold.count({
         where: {
