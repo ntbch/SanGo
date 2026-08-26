@@ -20,10 +20,17 @@ export interface OpenMatchItem {
   /** Tổng giá trị đơn (VND) — người tham gia trả chủ đơn NGOÀI hệ thống. */
   subtotal: number;
   depositAmount: number;
-  /** Tên chủ đơn. */
+  /** Tên chủ đơn — được normalize từ host.fullName tại lớp api. */
   hostName: string;
   slotsNeeded: number;
   joinedCount: number;
+  /** Shape lồng gốc từ backend (trước khi normalize). */
+  host?: { id?: string; fullName?: string | null; avatarUrl?: string | null } | null;
+  venue?: { id?: string; name?: string | null; district?: string | null; city?: string | null } | null;
+  matchLevel?: string | null;
+  targetPositions?: string[];
+  costPerPerson?: number | null;
+  commentsCount?: number;
 }
 
 export interface OpenMatchesResponse {

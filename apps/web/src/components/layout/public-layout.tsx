@@ -26,10 +26,8 @@ const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
  */
 const CUSTOMER_LINKS: readonly UserMenuLink[] = [
   { to: '/bookings', label: 'Đơn đặt sân' },
-  { to: '/wallet', label: 'Ví của tôi' },
   { to: '/teams', label: 'Đội nhóm' },
   { to: '/ranking', label: 'Bảng xếp hạng' },
-  { to: '/notifications', label: 'Thông báo' },
   { to: '/profile', label: 'Hồ sơ' },
 ];
 
@@ -52,7 +50,9 @@ export function PublicLayout(): ReactElement {
     { to: '/map', label: 'Bản đồ' },
     { to: '/matches', label: 'Ghép trận' },
     { to: '/tournaments', label: 'Giải đấu' },
-    ...(user ? [{ to: '/bookings', label: 'Đơn của tôi' }] : []),
+    { to: '/ranking', label: 'Bảng xếp hạng' },
+    { to: '/about', label: 'Giới thiệu' },
+    { to: '/partner', label: 'Dành cho chủ sân' },
   ];
 
   return (

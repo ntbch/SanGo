@@ -7,9 +7,24 @@ import type {
   OpenMatchesResponse,
 } from './types';
 
-/** [Public] Danh sách trận mở chưa đủ người, lọc loại sân/ngày (§3.11). */
-export function fetchOpenMatches(query: OpenMatchesQuery): Promise<OpenMatchesResponse> {
-  return apiFetch<OpenMatchesResponse>(endpoints.matches.open(query));
+/**
+ * [Public] Danh sách trận mở chưa đủ người (§3.11). Backend trả shape lồng
+ * (host.fullName, venue.name...) — normalize về shape phẳng cho card UI.
+ */
+export async function fetchOpenMatches(query: OpenMatchesQuery): Promise<OpenMatchesResponse> {
+  const raw = await apiFetch<OpenMatchesResponse>(endpoints.matches.open(query));
+  const items = (raw.items ?? []).map((it) => ({
+    ...it,
+    hostName: it.host?.fullName ?? 'Ẩn danh',
+    venueName: it.venue?.name ?? '',
+    district: it.venue?.district ?? '',
+    courtName: it.courtName ?? 'Sân không xác định',
+    slotsNeeded: it.slotsNeeded ?? 0,
+    joinedCount: it.joinedCount ?? 0,
+    subtotal: it.subtotal ?? 0,
+    depositAmount: it.depositAmount ?? 0,
+  }));
+  return { ...raw, items };
 }
 
 /** Tham gia ghép trận trên đơn của người khác (chặn tự join, trùng, đủ người). */
