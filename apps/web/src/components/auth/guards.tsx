@@ -1,69 +1,51 @@
-import { UserRole } from '@sango/shared';
-import type { ReactElement, ReactNode } from 'react';
-import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../lib/auth-store';
+import { UserRole } from '../../lib/constants';
+import { Loader2 } from 'lucide-react';
 
-import { useAuthStore } from '../../lib/auth/auth-store';
-
-/** Chỉ nhận đích nội bộ (bắt đầu bằng '/', không phải '//') — chống open-redirect. */
-export function safeInternalTarget(raw: string | null | undefined): string | null {
-  if (raw === null || raw === undefined || !raw.startsWith('/') || raw.startsWith('//')) {
-    return null;
-  }
-  return raw;
+export interface ProtectedRouteProps {
+  allowedRoles?: UserRole[];
 }
 
-/** Trang đích mặc định sau đăng nhập: khách hàng về trang chủ công khai, chủ sân/quản trị vào bảng điều khiển. */
-export function landingPathForRole(role: UserRole | undefined): string {
-  return role === UserRole.CUSTOMER ? '/' : '/dashboard';
-}
-
-interface ProtectedRouteProps {
-  children: ReactNode;
-  /** Nếu khai báo thì chỉ các vai trò này được đi tiếp, ngược lại về trang đích theo vai trò. */
-  roles?: readonly UserRole[];
-}
-
-/** Bắt buộc đăng nhập; tuỳ chọn giới hạn theo vai trò (RBAC đặc tả §7). */
-export function ProtectedRoute({ children, roles }: ProtectedRouteProps): ReactElement {
-  const user = useAuthStore((state) => state.user);
+export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps): React.ReactElement {
+  const { user, status } = useAuthStore();
   const location = useLocation();
+
+  if (status === 'loading' || status === 'idle') {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground font-medium">Đang xác thực tài khoản...</p>
+      </div>
+    );
+  }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
-  if (roles && !roles.includes(user.role)) {
-    return <Navigate to={landingPathForRole(user.role)} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Outlet />;
 }
 
-interface GuestRouteProps {
-  children?: ReactNode;
-}
+export function GuestRoute(): React.ReactElement {
+  const { user, status } = useAuthStore();
 
-/** Trang dành cho khách chưa đăng nhập (login/register…) — đã đăng nhập thì về dashboard. */
-export function GuestRoute({ children }: GuestRouteProps): ReactElement {
-  const user = useAuthStore((state) => state.user);
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
+  if (status === 'loading') {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (user) {
-    // QA-T4-01 (v2): setSession (external store) thông báo subscriber đồng bộ nên
-    // GuestRoute có thể re-render với location CŨ trong khi useNavigate của
-    // LoginPage commit qua React state — hai lệnh navigate đua nhau và
-    // /dashboard từng thắng. Cho GuestRoute tự tôn trọng đích next/from để
-    // DÙ trang nào thắng cuộc đua thì đích cuối cũng là next → tất định đúng.
-    const next =
-      safeInternalTarget(searchParams.get('next')) ??
-      safeInternalTarget((location.state as { from?: string } | null)?.from);
-    return <Navigate to={next ?? landingPathForRole(user.role)} replace />;
+    return <Navigate to="/" replace />;
   }
 
-  // Dùng như pathless layout route thì render con qua Outlet.
-  if (children === undefined || children === null) {
-    return <Outlet />;
-  }
-
-  return <>{children}</>;
+  return <Outlet />;
 }

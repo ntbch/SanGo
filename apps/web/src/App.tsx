@@ -1,12 +1,11 @@
-import type { ReactElement } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import React from 'react';
+import { AppProviders } from './app/providers';
+import { AppRoutes } from './app/routes';
 
-import { AppRoutes } from './routes/router';
-
-export default function App(): ReactElement {
+export function App(): React.ReactElement {
   return (
-    <BrowserRouter>
+    <AppProviders>
       <AppRoutes />
-    </BrowserRouter>
+    </AppProviders>
   );
 }

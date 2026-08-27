@@ -1,229 +1,66 @@
-import { Menu } from 'lucide-react';
-import type { ReactElement } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import React from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Navbar } from './navbar';
+import { Footer } from './footer';
+import { Calendar, Compass, Home, MapPin, Swords } from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { AiChatWidget } from '../ai/ai-chat-widget';
 
-import { APP_NAME, UserRole } from '@sango/shared';
-import { NotificationBell } from '../../features/notifications/components/notification-bell';
-import { WalletBalanceBadge } from '../../features/wallet/components/wallet-balance-badge';
-import { ThemeToggle } from '../theme/theme-toggle';
-import { UserMenu, type UserMenuLink } from './user-menu';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
-import { useAuthStore } from '../../lib/auth/auth-store';
+export function PublicLayout(): React.ReactElement {
+  const location = useLocation();
 
-/** Container chuẩn của design "Athletic Synergy": tối đa 1280px, gutter 16/24px. */
-const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
+  // Ẩn hoàn toàn Navbar, Footer và Mobile Bottom Nav trên các trang Auth
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].some(
+    (p) => location.pathname === p || location.pathname.startsWith(`${p}/`),
+  );
 
-/**
- * Trang cá nhân của khách hàng trong khung public — URL giữ /dashboard/* để
- * không vỡ link cũ (cổng thanh toán, chuông thông báo, kết quả thanh toán…).
- */
-const CUSTOMER_LINKS: readonly UserMenuLink[] = [
-  { to: '/bookings', label: 'Đơn đặt sân' },
-  { to: '/wallet', label: 'Ví của tôi' },
-  { to: '/teams', label: 'Đội nhóm' },
-  { to: '/ranking', label: 'Bảng xếp hạng' },
-  { to: '/profile', label: 'Hồ sơ' },
-];
-
-/**
- * Khung trang công khai: header trong suốt mờ (docked) + footer navy full-bleed.
- * Trang chủ ("/") cần hero tràn viền nên render Outlet không bọc container;
- * các trang còn lại giữ container 1280px như cũ để không vỡ layout hiện có.
- */
-export function PublicLayout(): ReactElement {
-  const user = useAuthStore((state) => state.user);
-  const { pathname } = useLocation();
-  const isFullBleedPage = pathname === '/';
-
-  // "Bảng điều khiển" chỉ dành cho chủ sân/quản trị; khách hàng đi bằng nav "Đơn đặt sân".
-  const isStaff = user?.role === UserRole.OWNER || user?.role === UserRole.ADMIN;
-
-  // Điều hướng chính: thêm tab "Bản đồ" theo spec P2/P3.
-  const navItems = [
-    { to: '/venues', label: 'Tìm sân' },
-    { to: '/map', label: 'Bản đồ' },
-    { to: '/matches', label: 'Ghép trận' },
-    { to: '/tournaments', label: 'Giải đấu' },
-    { to: '/ranking', label: 'Bảng xếp hạng' },
-    { to: '/about', label: 'Giới thiệu' },
-    { to: '/partner', label: 'Dành cho chủ sân' },
+  const bottomNavItems = [
+    { to: '/', label: 'Trang chủ', icon: Home },
+    { to: '/venues', label: 'Tìm sân', icon: Compass },
+    { to: '/map', label: 'Bản đồ', icon: MapPin },
+    { to: '/matches', label: 'Ghép trận', icon: Swords },
+    { to: '/bookings', label: 'Đơn sân', icon: Calendar },
   ];
 
-  return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 shadow-[0_1px_12px_rgba(15,23,42,0.04)] backdrop-blur-md">
-        <div className={`${SHELL_CONTAINER} flex h-20 items-center justify-between`}>
-          <div className="flex items-center gap-6">
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-primary"
-            >
-              <img
-                src="/logo-256.png"
-                alt={`Logo ${APP_NAME}`}
-                className="size-9 rounded-lg object-cover shadow-[0_4px_20px_rgba(15,23,42,0.08)]"
-              />
-              {APP_NAME}
-            </Link>
-            {/* Điều hướng public cho khách (P1-F1): xem được sân/trận trước khi đăng nhập */}
-            <nav aria-label="Điều hướng công khai" className="hidden items-center gap-5 md:flex">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    isActive
-                      ? 'border-b-2 border-primary pb-1 text-sm font-bold text-primary'
-                      : 'border-b-2 border-transparent pb-1 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary'
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Menu điều hướng cho màn hình nhỏ (< md): mọi đích đi đều nằm ở đây */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden"
-                  aria-label="Mở menu điều hướng"
-                >
-                  <Menu className="size-5" aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                {navItems.map((item) => (
-                  <DropdownMenuItem key={item.to} asChild>
-                    <Link to={item.to}>{item.label}</Link>
-                  </DropdownMenuItem>
-                ))}
-                {isStaff ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard">Bảng điều khiển</Link>
-                    </DropdownMenuItem>
-                  </>
-                ) : user ? (
-                  <>
-                    {/* Khách hàng không có sidebar — mọi trang cá nhân nằm ở đây (bỏ mục trùng nav) */}
-                    <DropdownMenuSeparator />
-                    {CUSTOMER_LINKS.filter((l) => l.to !== '/bookings').map((item) => (
-                      <DropdownMenuItem key={item.to} asChild>
-                        <Link to={item.to}>{item.label}</Link>
-                      </DropdownMenuItem>
-                    ))}
-                  </>
-                ) : null}
-                {!user ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/login">Đăng nhập</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/register">Đăng ký</Link>
-                    </DropdownMenuItem>
-                  </>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {user ? <WalletBalanceBadge /> : null}
-            {user ? <NotificationBell /> : null}
-            <ThemeToggle />
-            {isStaff ? (
-              <Button
-                asChild
-                className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
-              >
-                <Link to="/dashboard">Bảng điều khiển</Link>
-              </Button>
-            ) : null}
-            {/* Menu tài khoản dùng chung mọi vai trò — khách hàng nhận thêm liên kết trang cá nhân */}
-            {user ? (
-              <UserMenu compact links={isStaff ? undefined : CUSTOMER_LINKS} />
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  asChild
-                  className="font-semibold text-muted-foreground hover:text-primary"
-                >
-                  <Link to="/login">Đăng nhập</Link>
-                </Button>
-                <Button
-                  asChild
-                  className="rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
-                >
-                  <Link to="/register">Đăng ký</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1">
-        {isFullBleedPage ? (
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+        <main className="flex-1 w-full flex items-center justify-center">
           <Outlet />
-        ) : (
-          <div className={`${SHELL_CONTAINER} py-8`}>
-            <Outlet />
-          </div>
-        )}
-      </main>
+        </main>
+      </div>
+    );
+  }
 
-      {/* Footer navy full-bleed — nền phủ toàn viewport, nội dung vẫn nằm trong container 1280px */}
-      <footer className="bg-navy text-white/70">
-        <div
-          className={`${SHELL_CONTAINER} flex flex-col justify-between gap-6 py-10 md:flex-row md:items-center`}
-        >
-          <div>
-            <div className="mb-1 flex items-center gap-2 text-lg font-extrabold tracking-tight text-turf-bright">
-              <img
-                src="/logo-256.png"
-                alt={`Logo ${APP_NAME}`}
-                className="size-8 rounded-lg object-cover bg-white/10"
-              />
-              {APP_NAME}
-            </div>
-            <p className="text-sm">
-              © 2026 {APP_NAME} · Đồ án tốt nghiệp — hệ thống đặt và quản lý sân thể thao trực tuyến
-            </p>
-          </div>
-          <nav
-            aria-label="Liên kết chân trang"
-            className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium"
+  return (
+    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary pb-16 md:pb-0 relative">
+      <Navbar />
+      <main className="flex-1 w-full">
+        <Outlet />
+      </main>
+      <Footer />
+
+      {/* Floating AI Sports Assistant Widget */}
+      <AiChatWidget />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-border/80 bg-card/90 backdrop-blur-lg px-2 py-1 flex items-center justify-around">
+        {bottomNavItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              cn(
+                'flex flex-col items-center justify-center py-1 px-2 rounded-lg text-[10px] font-semibold transition-colors gap-0.5 min-w-[54px]',
+                isActive ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground',
+              )
+            }
           >
-            <Link to="/venues" className="transition-colors duration-200 hover:text-turf-bright">
-              Tìm sân
-            </Link>
-            <Link to="/map" className="transition-colors duration-200 hover:text-turf-bright">
-              Bản đồ
-            </Link>
-            <Link to="/matches" className="transition-colors duration-200 hover:text-turf-bright">
-              Ghép trận
-            </Link>
-            <Link to="/about" className="transition-colors duration-200 hover:text-turf-bright">
-              Về chúng tôi
-            </Link>
-            <Link to="/partner" className="transition-colors duration-200 hover:text-turf-bright">
-              Dành cho chủ sân
-            </Link>
-          </nav>
-        </div>
-      </footer>
+            <item.icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </div>
     </div>
   );
 }

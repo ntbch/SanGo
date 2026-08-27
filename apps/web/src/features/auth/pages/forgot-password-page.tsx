@@ -1,140 +1,104 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Mail, MailCheck } from 'lucide-react';
-import { useState, type ReactElement } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-
-import { APP_NAME } from '@sango/shared';
+import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Card, CardTitle } from '../../../components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../../../components/ui/form';
-import { forgotPassword } from '../api';
-import { AuthInput } from '../components/auth-input';
-import { AUTH_CARD_CLASS, AuthShell } from '../components/auth-shell';
-import { forgotPasswordSchema, type ForgotPasswordDto } from '../schemas';
+import { Input } from '../../../components/ui/input';
+import { Link } from 'react-router-dom';
+import { Mail, KeyRound, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { forgotPasswordApi } from '../api/auth-api';
 
-export function ForgotPasswordPage(): ReactElement {
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  // Mock mode: server trả kèm link đặt lại để demo không cần đọc console.
-  const [devResetLink, setDevResetLink] = useState<string | null>(null);
+export function ForgotPasswordPage(): React.ReactElement {
+  const [email, setEmail] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [submitted, setSubmitted] = React.useState(false);
 
-  const form = useForm<ForgotPasswordDto>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: '' },
-  });
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    try {
-      const response = await forgotPassword(values);
-      setDevResetLink(response.devResetLink ?? null);
-      setSentTo(values.email.trim().toLowerCase());
-    } catch {
-      // Không tiết lộ email có tồn tại hay không — luôn hiện thông báo chung.
-      setDevResetLink(null);
-      setSentTo(values.email.trim().toLowerCase());
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError('Vui lòng nhập địa chỉ email');
+      return;
     }
-  });
 
-  const isSubmitting = form.formState.isSubmitting;
+    setLoading(true);
+    setError(null);
+
+    try {
+      await forgotPasswordApi(email);
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <AuthShell>
-      <Card className={AUTH_CARD_CLASS}>
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <MailCheck className="size-5" aria-hidden />
-          </span>
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-bold tracking-tight">
-              Quên mật khẩu {APP_NAME}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Nhập email đăng ký, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.
-            </p>
+    <div className="w-full min-h-[70vh] flex items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-md border-border/80 shadow-md">
+        <CardHeader className="space-y-1.5 text-center pb-4">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <KeyRound className="h-5 w-5" />
           </div>
-        </div>
+          <CardTitle className="text-xl font-bold tracking-tight">Quên mật khẩu</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {submitted
+              ? 'Đã gửi hướng dẫn khôi phục mật khẩu.'
+              : 'Nhập email để nhận liên kết khôi phục.'}
+          </p>
+        </CardHeader>
 
-        {sentTo === null ? (
-          <Form {...form}>
-            <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <AuthInput
-                        icon={<Mail aria-hidden />}
-                        type="email"
-                        placeholder="ban@sango.vn"
-                        autoComplete="email"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="h-11 w-full rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
-              >
-                {isSubmitting ? 'Đang gửi…' : 'Gửi hướng dẫn đặt lại mật khẩu'}
-              </Button>
-            </form>
-          </Form>
-        ) : (
-          <div className="mt-6 space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
-            <p className="flex items-center gap-2 font-semibold text-emerald-700 dark:text-emerald-300">
-              <MailCheck className="size-5" aria-hidden /> Đã gửi email hướng dẫn
-            </p>
-            <p className="leading-relaxed text-muted-foreground">
-              Nếu <span className="font-score">{sentTo}</span> tồn tại trong hệ thống, bạn sẽ nhận
-              được email đặt lại mật khẩu trong ít phút. Kiểm tra cả mục thư rác nhé.
-            </p>
-            {/* Mock/dev mode: mở thẳng form đặt lại mà không cần đọc console API. */}
-            {devResetLink !== null ? (
-              <p className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 text-xs text-muted-foreground">
-                Chế độ demo — link đặt lại mật khẩu:{' '}
-                <Link
-                  to={devResetLink}
-                  className="font-semibold text-primary underline-offset-4 hover:underline"
-                >
-                  Đặt lại mật khẩu ngay
-                  <ArrowRight className="ml-0.5 inline size-3.5" aria-hidden />
-                </Link>
+        <CardContent className="space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {submitted ? (
+            <div className="space-y-4 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-primary">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Chúng tôi đã gửi liên kết đặt lại mật khẩu đến <strong className="text-foreground">{email}</strong>. Vui lòng kiểm tra hộp thư.
               </p>
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-lg"
-              onClick={() => setSentTo(null)}
-            >
-              Gửi lại cho email khác
-            </Button>
-          </div>
-        )}
+              <Link to="/login" className="block pt-2">
+                <Button variant="outline" className="w-full text-xs font-semibold gap-1.5">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Quay lại đăng nhập</span>
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">Email đăng ký</label>
+                <Input
+                  type="email"
+                  placeholder="ten@vidu.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  prefixIcon={<Mail className="h-4 w-4" />}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Nhớ lại mật khẩu rồi?{'  '}
-          <Link
-            to="/login"
-            className="font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            Quay lại đăng nhập
-          </Link>
-        </p>
+              <Button type="submit" loading={loading} className="w-full font-bold shadow-xs mt-2">
+                Gửi mã khôi phục
+              </Button>
+
+              <div className="text-center pt-2">
+                <Link to="/login" className="text-xs text-primary font-semibold hover:underline inline-flex items-center gap-1">
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Quay lại đăng nhập</span>
+                </Link>
+              </div>
+            </form>
+          )}
+        </CardContent>
       </Card>
-    </AuthShell>
+    </div>
   );
 }

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" width="280" height="80" fill="none">
+  <defs>
+    <linearGradient id="sangoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#006d37" />
+      <stop offset="100%" stop-color="#2ecc71" />
+    </linearGradient>
+  </defs>
+
+  <!-- Logo Mark Icon -->
+  <rect x="10" y="10" width="60" height="60" rx="18" fill="url(#sangoGrad)" />
+  <text x="40" y="52" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-weight="900" font-size="32" fill="#ffffff" text-anchor="middle" letter-spacing="-1">SG</text>
+  
+  <!-- Brand Text -->
+  <text x="85" y="46" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-weight="800" font-size="30" fill="#131b2e" letter-spacing="-0.5">San<tspan fill="#2ecc71">Go</tspan></text>
+  <text x="86" y="62" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="10" fill="#64748b" letter-spacing="3.5">SPORTS HUB</text>
+</svg>

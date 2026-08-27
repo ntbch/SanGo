@@ -14,6 +14,8 @@ RUN pnpm install --no-frozen-lockfile --filter @sango/web...
 
 # ---------- build: tsc noEmit + vite build ----------
 FROM deps AS build
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=$VITE_API_URL
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
