@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 
 import { Button } from '../../../components/ui/button';
@@ -42,7 +42,7 @@ function draftToRule(row: DraftRow): PricingRule | undefined {
   };
 }
 
-/** Editor bảng giá dạng bảng khung giờ × loại ngày — lưu REPLACE-ALL. */
+/** Editor bảng giá dạng bảng khung giờ × loại ngày (Peak/Off-peak & Weekend matrix) — lưu REPLACE-ALL. */
 export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
   const [courtId, setCourtId] = useState(courts[0]?.id ?? '');
   useEffect(() => {
@@ -76,12 +76,23 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
     setSavedAt(Date.now());
   }
 
+  function applyPeakMatrixPreset(): void {
+    setDrafts([
+      { dayType: 'WEEKDAY', startHour: 6, endHour: 16, price: '100000' },
+      { dayType: 'WEEKDAY', startHour: 16, endHour: 22, price: '180000' },
+      { dayType: 'WEEKEND', startHour: 6, endHour: 16, price: '140000' },
+      { dayType: 'WEEKEND', startHour: 16, endHour: 23, price: '200000' },
+    ]);
+  }
+
   function renderColumn(dayType: 'WEEKDAY' | 'WEEKEND', heading: string): ReactElement {
     return (
       <div className="min-w-0 flex-1 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          ${heading}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {heading}
+          </p>
+        </div>
         {grouped[dayType].length === 0 ? (
           <p className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
             Trống — dùng giá mặc định của sân con.
@@ -96,7 +107,7 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
                 type="number"
                 min={0}
                 max={24}
-                className="h-8 w-16"
+                className="h-8 w-16 font-score text-xs"
                 value={row.startHour}
                 onChange={(event) =>
                   updateRow(globalIndex, { startHour: Number(event.target.value) })
@@ -108,7 +119,7 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
                 type="number"
                 min={0}
                 max={24}
-                className="h-8 w-16"
+                className="h-8 w-16 font-score text-xs"
                 value={row.endHour}
                 onChange={(event) =>
                   updateRow(globalIndex, { endHour: Number(event.target.value) })
@@ -118,7 +129,7 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
                 aria-label="Giá VND"
                 inputMode="numeric"
                 placeholder="150000"
-                className="h-8 flex-1"
+                className="h-8 flex-1 font-score text-xs"
                 value={row.price}
                 onChange={(event) => updateRow(globalIndex, { price: event.target.value })}
               />
@@ -138,7 +149,7 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
           type="button"
           variant="outline"
           size="sm"
-          className="w-full border-dashed"
+          className="w-full border-dashed text-xs"
           onClick={() =>
             setDrafts((current) => [...current, { dayType, startHour: 6, endHour: 12, price: '' }])
           }
@@ -150,16 +161,27 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <CardTitle className="text-base">Bảng giá theo khung giờ</CardTitle>
+    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+      <CardHeader className="space-y-3 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-base">Bảng giá theo khung giờ (Ma trận Cao điểm / Thấp điểm)</CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={applyPeakMatrixPreset}
+            className="text-xs text-primary border-primary/30 hover:bg-primary/10"
+          >
+            <Sparkles className="size-3.5" aria-hidden /> Áp dụng mẫu giờ vàng
+          </Button>
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="pricing-court">Sân con</Label>
           <select
             id="pricing-court"
             value={courtId}
             onChange={(event) => setCourtId(event.target.value)}
-            className="h-9 w-full max-w-xs rounded-md border border-input bg-background px-2 text-sm"
+            className="h-9 w-full max-w-xs rounded-lg border border-input bg-background px-3 text-sm shadow-xs transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {courts.map((court) => (
               <option key={court.id} value={court.id}>
@@ -171,14 +193,15 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row">
-          {renderColumn('WEEKDAY', 'Ngày thường (T2\u2013T5)')}
-          {renderColumn('WEEKEND', 'Cuối tuần (T6\u2013CN)')}
+          {renderColumn('WEEKDAY', 'Ngày thường (T2–T5)')}
+          {renderColumn('WEEKEND', 'Cuối tuần (T6–CN)')}
         </div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 pt-2">
           <p className="text-xs text-muted-foreground">
-            Ô trống = dùng giá mặc định của sân con. Lưu sẽ THAY THẾ toàn bộ quy tắc hiện có.
+            Ô trống = dùng giá mặc định của sân con. Lưu sẽ cập nhật toàn bộ quy tắc cho sân được chọn.
           </p>
           <Button
+            className="rounded-lg font-bold"
             onClick={() => {
               void save();
             }}
@@ -189,7 +212,7 @@ export function PricingEditor({ courts }: PricingEditorProps): ReactElement {
         </div>
         {savedAt !== null && !saveMutation.isPending && !saveMutation.isError ? (
           <p role="status" className="text-xs font-medium text-primary">
-            Đã lưu bảng giá.
+            Đã lưu bảng giá thành công.
           </p>
         ) : null}
         {saveMutation.isError ? (

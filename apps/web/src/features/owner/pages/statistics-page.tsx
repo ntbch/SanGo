@@ -19,6 +19,7 @@ import { Banknote, BarChart3, CalendarX2, ListOrdered, TrendingUp, UserX } from 
 import { type ReactElement, useState } from 'react';
 import { Chart } from 'react-chartjs-2';
 
+import { useChartTheme } from '../../../components/theme/use-chart-theme';
 import { cn } from '../../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Label } from '../../../components/ui/label';
@@ -51,13 +52,6 @@ ChartJS.register(
   Legend,
 );
 
-/** Màu chủ đạo dark-friendly theo đặc tả: xanh lá #16a34a cho cột doanh thu. */
-const COLOR_REVENUE = '#16a34a';
-/** Màu bổ trợ cho đường lượt đặt — nổi trên cả nền sáng và tối. */
-const COLOR_BOOKINGS = '#f59e0b';
-const COLOR_TICK = '#94a3b8';
-const COLOR_GRID = 'rgba(148, 163, 184, 0.16)';
-
 const RANGE_OPTIONS = [7, 30, 90] as const;
 
 /** Nén số tiền cho trục y: 1200000 -> '1,2tr' · 45000 -> '45k'. */
@@ -68,15 +62,53 @@ function compactMoney(value: number): string {
   if (Math.abs(value) >= 1000) return Math.round(value / 1000) + 'k';
   return String(Math.round(value));
 }
+
+function MiniSparkline({
+  points,
+  color,
+}: {
+  points?: number[];
+  color: string;
+}): ReactElement | null {
+  if (!points || points.length < 2) return null;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const width = 64;
+  const height = 20;
+  const polyPoints = points
+    .map((val, i) => {
+      const x = (i / (points.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 4) - 2;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
+  return (
+    <svg width={width} height={height} className="overflow-visible opacity-80" aria-hidden="true">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={polyPoints}
+      />
+    </svg>
+  );
+}
+
 function KpiCard(options: {
   icon: ReactElement;
   label: string;
   value: string;
   testId: string;
+  sparklineData?: number[];
+  sparklineColor?: string;
 }): ReactElement {
-  const { icon, label, value, testId } = options;
+  const { icon, label, value, testId, sparklineData, sparklineColor } = options;
   return (
-    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]">
       <CardContent className="flex flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -86,12 +118,17 @@ function KpiCard(options: {
             {icon}
           </span>
         </div>
-        <p
-          data-testid={testId}
-          className="font-score text-2xl font-extrabold tabular-nums tracking-tight sm:text-3xl"
-        >
-          {value}
-        </p>
+        <div className="flex items-baseline justify-between gap-2">
+          <p
+            data-testid={testId}
+            className="font-score text-2xl font-extrabold tabular-nums tracking-tight sm:text-3xl"
+          >
+            {value}
+          </p>
+          {sparklineData && sparklineColor ? (
+            <MiniSparkline points={sparklineData} color={sparklineColor} />
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );
@@ -102,19 +139,22 @@ function StatisticsSkeleton(): ReactElement {
     <div className="space-y-4" aria-busy="true" aria-label="Đang tải thống kê">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[0, 1, 2, 3].map((key) => (
-          <Skeleton key={key} className="h-24" />
+          <Skeleton key={key} className="h-24 rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-80" />
-      <Skeleton className="h-48" />
+      <Skeleton className="h-80 rounded-xl" />
+      <Skeleton className="h-48 rounded-xl" />
     </div>
   );
 }
+
 /** Biểu đồ hỗn hợp: cột doanh thu (trục trái) + đường lượt đặt (trục phải). */
 function RevenueBookingsChart(options: {
   series: Array<{ date: string; bookings: number; revenue: number }>;
 }): ReactElement {
   const { series } = options;
+  const chartTheme = useChartTheme();
+
   // Mixed bar+line: ChartData<'bar'> không mô tả được dataset 'line' nên ép kiểu tại đây.
   const data = {
     labels: series.map((point) => shortDateLabel(point.date)),
@@ -123,8 +163,9 @@ function RevenueBookingsChart(options: {
         type: 'bar',
         label: 'Doanh thu',
         data: series.map((point) => point.revenue),
-        backgroundColor: COLOR_REVENUE,
-        borderRadius: 3,
+        backgroundColor: chartTheme.revenueBackground,
+        hoverBackgroundColor: chartTheme.revenue,
+        borderRadius: 4,
         maxBarThickness: 18,
         yAxisID: 'y',
       },
@@ -132,39 +173,56 @@ function RevenueBookingsChart(options: {
         type: 'line',
         label: 'Lượt đặt',
         data: series.map((point) => point.bookings),
-        borderColor: COLOR_BOOKINGS,
-        backgroundColor: COLOR_BOOKINGS,
-        borderWidth: 2,
+        borderColor: chartTheme.bookings,
+        backgroundColor: chartTheme.bookingsBackground,
+        borderWidth: 2.5,
         pointRadius: 0,
-        pointHoverRadius: 4,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: chartTheme.bookings,
         tension: 0.35,
         yAxisID: 'y1',
       },
     ],
   } as unknown as ChartData<'bar'>;
+
   const chartOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     scales: {
       x: {
-        ticks: { color: COLOR_TICK, maxTicksLimit: 12, maxRotation: 0, autoSkip: true },
+        ticks: { color: chartTheme.mutedText, maxTicksLimit: 12, maxRotation: 0, autoSkip: true },
         grid: { display: false },
       },
       y: {
         position: 'left',
-        ticks: { color: COLOR_TICK, callback: (value) => compactMoney(Number(value)) },
-        grid: { color: COLOR_GRID },
+        ticks: { color: chartTheme.mutedText, callback: (value) => compactMoney(Number(value)) },
+        grid: { color: chartTheme.grid },
       },
       y1: {
         position: 'right',
-        ticks: { color: COLOR_TICK, precision: 0 },
+        ticks: { color: chartTheme.mutedText, precision: 0 },
         grid: { drawOnChartArea: false },
       },
     },
     plugins: {
-      legend: { labels: { color: COLOR_TICK, usePointStyle: true, boxWidth: 8 } },
+      legend: {
+        labels: {
+          color: chartTheme.text,
+          usePointStyle: true,
+          boxWidth: 8,
+          font: { family: 'Plus Jakarta Sans', size: 12, weight: 600 },
+        },
+      },
       tooltip: {
+        backgroundColor: chartTheme.tooltipBg,
+        titleColor: chartTheme.text,
+        bodyColor: chartTheme.text,
+        borderColor: chartTheme.tooltipBorder,
+        borderWidth: 1,
+        padding: 10,
+        boxPadding: 4,
+        usePointStyle: true,
         callbacks: {
           label: (item) =>
             item.datasetIndex === 0
@@ -174,12 +232,14 @@ function RevenueBookingsChart(options: {
       },
     },
   };
+
   return (
     <div className="h-72" data-testid="revenue-chart">
       <Chart type="bar" data={data} options={chartOptions} />
     </div>
   );
 }
+
 /** Bảng xếp hạng sân con theo lượt đặt — backend đã sắp sẵn, render giữ nguyên thứ hạng. */
 function TopCourtsTable(options: {
   rows: Array<{ courtId: string; courtName: string; bookings: number; revenue: number }>;
@@ -219,7 +279,7 @@ function TopCourtsTable(options: {
                 <TableCell className="text-right font-score text-xs tabular-nums">
                   {row.bookings}
                 </TableCell>
-                <TableCell className="text-right font-score text-xs tabular-nums">
+                <TableCell className="text-right font-score text-xs tabular-nums font-semibold text-primary">
                   {formatVnd(row.revenue)}
                 </TableCell>
               </TableRow>
@@ -230,10 +290,12 @@ function TopCourtsTable(options: {
     </Card>
   );
 }
+
 /** Trang /dashboard/statistics — thay placeholder Giai đoạn 2. */
 export function StatisticsPage(): ReactElement {
   const [days, setDays] = useState<number>(30);
   const [venueId, setVenueId] = useState<string>('');
+  const chartTheme = useChartTheme();
 
   const venuesQuery = useMyVenues();
   const venues = venuesQuery.data?.items ?? [];
@@ -243,14 +305,16 @@ export function StatisticsPage(): ReactElement {
   const data = analyticsQuery.data;
   const summary = data?.summary;
 
-  // isLoading = pending && fetching: query bị disable (chưa chọn được sân)
-  // vẫn ở pending mãi -> phải dùng isLoading để không kẹt skeleton.
   const showSkeleton = venuesQuery.isPending || analyticsQuery.isLoading;
   const hasNoVenue = !venuesQuery.isPending && venues.length === 0;
   const isEmpty = summary !== undefined && summary.totalBookings === 0;
 
+  // Series points for sparklines
+  const revenuePoints = data?.series.map((s) => s.revenue) ?? [];
+  const bookingPoints = data?.series.map((s) => s.bookings) ?? [];
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <header>
         <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">Thống kê</h1>
         <p className="text-sm text-muted-foreground">
@@ -302,6 +366,7 @@ export function StatisticsPage(): ReactElement {
           </div>
         </div>
       </div>
+
       {showSkeleton ? (
         <StatisticsSkeleton />
       ) : analyticsQuery.isError ? (
@@ -317,62 +382,67 @@ export function StatisticsPage(): ReactElement {
             <BarChart3 className="mb-2 size-8 opacity-50" aria-hidden />
             <p className="font-medium">Chưa có cụm sân nào</p>
             <p className="max-w-md text-sm text-muted-foreground">
-              Tạo cụm sân trong mục Cụm sân để bắt đầu xem thống kê.
+              Vui lòng tạo cụm sân trước khi xem báo cáo thống kê.
             </p>
           </CardContent>
         </Card>
-      ) : isEmpty ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <BarChart3 className="mb-2 size-8 opacity-50" aria-hidden />
-            <p className="font-medium">Chưa có đơn đặt nào trong kỳ</p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Thống kê sẽ xuất hiện khi có đơn đặt trong {days} ngày qua.
-            </p>
-          </CardContent>
-        </Card>
-      ) : data !== undefined && summary !== undefined ? (
-        <>
+      ) : summary !== undefined && data !== undefined ? (
+        <div className="space-y-5">
+          {/* Hàng 4 thẻ KPI Bento với Sparklines */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard
-              icon={<Banknote className="size-4" aria-hidden />}
-              label="Doanh thu kỳ"
-              value={formatVnd(summary.revenueConfirmed)}
               testId="kpi-revenue"
+              label="Doanh thu"
+              value={formatVnd(summary.revenueConfirmed)}
+              icon={<Banknote className="size-4 text-primary" aria-hidden />}
+              sparklineData={revenuePoints}
+              sparklineColor={chartTheme.revenue}
             />
             <KpiCard
-              icon={<TrendingUp className="size-4" aria-hidden />}
-              label="Tổng lượt đặt"
-              value={summary.totalBookings.toLocaleString('vi-VN')}
               testId="kpi-bookings"
+              label="Lượt đặt"
+              value={summary.totalBookings.toLocaleString('vi-VN')}
+              icon={<TrendingUp className="size-4 text-amber-500" aria-hidden />}
+              sparklineData={bookingPoints}
+              sparklineColor={chartTheme.bookings}
             />
             <KpiCard
-              icon={<CalendarX2 className="size-4" aria-hidden />}
-              label="Tỷ lệ hủy"
+              testId="kpi-cancel-rate"
+              label="Tỷ lệ huỷ"
               value={formatPercent(
                 computeCancelRate(summary.cancelledCount, summary.totalBookings),
               )}
-              testId="kpi-cancel-rate"
+              icon={<CalendarX2 className="size-4 text-destructive" aria-hidden />}
             />
             <KpiCard
-              icon={<UserX className="size-4" aria-hidden />}
-              label="Tỷ lệ no-show"
-              value={formatPercent(computeNoShowRate(summary.noShowCount, summary.totalBookings))}
               testId="kpi-noshow-rate"
+              label="Tỷ lệ no-show"
+              value={formatPercent(
+                computeNoShowRate(summary.noShowCount, summary.totalBookings),
+              )}
+              icon={<UserX className="size-4 text-destructive" aria-hidden />}
             />
           </div>
 
+          {/* Biểu đồ xu hướng */}
           <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-base">Doanh thu & lượt đặt theo ngày</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Biểu đồ doanh thu & lượt đặt</CardTitle>
             </CardHeader>
-            <CardContent className="pt-4">
-              <RevenueBookingsChart series={data.series} />
+            <CardContent>
+              {isEmpty ? (
+                <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
+                  Chưa có đơn đặt nào trong {days} ngày qua.
+                </div>
+              ) : (
+                <RevenueBookingsChart series={data.series} />
+              )}
             </CardContent>
           </Card>
 
-          {data.topCourts.length > 0 && <TopCourtsTable rows={data.topCourts} />}
-        </>
+          {/* Bảng xếp hạng sân con */}
+          {!isEmpty && data.topCourts.length > 0 && <TopCourtsTable rows={data.topCourts} />}
+        </div>
       ) : null}
     </div>
   );

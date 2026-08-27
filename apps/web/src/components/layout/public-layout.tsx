@@ -26,6 +26,7 @@ const SHELL_CONTAINER = 'w-full px-4 sm:px-6 lg:px-10';
  */
 const CUSTOMER_LINKS: readonly UserMenuLink[] = [
   { to: '/bookings', label: 'Đơn đặt sân' },
+  { to: '/wallet', label: 'Ví của tôi' },
   { to: '/teams', label: 'Đội nhóm' },
   { to: '/ranking', label: 'Bảng xếp hạng' },
   { to: '/profile', label: 'Hồ sơ' },

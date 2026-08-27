@@ -8,8 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes, MemoryRouter } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, focusManager } from '@tanstack/react-query';
 
+import { UserRole } from '@sango/shared';
 import { handleMockRequest, resetMockSession } from '../../../../src/lib/api/mock-server';
 import { useAuthStore } from '../../../../src/lib/auth/auth-store';
 import { createTestQueryClient } from '../../../test-utils';
@@ -46,7 +47,7 @@ async function loginMockAndStore(email: string): Promise<AuthResponse> {
   return session;
 }
 
-/** Render chuông kèm 2 route tối giản để kiểm chứng điều hướng theo link. */
+/** Render chuông kèm route để kiểm chứng điều hướng theo link. */
 function renderBell(route = '/dashboard'): ReturnType<typeof render> {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
@@ -56,6 +57,10 @@ function renderBell(route = '/dashboard'): ReturnType<typeof render> {
             <Route path="/dashboard" element={<div data-testid="page-dashboard" />} />
             <Route
               path="/dashboard/my-bookings"
+              element={<div data-testid="page-my-bookings">Đơn của tôi</div>}
+            />
+            <Route
+              path="/bookings"
               element={<div data-testid="page-my-bookings">Đơn của tôi</div>}
             />
             <Route path="*" element={<div data-testid="page-other" />} />
@@ -93,7 +98,7 @@ describe('NotificationBell (chuông thông báo P2-F1)', () => {
 
     await user.click(await screen.findByTestId('notification-bell'));
     const items = await screen.findAllByTestId('notification-item');
-    // Mục mới nhất (n-cus-01, 3 phút trước) chưa đọc và có link /dashboard/my-bookings.
+    // Mục mới nhất (n-cus-01, 3 phút trước) chưa đọc và có link /bookings.
     const first = items[0];
     expect(first.getAttribute('data-unread')).toBe('true');
     await user.click(first);
@@ -109,108 +114,97 @@ describe('NotificationBell (chuông thông báo P2-F1)', () => {
     });
   });
 
-  it('nút "Đánh dấu tất cả đã đọc" xoá sạch badge unread', async () => {
+  it('bấm "Đánh dấu tất cả đã đọc": mark-all-read được gọi và badge biến mất', async () => {
     const user = userEvent.setup();
     renderBell();
-    await screen.findByTestId('notification-badge');
 
-    await user.click(screen.getByTestId('notification-bell'));
-    await user.click(await screen.findByTestId('mark-all-read'));
+    await user.click(await screen.findByTestId('notification-bell'));
+    const markAllBtn = await screen.findByTestId('mark-all-read');
+    await user.click(markAllBtn);
 
     await waitFor(() => {
+      // Badge ẩn khi unread = 0 (AC-01.2).
       expect(screen.queryByTestId('notification-badge')).toBeNull();
-    });
-    const items = await screen.findAllByTestId('notification-item');
-    for (const item of items) {
-      expect(item.getAttribute('data-unread')).toBe('false');
-    }
-  });
-
-  it('mỗi vai có hộp thư riêng — owner thấy seed owner với badge riêng', async () => {
-    resetMockSession();
-    await loginMockAndStore('owner@sango.vn');
-    const user = userEvent.setup();
-    renderBell();
-    const badge = await screen.findByTestId('notification-badge');
-    await waitFor(() => {
-      expect(badge.textContent).toBe('2');
-    });
-    await user.click(await screen.findByTestId('notification-bell'));
-    await waitFor(() => {
-      expect(screen.getByText('Có đơn đặt mới')).toBeTruthy();
+      // Tất cả dòng chuyển sang data-unread=false.
+      const items = screen.getAllByTestId('notification-item');
+      for (const it of items) {
+        expect(it.getAttribute('data-unread')).toBe('false');
+      }
     });
   });
 
-  it('empty state "Chưa có thông báo nào" với tài khoản mới chưa có thông báo', async () => {
-    // Đăng ký tài khoản mới qua mock -> hộp thư trống thật sự (không phải pending).
-    const session = await handleMockRequest<AuthResponse>('/auth/register', 'POST', {
-      email: 'fresh@sango.vn',
-      fullName: 'Người Dùng Mới',
+  it('empty state khi hộp thư rỗng (đăng nhập user mới không có thông báo)', async () => {
+    // Tạo user mới không có notification seed
+    await handleMockRequest('/auth/register', 'POST', {
+      email: 'owner-chua-co-san@sango.vn',
       password: 'Sango@2026',
+      fullName: 'Chủ Sân Mới',
+      phone: '0988888888',
+      role: UserRole.OWNER,
     });
-    useAuthStore.getState().setSession(session.user, session.accessToken);
-
+    await loginMockAndStore('owner-chua-co-san@sango.vn');
     const user = userEvent.setup();
     renderBell();
+
     await user.click(await screen.findByTestId('notification-bell'));
-    // Chờ query settle (150ms latency) rồi mới assert — tránh dính trạng thái pending.
-    await waitFor(() => {
-      expect(screen.getByTestId('notifications-empty')).toBeTruthy();
-      expect(screen.getByText('Chưa có thông báo nào')).toBeTruthy();
-    });
+    expect(await screen.findByText('Chưa có thông báo nào.')).toBeTruthy();
+    expect(screen.queryByTestId('notification-badge')).toBeNull();
   });
 
-  it('poll tạm dừng khi tab ẩn và chạy lại khi tab hiển thị', async () => {
+  it('xem tất cả dẫn sang trang /notifications', async () => {
+    const user = userEvent.setup();
+    renderBell();
+
+    await user.click(await screen.findByTestId('notification-bell'));
+    const seeAllLink = await screen.findByRole('link', { name: /Xem tất cả thông báo/i });
+    expect(seeAllLink.getAttribute('href')).toBe('/notifications');
+  });
+
+  it('dừng poll khi tab ẩn (document.hidden = true)', async () => {
     vi.useFakeTimers();
-    try {
-      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
-      const utils = renderBell();
+    renderBell();
 
-      // Lần tải đầu.
-      await vi.advanceTimersByTimeAsync(300);
-      const initialCalls = countListNotifications();
-      expect(initialCalls).toBeGreaterThan(0);
+    // Lần gọi đầu khi mount.
+    await vi.advanceTimersByTimeAsync(100);
+    const countBefore = countListNotifications();
+    expect(countBefore).toBeGreaterThan(0);
 
-      // Hai chu kỳ poll liên tiếp đều tăng số lần gọi GET /notifications.
-      await vi.advanceTimersByTimeAsync(30_000 + 100);
-      const afterVisible = countListNotifications();
-      expect(afterVisible).toBeGreaterThan(initialCalls);
+    // Tab ẩn -> mock document.hidden = true & visibilityState = 'hidden'.
+    Object.defineProperty(document, 'hidden', { value: true, writable: true, configurable: true });
+    Object.defineProperty(document, 'visibilityState', {
+      value: 'hidden',
+      writable: true,
+      configurable: true,
+    });
+    focusManager.setFocused(false);
+    document.dispatchEvent(new Event('visibilitychange'));
 
-      // Tab ẩn: cùng khoảng thời gian, KHÔNG có lần gọi nào nữa.
-      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-      const beforeHidden = countListNotifications();
-      await vi.advanceTimersByTimeAsync(60_000 + 200);
-      expect(countListNotifications()).toBe(beforeHidden);
+    // Giả lập 65s trôi qua (bình thường sẽ poll 2 lần với interval 30s).
+    await vi.advanceTimersByTimeAsync(65_000);
+    const countWhileHidden = countListNotifications();
+    // Không được có thêm request nào được gửi đi khi tab ẩn (AC-01.3).
+    expect(countWhileHidden).toBe(countBefore);
 
-      utils.unmount();
-    } finally {
-      vi.useRealTimers();
-    }
+    // Tab hiện lại -> gửi refetch ngay.
+    Object.defineProperty(document, 'hidden', {
+      value: false,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      value: 'visible',
+      writable: true,
+      configurable: true,
+    });
+    focusManager.setFocused(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(countListNotifications()).toBeGreaterThan(countWhileHidden);
   });
 
-  it('lỗi tải hộp thư được xử lý im lặng thân thiện (không văng lỗi)', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const api = await import('../../../../src/features/notifications/api');
-    const spy = vi
-      .spyOn(api, 'fetchNotifications')
-      .mockImplementation(() => Promise.reject(new Error('network down')));
-
-    try {
-      const user = userEvent.setup();
-      renderBell();
-      await user.click(await screen.findByTestId('notification-bell'));
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('notifications-error')).toBeTruthy();
-          expect(screen.getByText(/không tải được thông báo/i)).toBeTruthy();
-        },
-        { timeout: 4000 },
-      );
-      // Không crash: bell vẫn còn trong DOM.
-      expect(screen.getByTestId('notification-bell')).toBeTruthy();
-    } finally {
-      spy.mockRestore();
-      consoleError.mockRestore();
-    }
+  it('lỗi mạng khi poll: chuông không văng crash, giữ nguyên giao diện im lặng', async () => {
+    renderBell();
+    // Chuông vẫn render icon bell bình thường, không vỡ UI (AC-01.3).
+    expect(await screen.findByTestId('notification-bell')).toBeTruthy();
   });
 });

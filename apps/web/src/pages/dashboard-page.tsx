@@ -18,6 +18,7 @@ import { Badge, type BadgeProps } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { RevenueBookingsChart } from '../components/charts/revenue-bookings-chart';
+import { useChartTheme } from '../components/theme/use-chart-theme';
 import { Skeleton } from '../components/ui/skeleton';
 import {
   Table,
@@ -66,6 +67,44 @@ function statusMeta(status: string): { label: string; variant: BadgeProps['varia
       variant: 'secondary' as const,
     }
   );
+}
+
+/** Sparkline SVG cực nhẹ cho thẻ KPI Bento — đường xu hướng 30 điểm, không dependency. */
+function MiniSparkline({ points, color }: { points: number[]; color: string }): ReactElement | null {
+  if (points.length < 2) return null;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const width = 72;
+  const height = 22;
+  const polyPoints = points
+    .map((val, i) => {
+      const x = (i / (points.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 4) - 2;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  return (
+    <svg width={width} height={height} className="shrink-0 overflow-visible opacity-85" aria-hidden="true">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={polyPoints}
+      />
+    </svg>
+  );
+}
+
+/** Gộp chuỗi ngày từ danh sách đơn owner -> [số đơn/ngày] để vẽ sparkline. */
+function ownerBookingSeries(bookings: readonly OwnerBooking[]): number[] {
+  const byDate = new Map<string, number>();
+  for (const booking of bookings) {
+    byDate.set(booking.date, (byDate.get(booking.date) ?? 0) + 1);
+  }
+  return [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, count]) => count);
 }
 
 function greetingForRole(role: UserRole | undefined, fullName: string): string {
@@ -266,23 +305,37 @@ function OwnerKpiSection(options: {
   approvedVenues: number;
   bookings: readonly OwnerBooking[];
   firstError: unknown;
+  sparklineBookings?: number[];
+  sparklineRevenue?: number[];
 }): ReactElement {
   const { totalVenues, approvedVenues, bookings, firstError } = options;
+  const chartTheme = useChartTheme();
   const todayCount = aggregateOwnerKpis(totalVenues, bookings).todayCount;
   const revenueToday = estimateRevenueToday(bookings);
 
-  const cards: Array<{ label: string; value: string; hint: string; testId: string }> = [
+  const cards: Array<{
+    label: string;
+    value: string;
+    hint: string;
+    testId: string;
+    sparkline?: number[];
+    sparklineColor?: string;
+  }> = [
     {
       label: 'Đơn hôm nay',
       value: String(todayCount),
       hint: 'Mọi trạng thái trong ngày',
       testId: 'kpi-owner-today',
+      sparkline: options.sparklineBookings,
+      sparklineColor: chartTheme.bookings,
     },
     {
       label: 'Doanh thu ước tính hôm nay',
       value: formatVnd(revenueToday),
       hint: 'Đơn trong ngày chưa bị huỷ/no-show',
       testId: 'kpi-owner-revenue-today',
+      sparkline: options.sparklineRevenue,
+      sparklineColor: chartTheme.revenue,
     },
     {
       label: 'Cụm sân đang mở bán',
@@ -306,17 +359,20 @@ function OwnerKpiSection(options: {
         {cards.map((card) => (
           <Card
             key={card.label}
-            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
+            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
           >
             <CardHeader className="pb-2">
               <CardDescription className="text-xs font-semibold uppercase tracking-wide">
                 {card.label}
               </CardDescription>
               <CardTitle
-                className="font-score text-3xl font-extrabold tabular-nums tracking-tight"
+                className="flex items-center justify-between gap-2 font-score text-3xl font-extrabold tabular-nums tracking-tight"
                 data-testid={card.testId}
               >
-                {card.value}
+                <span>{card.value}</span>
+                {card.sparkline !== undefined && card.sparklineColor ? (
+                  <MiniSparkline points={card.sparkline} color={card.sparklineColor} />
+                ) : null}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">{card.hint}</CardContent>
@@ -539,6 +595,18 @@ function OwnerDashboard(): ReactElement {
     allBookings.map((booking) => [booking.id, venues.find((v) => v.id === booking.id)?.name ?? '']),
   );
 
+  const revenueByDate = new Map<string, number>();
+  for (const booking of allBookings) {
+    if (booking.status === 'CANCELLED' || booking.status === 'NO_SHOW') continue;
+    revenueByDate.set(booking.date, (revenueByDate.get(booking.date) ?? 0) + booking.amountPaid);
+  }
+  const sparklineRevenue =
+    revenueByDate.size > 0
+      ? [...revenueByDate.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([, value]) => value)
+      : undefined;
+
   return (
     <div className="space-y-6">
       <OwnerKpiSection
@@ -546,7 +614,10 @@ function OwnerDashboard(): ReactElement {
         approvedVenues={approvedVenues}
         bookings={allBookings}
         firstError={firstError}
+        sparklineBookings={ownerBookingSeries(allBookings)}
+        sparklineRevenue={sparklineRevenue}
       />
+      <OwnerCheckinSoon bookings={allBookings} />
       <OwnerTrendCard venues={venues.map((venue) => ({ id: venue.id }))} />
       <OwnerTodayTable
         bookings={allBookings}
@@ -559,6 +630,61 @@ function OwnerDashboard(): ReactElement {
         venueNameById={venueNameById}
       />
     </div>
+  );
+}
+
+/** "Khách sắp check-in": đơn CONFIRMED hôm nay theo giờ — CTA sang trang xử lý. */
+function OwnerCheckinSoon(options: {
+  bookings: readonly OwnerBooking[];
+}): ReactElement {
+  const { bookings } = options;
+  const today = todayIso();
+  const nowMinute = new Date().getHours() * 60 + new Date().getMinutes();
+  const soon = bookings
+    .filter((b) => b.date === today && b.status === 'CONFIRMED' && b.startMinute >= nowMinute - 30)
+    .sort((a, b) => a.startMinute - b.startMinute)
+    .slice(0, 5);
+
+  if (soon.length === 0) return <></>;
+
+  return (
+    <Card
+      data-testid="owner-checkin-soon"
+      className="border-primary/30 bg-primary/5 shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
+    >
+      <CardHeader className="flex-row items-center justify-between space-y-0">
+        <div>
+          <CardTitle className="text-base">Khách sắp check-in hôm nay</CardTitle>
+          <CardDescription>{soon.length} đơn đã xác nhận trong cửa sổ giờ hiện tại.</CardDescription>
+        </div>
+        <Button asChild variant="outline" size="sm" className="font-bold">
+          <Link to="/dashboard/bookings">
+            Xử lý tại đây
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {soon.map((booking) => (
+            <div
+              key={booking.id}
+              data-testid={'owner-checkin-chip-' + booking.id}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm shadow-xs"
+            >
+              <QrCode className="size-4 shrink-0 text-primary" aria-hidden />
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold">{booking.customerName}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {booking.courtName} ·{' '}
+                  <span className="font-score">{minutesToTime(booking.startMinute)}</span>
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -584,6 +710,7 @@ const ACTIVITY_ICON: Record<AdminActivityType, ReactElement> = {
  */
 function AdminStatsSection(): ReactElement {
   const statsQuery = useAdminStats();
+  const chartTheme = useChartTheme();
 
   if (statsQuery.isPending) {
     return (
@@ -633,7 +760,15 @@ function AdminStatsSection(): ReactElement {
     },
   ]);
 
-  const kpiCards: Array<{ label: string; value: string; testId: string }> = [
+  const sparklineBookings = chartSeries.map((p) => p.bookings);
+  const sparklineRevenue = chartSeries.map((p) => p.revenue);
+  const kpiCards: Array<{
+    label: string;
+    value: string;
+    testId: string;
+    sparkline?: number[];
+    sparklineColor?: string;
+  }> = [
     { label: 'Người dùng', value: String(totals.users), testId: 'admin-kpi-users' },
     { label: 'Khách hàng', value: String(totals.customers), testId: 'admin-kpi-customers' },
     { label: 'Chủ sân', value: String(totals.owners), testId: 'admin-kpi-owners' },
@@ -642,6 +777,8 @@ function AdminStatsSection(): ReactElement {
       label: 'Đơn đã tạo',
       value: String(totals.bookingsTotal),
       testId: 'admin-kpi-bookings-total',
+      sparkline: sparklineBookings,
+      sparklineColor: chartTheme.bookings,
     },
     {
       label: 'Đơn hôm nay',
@@ -652,6 +789,8 @@ function AdminStatsSection(): ReactElement {
       label: 'Doanh thu hôm nay',
       value: formatVnd(totals.revenueTodayVnd),
       testId: 'admin-kpi-revenue-today',
+      sparkline: sparklineRevenue,
+      sparklineColor: chartTheme.revenue,
     },
   ];
 
@@ -683,17 +822,20 @@ function AdminStatsSection(): ReactElement {
         {kpiCards.map((card) => (
           <Card
             key={card.testId}
-            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
+            className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
           >
             <CardHeader className="pb-2">
               <CardDescription className="text-xs font-semibold uppercase tracking-wide">
                 {card.label}
               </CardDescription>
               <CardTitle
-                className="font-score text-2xl font-extrabold tabular-nums tracking-tight"
+                className="flex items-center justify-between gap-2 font-score text-2xl font-extrabold tabular-nums tracking-tight"
                 data-testid={card.testId}
               >
-                {card.value}
+                <span>{card.value}</span>
+                {card.sparkline !== undefined && card.sparklineColor ? (
+                  <MiniSparkline points={card.sparkline} color={card.sparklineColor} />
+                ) : null}
               </CardTitle>
             </CardHeader>
           </Card>

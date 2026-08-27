@@ -2,6 +2,7 @@
  * Trợ lý đặt sân AI — floating widget góc phải dưới (wireframe 08, §3.12).
  * Chat tiếng Việt -> tool-call DB thật; GUARDRAIL: không tự thanh toán,
  * giữ chỗ bắt buộc đăng nhập qua POST /ai/hold rồi chuyển checkout chuẩn.
+ * Thiết kế z-index an toàn, tránh đè mobile bottom navigation.
  */
 import { ArrowRight, BadgeCheck, Bot, Loader2, Send, X } from 'lucide-react';
 import { useRef, useState, type ReactElement } from 'react';
@@ -44,6 +45,7 @@ const QUICK_REPLIES = ['Tìm sân pickleball ở Gò Vấp', 'Còn sân cầu l�
 
 const RATE_LIMIT_TEXT = 'Bạn đã gửi nhiều tin quá, mình nghỉ chút nhé, thử lại sau.';
 const BUSY_TEXT = 'Hệ thống gợi ý bận, thử lại sau.';
+
 function ToolBadge(options: { tools: string[] }): ReactElement {
   if (options.tools.length === 0) return <></>;
   return (
@@ -60,6 +62,7 @@ function ToolBadge(options: { tools: string[] }): ReactElement {
     </div>
   );
 }
+
 export function AiChatWidget(): ReactElement {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -121,6 +124,7 @@ export function AiChatWidget(): ReactElement {
       });
     }
   };
+
   /** CTA trên card venue: hỏi tiếp slot của sân đó (stateless chat). */
   const askSlots = (venueName: string): void => {
     void send(venueName + ' còn giờ nào tối nay?');
@@ -161,6 +165,7 @@ export function AiChatWidget(): ReactElement {
       toast({ variant: 'destructive', title: 'Giữ chỗ không thành công', description: message });
     }
   };
+
   const renderAssistantExtras = (message: ChatMessage): ReactElement | null => {
     if (message.holdId !== undefined) {
       return (
@@ -171,7 +176,7 @@ export function AiChatWidget(): ReactElement {
           </p>
           <Button
             size="sm"
-            className="w-full"
+            className="w-full font-bold"
             data-testid="continue-checkout"
             onClick={() => navigate('/thanh-toan/checkout/' + message.holdId)}
           >
@@ -195,7 +200,7 @@ export function AiChatWidget(): ReactElement {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-7 text-xs font-bold"
                 onClick={() => askSlots(venue.name)}
               >
                 Xem slot tối nay
@@ -217,7 +222,7 @@ export function AiChatWidget(): ReactElement {
               onClick={() =>
                 void holdSlot(message.slots as AiSlotsResult, slot.startMinute, slot.endMinute)
               }
-              className="rounded-full border border-primary/50 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+              className="rounded-full border border-primary/50 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition"
             >
               {slot.label}
             </button>
@@ -234,7 +239,7 @@ export function AiChatWidget(): ReactElement {
         <Button
           size="sm"
           variant="outline"
-          className="mt-2"
+          className="mt-2 font-bold"
           onClick={() => navigate('/login?next=' + encodeURIComponent(location.pathname))}
         >
           Đăng nhập
@@ -244,15 +249,16 @@ export function AiChatWidget(): ReactElement {
 
     return null;
   };
+
   return (
     <>
-      {/* Nút nổi góc phải dưới */}
+      {/* Nút nổi góc phải dưới — z-50 an toàn trên desktop và mobile (bottom-20 né mobile bottom nav) */}
       <button
         type="button"
         data-testid="ai-chat-toggle"
         aria-label={open ? 'Đóng trợ lý AI' : 'Mở trợ lý AI'}
         onClick={() => setOpen((value) => !value)}
-        className="fixed bottom-5 right-5 z-50 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105"
+        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_25px_rgba(0,109,55,0.35)] transition-transform duration-200 hover:scale-105 active:scale-95"
       >
         {open ? <X className="size-5" aria-hidden /> : <Bot className="size-5" aria-hidden />}
       </button>
@@ -260,16 +266,21 @@ export function AiChatWidget(): ReactElement {
       {open ? (
         <div
           data-testid="ai-chat-panel"
-          className="fixed bottom-20 right-5 z-50 flex h-[520px] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-xl border bg-card shadow-2xl"
+          className="fixed bottom-36 md:bottom-20 right-4 md:right-6 z-50 flex h-[520px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_20px_50px_rgba(15,23,42,0.25)] backdrop-blur-sm"
         >
-          <div className="flex items-center gap-2 border-b px-3 py-2.5">
-            <Bot className="size-4 text-primary" aria-hidden />
-            <p className="flex-1 text-sm font-bold">Trợ lý SanGo</p>
+          <div className="flex items-center gap-2 border-b bg-card/90 px-3 py-2.5">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <Bot className="size-4 text-primary" aria-hidden />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold tracking-tight">Trợ lý SanGo AI</p>
+              <p className="text-[10px] text-muted-foreground">Tư vấn tìm sân & giữ chỗ 24/7</p>
+            </div>
             <button
               type="button"
               aria-label="Đóng chat"
               onClick={() => setOpen(false)}
-              className="text-muted-foreground hover:text-foreground"
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition"
             >
               <X className="size-4" aria-hidden />
             </button>
@@ -286,12 +297,16 @@ export function AiChatWidget(): ReactElement {
                 className={cn('flex gap-2', message.role === 'user' && 'justify-end')}
               >
                 {message.role === 'assistant' ? (
-                  <Bot className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Bot className="size-3.5" aria-hidden />
+                  </div>
                 ) : null}
                 <div
                   className={cn(
-                    'max-w-[80%] space-y-1 rounded-xl px-3 py-2 text-sm',
-                    message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/70',
+                    'max-w-[85%] space-y-1 rounded-xl px-3 py-2 text-sm leading-relaxed shadow-xs',
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground font-medium'
+                      : 'bg-muted/70 text-foreground border border-border/40',
                   )}
                 >
                   <p className="whitespace-pre-wrap">{message.text}</p>
@@ -307,9 +322,9 @@ export function AiChatWidget(): ReactElement {
               </div>
             ))}
             {chatMutation.isPending ? (
-              <p className="text-xs text-muted-foreground" data-testid="ai-typing">
-                Đang soạn…
-              </p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground" data-testid="ai-typing">
+                <Loader2 className="size-3 animate-spin text-primary" /> Đang tìm kiếm dữ liệu…
+              </div>
             ) : null}
             {messages.length <= 1 && !chatMutation.isPending ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
@@ -318,7 +333,7 @@ export function AiChatWidget(): ReactElement {
                     key={quick}
                     type="button"
                     onClick={() => void send(quick)}
-                    className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
+                    className="rounded-full border border-border/60 bg-background px-2.5 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary transition"
                   >
                     {quick}
                   </button>
@@ -328,7 +343,7 @@ export function AiChatWidget(): ReactElement {
           </div>
 
           <form
-            className="border-t p-2.5"
+            className="border-t bg-card p-2.5"
             onSubmit={(event) => {
               event.preventDefault();
               void send(input);
@@ -342,11 +357,12 @@ export function AiChatWidget(): ReactElement {
                 aria-label="Nhập tin nhắn cho trợ lý AI"
                 data-testid="ai-chat-input"
                 maxLength={500}
-                className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <Button
                 type="submit"
                 size="sm"
+                className="h-10 px-3 font-bold"
                 disabled={chatMutation.isPending || input.trim() === ''}
               >
                 {chatMutation.isPending ? (

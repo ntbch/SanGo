@@ -209,7 +209,7 @@ export function HomePage(): ReactElement {
                   className="rounded-lg border-white/25 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white"
                 >
                   {/* Customer đã đăng nhập: về đơn của mình, không lộ khái niệm dashboard */}
-                  <Link to="/dashboard/my-bookings">Đơn đặt sân</Link>
+                  <Link to="/bookings">Đơn đặt sân</Link>
                 </Button>
               )
             ) : (

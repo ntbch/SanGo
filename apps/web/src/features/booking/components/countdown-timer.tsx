@@ -43,7 +43,7 @@ export function CountdownTimer({ expiresAt, onExpire }: CountdownTimerProps): Re
         isExpired && 'bg-destructive/10 border-destructive/30 text-destructive',
         isLow &&
           !isExpired &&
-          'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 animate-pulse',
+          'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 animate-pulse',
         !isLow &&
           !isExpired &&
           'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300',

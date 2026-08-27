@@ -1,7 +1,7 @@
 /**
  * TanStack Query cho chuông thông báo (P2-F1).
  * - Poll GET /notifications mỗi 30s; TẠM DỪNG khi tab ẩn
- *   (document.visibilityState === 'hidden') để tiết kiệm request.
+ *   (document.hidden || document.visibilityState === 'hidden') để tiết kiệm request.
  * - refetchOnWindowFocus bật lại khi người dùng quay lại tab.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,12 +17,8 @@ export function useNotifications(enabled: boolean) {
     queryKey: ['notifications', 'page-1'],
     queryFn: () => fetchNotifications(1),
     enabled,
-    // TanStack hỗ trợ refetchInterval dạng number | false | callback.
-    // Callback nhận query và trả số ms tới lần poll tiếp theo, hoặc false để
-    // tạm dừng — mình dùng nó để DỪNG poll khi document.visibilityState ẩn,
-    // quay lại tab thì refetchOnWindowFocus kéo dữ liệu mới ngay.
     refetchInterval: (): number | false =>
-      typeof document !== 'undefined' && document.visibilityState === 'hidden'
+      typeof document !== 'undefined' && (document.hidden || document.visibilityState === 'hidden')
         ? false
         : NOTIFICATIONS_POLL_MS,
     refetchOnWindowFocus: true,

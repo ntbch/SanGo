@@ -36,10 +36,10 @@ export const MATCH_SPORT_LABELS: Record<string, string> = {
 
 const SKILL_LEVELS = [
   { id: '', label: 'Tất cả cấp độ' },
-  { id: 'FUN', label: 'Vui vẻ / Dưỡng sinh' },
-  { id: 'CASUAL', label: 'Giao lưu vừa sức' },
-  { id: 'COMPETITIVE', label: 'Cọ xát / Chiến thuật' },
-  { id: 'SEMI_PRO', label: 'Bán chuyên' },
+  { id: 'FUN', label: 'Vui vẻ / Dưỡng sinh (DUPR 2.0-2.5 / NTRP 2.0)' },
+  { id: 'CASUAL', label: 'Giao lưu vừa sức (DUPR 3.0-3.5 / NTRP 3.0-3.5)' },
+  { id: 'COMPETITIVE', label: 'Cọ xát / Chiến thuật (DUPR 4.0-4.5 / NTRP 4.0)' },
+  { id: 'SEMI_PRO', label: 'Bán chuyên / Nâng cao (DUPR 5.0+ / NTRP 4.5+)' },
 ];
 
 interface CommentItem {
@@ -108,20 +108,23 @@ function MatchCard(options: {
           <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
             <Clock className="size-3.5 shrink-0 text-primary" />
             <span>
-              {formatDate(item.date)} · <strong className="text-foreground">{minutesToTime(item.startMinute)} – {minutesToTime(item.endMinute)}</strong>
+              {formatDate(item.date)} ·{' '}
+              <strong className="text-foreground">
+                {minutesToTime(item.startMinute)} – {minutesToTime(item.endMinute)}
+              </strong>
             </span>
           </div>
         </div>
 
         <div className="space-y-1 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground font-medium">Slot trống:</span>
-            <span className="font-bold text-primary">
-              Đã có {item.joinedCount + 1}/{item.slotsNeeded + 1} người · Cần thêm {remaining} người
+            <span className="text-muted-foreground font-medium">Slot tham gia:</span>
+            <span data-testid="joined-count" className="font-score font-bold text-primary">
+              {item.joinedCount}/{item.slotsNeeded} người
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Vị trí ưu tiên: <span className="font-semibold text-foreground">1 Thủ môn, 1 Tiền vệ, 1 Hậu vệ</span>
+            {remaining > 0 ? `Còn trống ${remaining} vị trí` : 'Đã đủ số người tham gia'}
           </p>
         </div>
 
@@ -163,7 +166,7 @@ function MatchCard(options: {
               onClick={() => onJoin(item)}
               className="h-8 rounded-xl text-xs font-bold px-4 shadow-xs"
             >
-              {isFull ? 'Đã đủ người' : 'Xin tham gia kèo'}
+              {isFull ? 'Đã đủ người' : 'Tham gia'}
             </Button>
           )}
         </div>
@@ -202,9 +205,9 @@ export function MatchesPage(): ReactElement {
   const [draftComment, setDraftComment] = useState('');
 
   const user = useAuthStore((s) => s.user);
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   const matchesQuery = useOpenMatches({
     ...(sportType === 'FOOTBALL' ? { sportGroup: 'FOOTBALL' } : { sportType }),
@@ -297,18 +300,23 @@ export function MatchesPage(): ReactElement {
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Ghép Trận Thể Thao (Matchmaking Hub)
+          Ghép trận mở
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
           Các kèo đặt sân công khai đang tìm thêm đồng đội — giao lưu, cọ xát và chia sẻ chi phí sân bãi.
         </p>
       </header>
 
+      {/* Filter Bar */}
       <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[140px]">
-            <Label className="text-xs font-bold text-muted-foreground mb-1 block">Môn thể thao</Label>
+            <Label htmlFor="sport-type" className="text-xs font-bold text-muted-foreground mb-1 block">
+              Loại sân
+            </Label>
             <select
+              id="sport-type"
+              aria-label="Loại sân"
               value={sportType}
               onChange={(e) => setSportType(e.target.value)}
               className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
@@ -326,132 +334,190 @@ export function MatchesPage(): ReactElement {
           </div>
 
           <div className="flex-1 min-w-[140px]">
-            <Label className="text-xs font-bold text-muted-foreground mb-1 block">Khu vực</Label>
+            <Label htmlFor="district-select" className="text-xs font-bold text-muted-foreground mb-1 block">
+              Khu vực
+            </Label>
             <select
+              id="district-select"
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
               className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
             >
               <option value="">Tất cả khu vực</option>
               {HANOI_DISTRICTS.map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>
+                  {d}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="flex-1 min-w-[140px]">
-            <Label className="text-xs font-bold text-muted-foreground mb-1 block">Cấp độ trận</Label>
+            <Label htmlFor="skill-level" className="text-xs font-bold text-muted-foreground mb-1 block">
+              Cấp độ trận
+            </Label>
             <select
+              id="skill-level"
               value={skillLevel}
               onChange={(e) => setSkillLevel(e.target.value)}
               className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
             >
               {SKILL_LEVELS.map((lvl) => (
-                <option key={lvl.id} value={lvl.id}>{lvl.label}</option>
+                <option key={lvl.id} value={lvl.id}>
+                  {lvl.label}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="flex-1 min-w-[130px]">
-            <Label className="text-xs font-bold text-muted-foreground mb-1 block">Khung giờ</Label>
+          <div className="flex-1 min-w-[140px]">
+            <Label htmlFor="time-range" className="text-xs font-bold text-muted-foreground mb-1 block">
+              Khung giờ
+            </Label>
             <select
+              id="time-range"
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
               className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
             >
-              <option value="">Cả ngày</option>
-              <option value="morning">Sáng (6-12h)</option>
-              <option value="afternoon">Chiều (12-17h)</option>
-              <option value="evening">Tối (17-23h)</option>
+              <option value="">Tất cả khung giờ</option>
+              <option value="morning">Sáng (Trước 12:00)</option>
+              <option value="afternoon">Chiều (12:00 – 17:00)</option>
+              <option value="evening">Tối (Sau 17:00)</option>
             </select>
           </div>
 
-          <div className="flex-1 min-w-[130px]">
-            <Label className="text-xs font-bold text-muted-foreground mb-1 block">Ngày chơi</Label>
+          <div className="flex-1 min-w-[140px]">
+            <Label htmlFor="match-date" className="text-xs font-bold text-muted-foreground mb-1 block">
+              Ngày đá
+            </Label>
             <Input
+              id="match-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="h-10 rounded-xl bg-background text-xs"
+              className="h-10 rounded-xl text-xs"
             />
           </div>
         </div>
-      </div>
 
-      {matchesQuery.isPending ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 w-full rounded-2xl" />
+        {/* Quick Sport Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pt-1">
+          {[
+            { id: '', label: 'Tất cả' },
+            { id: 'FOOTBALL', label: '⚽ Bóng đá' },
+            { id: 'PICKLEBALL', label: '🏓 Pickleball' },
+            { id: 'BADMINTON', label: '🏸 Cầu lông' },
+            { id: 'TENNIS', label: '🎾 Tennis' },
+          ].map((sport) => (
+            <button
+              key={sport.id}
+              type="button"
+              onClick={() => setSportType(sport.id)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                sportType === sport.id
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {sport.label}
+            </button>
           ))}
         </div>
-      ) : matchesQuery.isError ? (
-        <p className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive text-center">
-          {friendlyApiMessage(matchesQuery.error)}
-        </p>
+      </div>
+
+      {/* Matches Grid */}
+      {matchesQuery.isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-2xl border border-border/70 p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-11 rounded-full" />
+                <div className="space-y-1.5 flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
       ) : filteredItems.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/80 p-12 text-center space-y-3 bg-card/40">
-          <Users className="mx-auto size-12 text-muted-foreground/40" />
-          <h3 className="font-bold text-base">Chưa có kèo nào phù hợp</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Hãy thử đổi môn thể thao hoặc chọn ngày chơi khác để tìm các kèo đang mở.
+        <div className="rounded-3xl border border-dashed border-border/80 p-12 text-center bg-card/40">
+          <Users className="mx-auto size-12 text-muted-foreground/40 mb-3" />
+          <h3 className="text-base font-bold text-foreground">Không có kèo ghép trận nào phù hợp</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+            Hãy thử thay đổi bộ lọc hoặc quay lại sau để tìm kiếm đồng đội cùng sở thích nhé!
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => (
             <MatchCard
               key={item.bookingId}
               item={item}
               joined={joinedIds.has(item.bookingId)}
-              onJoin={(it) => void handleJoin(it)}
-              onLeave={(it) => void handleLeave(it)}
-              onOpenComments={(it) => setCommentTarget(it)}
+              onJoin={handleJoin}
+              onLeave={handleLeave}
+              onOpenComments={(match) => setCommentTarget(match)}
               busy={busy}
             />
           ))}
         </div>
       )}
 
-      <Dialog open={Boolean(commentTarget)} onOpenChange={(open) => !open && setCommentTarget(null)}>
-        <DialogContent className="max-w-lg rounded-2xl">
+      {/* Dialog Bình Luận Kèo */}
+      <Dialog open={commentTarget !== null} onOpenChange={(open) => !open && setCommentTarget(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <MessageSquare className="size-4 text-primary" />
-              <span>Trao đổi kèo {commentTarget?.courtName}</span>
+              Bình luận kèo · {commentTarget?.courtName}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Chủ kèo: {commentTarget?.hostName} · Ngày {formatDate(commentTarget?.date)} ({minutesToTime(commentTarget?.startMinute ?? 0)}–{minutesToTime(commentTarget?.endMinute ?? 0)})
+              Trao đổi với chủ kèo và các thành viên tham gia trước giờ bóng lăn.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="max-h-64 space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-60 overflow-y-auto space-y-3 pr-1">
               {currentComments.map((c) => (
-                <div key={c.id} className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-muted/30 p-3 text-xs">
+                <div key={c.id} className="flex items-start gap-2.5 text-xs">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 font-bold text-primary text-xs">
                     {c.avatarLetter}
                   </span>
-                  <div className="space-y-0.5 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">{c.userName}</span>
+                  <div className="flex-1 rounded-2xl bg-muted/50 p-2.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-foreground">{c.userName}</span>
                       <span className="text-[10px] text-muted-foreground">{c.createdAt}</span>
                     </div>
-                    <p className="text-muted-foreground leading-relaxed">{c.content}</p>
+                    <p className="text-foreground/90">{c.content}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex items-center gap-2 border-t pt-3">
+            <div className="flex items-center gap-2 pt-2 border-t border-border/60">
               <Input
-                placeholder="Hỏi vị trí, màu áo, liên hệ..."
+                placeholder="Nhập nội dung trao đổi hoặc hỏi vị trí..."
                 value={draftComment}
                 onChange={(e) => setDraftComment(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                className="h-10 rounded-xl text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddComment();
+                  }
+                }}
+                className="rounded-xl text-xs"
               />
-              <Button size="sm" onClick={handleAddComment} className="rounded-xl h-10 px-3.5 font-bold text-xs gap-1">
-                <Send className="size-3.5" /> Gửi
+              <Button
+                size="sm"
+                onClick={handleAddComment}
+                disabled={!draftComment.trim()}
+                className="rounded-xl font-bold h-9 px-3 gap-1 shadow-xs"
+              >
+                <Send className="size-3.5" />
               </Button>
             </div>
           </div>

@@ -1,4 +1,3 @@
-import { Trophy } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 
@@ -42,9 +41,11 @@ export function DashboardLayout(): ReactElement {
           to="/"
           className="flex items-center gap-2 px-4 pb-2 pt-5 text-lg font-extrabold tracking-tight text-primary"
         >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(15,23,42,0.08)]">
-            <Trophy className="size-5" aria-hidden />
-          </span>
+          <img
+            src="/logo-256.png"
+            alt={`Logo ${APP_NAME}`}
+            className="size-9 rounded-lg object-cover shadow-[0_4px_20px_rgba(15,23,42,0.08)]"
+          />
           {APP_NAME}
         </Link>
         <p className="px-4 pb-1 pt-5 font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -74,9 +75,11 @@ export function DashboardLayout(): ReactElement {
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 shadow-[0_1px_12px_rgba(15,23,42,0.04)] backdrop-blur-md">
           <div className="flex h-16 items-center gap-3 px-4 md:px-6">
             <Link to="/" className="flex items-center gap-2 font-bold md:hidden">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Trophy className="size-5" aria-hidden />
-              </span>
+              <img
+                src="/logo-256.png"
+                alt={`Logo ${APP_NAME}`}
+                className="size-8 rounded-lg object-cover shadow-[0_4px_20px_rgba(15,23,42,0.08)]"
+              />
               {APP_NAME}
             </Link>
             <div className="ml-auto flex items-center gap-1">

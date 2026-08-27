@@ -271,8 +271,8 @@ export function AdminBookingsPage(): ReactElement {
                             {STATUS_META[booking.status].label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatVnd(booking.totalPriceVnd)}
+                        <TableCell className="text-right font-score font-bold">
+                          {booking.totalPriceVnd.toLocaleString('vi-VN')}₫
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {formatDate(booking.createdAt)}

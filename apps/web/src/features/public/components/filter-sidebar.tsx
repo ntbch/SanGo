@@ -4,8 +4,9 @@ import { SUPPORTED_CITIES, SportType, districtsOfCity } from '@sango/shared';
 import { Button } from '../../../components/ui/button';
 import { Label } from '../../../components/ui/label';
 import { Input } from '../../../components/ui/input';
+import { PriceRangeSlider } from '../../../components/ui/price-range-slider';
 import { cn } from '../../../lib/utils';
-import { Activity, Calendar, Disc, DollarSign, Filter, Flame, RotateCcw, Trophy, Zap } from 'lucide-react';
+import { Activity, Calendar, Disc, DollarSign, Filter, Flame, RotateCcw, Trophy, Zap, Sun, Sunset, Moon } from 'lucide-react';
 
 export type VenueSort = 'newest' | 'price-asc' | 'price-desc' | 'distance';
 
@@ -72,9 +73,9 @@ export function FilterSidebar({
   return (
     <aside
       aria-label="Bộ lọc tìm kiếm"
-      className="space-y-5 rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:sticky lg:top-24"
+      className="space-y-5 rounded-2xl border border-border/70 bg-card p-5 shadow-[0_4px_20px_rgba(15,23,42,0.05)] lg:sticky lg:top-24"
     >
-      <div className="flex items-center justify-between border-b pb-3">
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div className="flex items-center gap-2 font-bold text-sm text-foreground">
           <Filter className="size-4 text-primary" />
           <span>Bộ lọc tìm kiếm</span>
@@ -119,7 +120,7 @@ export function FilterSidebar({
             )}
             onClick={() => onSportTypeChange(undefined)}
           >
-            <Trophy className="size-3.5" />
+            <Trophy className="size-3.5 text-current" />
             <span>Tất cả môn</span>
           </button>
 
@@ -133,7 +134,7 @@ export function FilterSidebar({
             )}
             onClick={() => onSportTypeChange(isFootball ? undefined : 'FOOTBALL')}
           >
-            <Activity className="size-3.5" />
+            <Activity className="size-3.5 text-current" />
             <span>Bóng đá</span>
           </button>
 
@@ -149,7 +150,7 @@ export function FilterSidebar({
               onSportTypeChange(sportType === SportType.BADMINTON ? undefined : SportType.BADMINTON)
             }
           >
-            <Zap className="size-3.5" />
+            <Zap className="size-3.5 text-current" />
             <span>Cầu lông</span>
           </button>
 
@@ -165,7 +166,7 @@ export function FilterSidebar({
               onSportTypeChange(sportType === SportType.PICKLEBALL ? undefined : SportType.PICKLEBALL)
             }
           >
-            <Disc className="size-3.5" />
+            <Disc className="size-3.5 text-current" />
             <span>Pickleball</span>
           </button>
 
@@ -181,7 +182,7 @@ export function FilterSidebar({
               onSportTypeChange(sportType === SportType.TENNIS ? undefined : SportType.TENNIS)
             }
           >
-            <Flame className="size-3.5" />
+            <Flame className="size-3.5 text-current" />
             <span>Tennis</span>
           </button>
         </div>
@@ -296,58 +297,41 @@ export function FilterSidebar({
         </div>
       </div>
 
-      {/* Lọc theo mức giá (Min - Max + Nút nhanh) */}
-      <div className="space-y-2 border-t pt-3">
+      {/* Lọc theo mức giá (Dual Range Slider + Quick Buttons) */}
+      <div className="space-y-3 border-t border-border/60 pt-3">
         <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
           <span>Khoảng giá / slot</span>
           <DollarSign className="size-3.5 text-primary" />
         </Label>
-        <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            placeholder="Min (₫)"
-            value={priceRange.min ?? ''}
-            onChange={(e) =>
-              onPriceRangeChange?.({
-                ...priceRange,
-                min: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
-            className="h-8 rounded-lg text-xs"
-          />
-          <span className="text-muted-foreground text-xs">–</span>
-          <Input
-            type="number"
-            placeholder="Max (₫)"
-            value={priceRange.max ?? ''}
-            onChange={(e) =>
-              onPriceRangeChange?.({
-                ...priceRange,
-                max: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
-            className="h-8 rounded-lg text-xs"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1 pt-1">
+        
+        <PriceRangeSlider
+          min={priceRange.min}
+          max={priceRange.max}
+          minLimit={0}
+          maxLimit={600000}
+          step={20000}
+          onChange={(range) => onPriceRangeChange?.(range)}
+        />
+
+        <div className="flex flex-wrap gap-1.5 pt-1">
           <button
             type="button"
             onClick={() => handleQuickPrice(undefined, 100000)}
-            className="rounded-lg border px-2 py-1 text-[11px] hover:bg-muted transition"
+            className="rounded-lg border border-border/60 bg-muted/40 px-2 py-1 text-[11px] font-medium hover:bg-muted transition"
           >
             &lt; 100k
           </button>
           <button
             type="button"
             onClick={() => handleQuickPrice(100000, 200000)}
-            className="rounded-lg border px-2 py-1 text-[11px] hover:bg-muted transition"
+            className="rounded-lg border border-border/60 bg-muted/40 px-2 py-1 text-[11px] font-medium hover:bg-muted transition"
           >
             100k - 200k
           </button>
           <button
             type="button"
             onClick={() => handleQuickPrice(200000, undefined)}
-            className="rounded-lg border px-2 py-1 text-[11px] hover:bg-muted transition"
+            className="rounded-lg border border-border/60 bg-muted/40 px-2 py-1 text-[11px] font-medium hover:bg-muted transition"
           >
             &gt; 200k
           </button>
@@ -355,7 +339,7 @@ export function FilterSidebar({
       </div>
 
       {/* Date & Khung giờ */}
-      <div className="space-y-2 border-t pt-3">
+      <div className="space-y-2 border-t border-border/60 pt-3">
         <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
           <span>Thời gian & Slot</span>
           <Calendar className="size-3.5 text-primary" />
@@ -371,27 +355,35 @@ export function FilterSidebar({
         </div>
         <div className="grid grid-cols-3 gap-1 pt-1">
           {[
-            { id: 'morning', label: 'Sáng (6-12h)' },
-            { id: 'afternoon', label: 'Chiều (12-17h)' },
-            { id: 'evening', label: 'Tối (17-23h)' },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onTimeSlotRangeChange?.(timeSlotRange === t.id ? '' : t.id)}
-              className={cn(
-                'rounded-lg border p-1 text-[10px] text-center transition truncate',
-                timeSlotRange === t.id ? 'bg-primary text-primary-foreground border-primary font-bold' : 'hover:bg-muted',
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+            { id: 'morning', label: 'Sáng', sub: '6-12h', icon: Sun },
+            { id: 'afternoon', label: 'Chiều', sub: '12-17h', icon: Sunset },
+            { id: 'evening', label: 'Tối', sub: '17-23h', icon: Moon },
+          ].map((t) => {
+            const Icon = t.icon;
+            const isSelected = timeSlotRange === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onTimeSlotRangeChange?.(isSelected ? '' : t.id)}
+                className={cn(
+                  'flex flex-col items-center justify-center rounded-lg border p-1.5 text-center transition',
+                  isSelected
+                    ? 'bg-primary text-primary-foreground border-primary font-bold shadow-xs'
+                    : 'border-border/60 hover:bg-muted/60 text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon className="size-3 mb-0.5" />
+                <span className="text-[11px] font-semibold">{t.label}</span>
+                <span className="text-[9px] opacity-75">{t.sub}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Sắp xếp */}
-      <div className="space-y-1.5 border-t pt-3">
+      <div className="space-y-1.5 border-t border-border/60 pt-3">
         <Label htmlFor="venue-sort" className="text-xs font-semibold text-muted-foreground">
           Sắp xếp hiển thị
         </Label>

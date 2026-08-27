@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';
@@ -56,6 +56,8 @@ export function ThemeProvider({
   });
 
   const resolvedTheme = resolveTheme(theme);
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
 
   useEffect(() => {
     applyToDocument(resolvedTheme);
@@ -64,7 +66,8 @@ export function ThemeProvider({
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (): void => applyToDocument(resolveTheme('system'));
+    // Luôn resolve theo lựa chọn hiện tại (không ghi đè khi user chọn tường minh).
+    const onChange = (): void => applyToDocument(resolveTheme(themeRef.current));
     media.addEventListener('change', onChange);
     return () => media.removeEventListener('change', onChange);
   }, []);

@@ -9,6 +9,7 @@ import type { ReactElement } from 'react';
 import { useState } from 'react';
 
 import { RevenueBookingsChart } from '../../../components/charts/revenue-bookings-chart';
+import { useChartTheme } from '../../../components/theme/use-chart-theme';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import {
@@ -45,24 +46,57 @@ const ACTIVITY_META: Record<AdminActivityType, { icon: ReactElement; badge: stri
   },
 };
 
+function MiniSparkline({ points, color }: { points: number[]; color: string }): ReactElement | null {
+  if (points.length < 2) return null;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const width = 72;
+  const height = 22;
+  const polyPoints = points
+    .map((val, i) => {
+      const x = (i / (points.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 4) - 2;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  return (
+    <svg width={width} height={height} className="shrink-0 overflow-visible opacity-85" aria-hidden="true">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={polyPoints}
+      />
+    </svg>
+  );
+}
+
 function KpiCard(options: {
   label: string;
   value: string;
   hint?: string;
   testId: string;
+  sparkline?: number[];
+  sparklineColor?: string;
 }): ReactElement {
-  const { label, value, hint, testId } = options;
+  const { label, value, hint, testId, sparkline, sparklineColor } = options;
   return (
-    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow duration-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]">
       <CardHeader className="pb-2">
         <CardDescription className="text-xs font-semibold uppercase tracking-wide">
           {label}
         </CardDescription>
         <CardTitle
-          className="font-score text-3xl font-extrabold tabular-nums tracking-tight"
+          className="flex items-center justify-between gap-2 font-score text-3xl font-extrabold tabular-nums tracking-tight"
           data-testid={testId}
         >
-          {value}
+          <span>{value}</span>
+          {sparkline !== undefined && sparklineColor ? (
+            <MiniSparkline points={sparkline} color={sparklineColor} />
+          ) : null}
         </CardTitle>
       </CardHeader>
       {hint ? <CardContent className="text-xs text-muted-foreground">{hint}</CardContent> : null}
@@ -73,6 +107,7 @@ function KpiCard(options: {
 export function AdminStatsPage(): ReactElement {
   const [days, setDays] = useState<number>(14);
   const statsQuery = useAdminStats(days);
+  const chartTheme = useChartTheme();
 
   return (
     <div className="space-y-6">
@@ -136,10 +171,12 @@ export function AdminStatsPage(): ReactElement {
             bookings: point.bookings,
             revenue: point.revenueVnd,
           }));
+          const sparkBookings = chartSeries.map((p) => p.bookings);
+          const sparkRevenue = chartSeries.map((p) => p.revenue);
 
           return (
             <>
-              {/* 4 KPI card bắt buộc theo t6 */}
+              {/* 4 KPI card bắt buộc theo t6 — Bento với sparkline xu hướng */}
               <div
                 className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
                 data-testid="admin-stats-kpis"
@@ -163,11 +200,15 @@ export function AdminStatsPage(): ReactElement {
                   value={String(totals.bookingsToday)}
                   hint={'Tổng cộng ' + String(totals.bookingsTotal) + ' đơn đã tạo'}
                   testId="admin-kpi-bookings-today"
+                  sparkline={sparkBookings}
+                  sparklineColor={chartTheme.bookings}
                 />
                 <KpiCard
                   label="Doanh thu hôm nay"
                   value={formatVnd(totals.revenueTodayVnd)}
                   testId="admin-kpi-revenue-today"
+                  sparkline={sparkRevenue}
+                  sparklineColor={chartTheme.revenue}
                 />
               </div>
 

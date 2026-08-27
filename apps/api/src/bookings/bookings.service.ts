@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, BookingStatus, PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
+import { Prisma, BookingStatus, MatchLevel, PaymentMethod, PaymentStatus, PaymentType } from '@prisma/client';
 import { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotifyService } from '../notifications/notify.service';
@@ -358,9 +358,9 @@ export class BookingsService {
                   isPublicMatch: true,
                   slotsNeeded: hold.slotsNeeded,
                   matchFull: false,
-                  matchLevel: (hold as any).matchLevel ?? 'FRIENDLY',
-                  targetPositions: (hold as any).targetPositions ?? [],
-                  costPerPerson: (hold as any).costPerPerson ?? null,
+                  matchLevel: (hold as unknown as { matchLevel?: MatchLevel }).matchLevel ?? 'FRIENDLY',
+                  targetPositions: (hold as unknown as { targetPositions?: string[] }).targetPositions ?? [],
+                  costPerPerson: (hold as unknown as { costPerPerson?: number | null }).costPerPerson ?? null,
                 }
               : {}),
           },

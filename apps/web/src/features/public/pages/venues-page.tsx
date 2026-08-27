@@ -1,6 +1,7 @@
 import {
   Crosshair,
   Loader2,
+  MapPin,
   Search,
   SearchX,
   SlidersHorizontal,
@@ -8,12 +9,19 @@ import {
 } from 'lucide-react';
 import { type FormEvent, type ReactElement, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SUPPORTED_CITIES, calculateHaversineDistanceKm, districtsOfCity } from '@sango/shared';
+import {
+  SUPPORTED_CITIES,
+  SPORT_TYPE_LABELS,
+  calculateHaversineDistanceKm,
+  districtsOfCity,
+  type SportType,
+} from '@sango/shared';
 
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { useToast } from '../../../components/ui/use-toast';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../../components/ui/sheet';
 
 import { FilterSidebar, type PriceRange, type VenueSort } from '../components/filter-sidebar';
 import { VenueCard } from '../components/venue-card';
@@ -22,13 +30,16 @@ import { useVenues } from '../queries';
 function SkeletonGrid(): ReactElement {
   return (
     <div
-      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4"
+      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4"
       role="status"
       aria-busy="true"
       aria-label="Đang tải danh sách sân"
     >
-      {[0, 1, 2, 3, 4, 5].map((index) => (
-        <div key={index} className="space-y-3 rounded-2xl border border-border/60 bg-card p-0 overflow-hidden shadow-xs">
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+        <div
+          key={index}
+          className="space-y-3 rounded-2xl border border-border/60 bg-card p-0 overflow-hidden shadow-xs"
+        >
           <Skeleton className="aspect-[16/10] w-full" />
           <div className="space-y-2 p-4">
             <Skeleton className="h-5 w-3/4" />
@@ -42,6 +53,7 @@ function SkeletonGrid(): ReactElement {
 }
 
 const RADIUS_OPTIONS = [3, 5, 10, 20] as const;
+const HANOI_COORDS = { lat: 21.0285, lng: 105.8542 };
 
 export function VenuesPage(): ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -182,13 +194,27 @@ export function VenuesPage(): ReactElement {
           description: 'Đang hiển thị các cụm sân trong bán kính 5 km quanh bạn.',
         });
       },
-      () => {
+      (err: { code?: number }) => {
         setIsLocating(false);
-        toast({
-          title: 'Lỗi định vị',
-          description: 'Không thể lấy toạ độ GPS. Vui lòng chọn quận thủ công.',
-          variant: 'destructive',
-        });
+        if (err.code === 1) {
+          toast({
+            title: 'Từ chối quyền vị trí',
+            description: 'Bạn đã từ chối chia sẻ vị trí. Hãy chọn quận/huyện thủ công.',
+            variant: 'destructive',
+          });
+        } else if (err.code === 3) {
+          toast({
+            title: 'Lỗi định vị',
+            description: 'Hết thời gian chờ GPS. Vui lòng kiểm tra lại kết nối.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Lỗi định vị',
+            description: 'Không thể lấy toạ độ GPS. Vui lòng chọn quận thủ công.',
+            variant: 'destructive',
+          });
+        }
       },
       { timeout: 8000, maximumAge: 60000 },
     );
@@ -219,23 +245,47 @@ export function VenuesPage(): ReactElement {
     setSearchParams(new URLSearchParams());
   }
 
+  // Khoảng cách tới Hà Nội cho trường hợp EC-04
+  const distanceToHanoi = userCoords
+    ? calculateHaversineDistanceKm(
+        userCoords.lat,
+        userCoords.lng,
+        HANOI_COORDS.lat,
+        HANOI_COORDS.lng,
+      )
+    : 0;
+  const isFarFromHanoi = userCoords !== null && distanceToHanoi > 50;
+
+  // Active filter count
+  const activeFiltersCount = [
+    q,
+    sportTypeParam,
+    districtParam,
+    priceRange.min !== undefined || priceRange.max !== undefined,
+    selectedDate,
+    timeSlotRange,
+    userCoords !== null,
+  ].filter(Boolean).length;
+
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+      {/* ── Topbar Search & Geolocation ── */}
+      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
         <form onSubmit={onSearchSubmit} className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={draftQ}
               onChange={(e) => setDraftQ(e.target.value)}
+              aria-label="Từ khoá tìm kiếm"
               placeholder="Tìm theo tên sân, địa chỉ, tiện ích..."
-              className="h-11 pl-10 rounded-xl bg-background text-sm"
+              className="h-11 pl-10 rounded-xl bg-background text-sm focus-visible:ring-primary"
             />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <select
-              aria-label="Chọn thành phố"
+              aria-label="Lọc theo thành phố"
               value={effectiveCity ?? ''}
               onChange={(e) =>
                 applyFilters({
@@ -245,7 +295,7 @@ export function VenuesPage(): ReactElement {
                   district: undefined,
                 })
               }
-              className="h-11 rounded-xl border border-input bg-background px-3 text-xs shadow-xs sm:w-36"
+              className="h-11 rounded-xl border border-input bg-background px-3 text-xs font-medium shadow-xs transition sm:w-36 focus-visible:ring-2 focus-visible:ring-primary"
             >
               <option value="">Tất cả thành phố</option>
               {SUPPORTED_CITIES.map((c) => (
@@ -256,7 +306,7 @@ export function VenuesPage(): ReactElement {
             </select>
 
             <select
-              aria-label="Chọn quận huyện"
+              aria-label="Lọc theo quận huyện"
               value={districtParam ?? ''}
               disabled={!effectiveCity}
               onChange={(e) =>
@@ -267,7 +317,7 @@ export function VenuesPage(): ReactElement {
                   district: e.target.value || undefined,
                 })
               }
-              className="h-11 rounded-xl border border-input bg-background px-3 text-xs shadow-xs disabled:opacity-50 sm:w-40"
+              className="h-11 rounded-xl border border-input bg-background px-3 text-xs font-medium shadow-xs transition disabled:opacity-50 sm:w-40 focus-visible:ring-2 focus-visible:ring-primary"
             >
               {effectiveCity ? (
                 <>
@@ -288,42 +338,64 @@ export function VenuesPage(): ReactElement {
               variant={userCoords !== null ? 'default' : 'outline'}
               onClick={handleGetLocation}
               disabled={isLocating || !geoSupported}
-              className="h-11 rounded-xl font-semibold gap-1.5 px-3.5 text-xs"
+              title={!geoSupported ? 'Trình duyệt không hỗ trợ định vị' : undefined}
+              aria-label="Định vị gần tôi"
+              className="h-11 rounded-xl font-bold gap-1.5 px-3.5 text-xs shadow-xs"
             >
-              {isLocating ? <Loader2 className="size-4 animate-spin" /> : <Crosshair className="size-4 text-primary" />}
+              {isLocating ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Crosshair className="size-4 text-primary" />
+              )}
               <span>Gần tôi</span>
             </Button>
 
-            <Button type="submit" className="h-11 rounded-xl px-5 font-bold text-xs gap-1.5">
+            <Button
+              type="submit"
+              aria-label="Tìm sân"
+              className="h-11 rounded-xl px-5 font-bold text-xs gap-1.5 shadow-[0_4px_20px_rgba(15,23,42,0.08)]"
+            >
               <Search className="size-4" />
-              <span>Tìm kiếm</span>
+              <span>Tìm sân</span>
             </Button>
 
             <Button
               type="button"
               variant="outline"
-              onClick={() => setShowMobileFilter(!showMobileFilter)}
+              onClick={() => setShowMobileFilter(true)}
               className="h-11 rounded-xl px-3 text-xs font-semibold lg:hidden gap-1.5"
             >
               <SlidersHorizontal className="size-4" />
               <span>Bộ lọc</span>
+              {activeFiltersCount > 0 ? (
+                <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {activeFiltersCount}
+                </span>
+              ) : null}
             </Button>
           </div>
         </form>
 
+        {/* GPS Radius Active Bar */}
         {userCoords !== null ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="flex size-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-muted-foreground">Đang lọc theo vị trí GPS của bạn:</span>
-              <div className="flex items-center gap-1">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="font-semibold text-foreground">Bán kính gần bạn:</span>
+              <div className="flex items-center gap-1.5">
                 {RADIUS_OPTIONS.map((r) => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => setRadiusKm(r)}
-                    className={`rounded-lg px-2 py-0.5 border text-xs transition ${
-                      radiusKm === r ? 'bg-primary text-primary-foreground font-bold border-primary' : 'bg-muted/50 hover:bg-muted'
+                    aria-pressed={radiusKm === r ? 'true' : 'false'}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                      radiusKm === r
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'border border-border/70 bg-muted/50 hover:bg-muted text-muted-foreground'
                     }`}
                   >
                     {r} km
@@ -336,15 +408,18 @@ export function VenuesPage(): ReactElement {
               variant="ghost"
               size="sm"
               onClick={handleClearGps}
-              className="h-6 text-[11px] text-muted-foreground hover:text-destructive gap-1 px-2"
+              aria-label="Tắt định vị"
+              className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1 px-2"
             >
-              <X className="size-3" /> Tắt GPS
+              <X className="size-3.5" /> Tắt định vị
             </Button>
           </div>
         ) : null}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+      {/* ── Main Layout: Sidebar + Results Grid ── */}
+      <div className="grid gap-6 lg:grid-cols-[270px_1fr]">
+        {/* Desktop Filter Sidebar */}
         <div className="hidden lg:block">
           <FilterSidebar
             sportType={sportTypeParam}
@@ -355,9 +430,15 @@ export function VenuesPage(): ReactElement {
             priceRange={priceRange}
             selectedDate={selectedDate}
             timeSlotRange={timeSlotRange}
-            onSportTypeChange={(s) => applyFilters({ q, sportType: s, city: effectiveCity, district: districtParam })}
-            onCityChange={(c) => applyFilters({ q, sportType: sportTypeParam, city: c, district: undefined })}
-            onDistrictChange={(d) => applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: d })}
+            onSportTypeChange={(s) =>
+              applyFilters({ q, sportType: s, city: effectiveCity, district: districtParam })
+            }
+            onCityChange={(c) =>
+              applyFilters({ q, sportType: sportTypeParam, city: c, district: undefined })
+            }
+            onDistrictChange={(d) =>
+              applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: d })
+            }
             onSortChange={(nextSort) => setSort(nextSort)}
             onPriceRangeChange={(range) => setPriceRange(range)}
             onDateChange={(d) => setSelectedDate(d)}
@@ -366,81 +447,240 @@ export function VenuesPage(): ReactElement {
           />
         </div>
 
+        {/* Mobile Filter Sheet Drawer (chỉ render khi mở để tránh duplicate ID) */}
         {showMobileFilter ? (
-          <div className="block lg:hidden">
-            <FilterSidebar
-              sportType={sportTypeParam}
-              city={effectiveCity}
-              district={districtParam}
-              sort={sort}
-              hasGps={userCoords !== null}
-              priceRange={priceRange}
-              selectedDate={selectedDate}
-              timeSlotRange={timeSlotRange}
-              onSportTypeChange={(s) => applyFilters({ q, sportType: s, city: effectiveCity, district: districtParam })}
-              onCityChange={(c) => applyFilters({ q, sportType: sportTypeParam, city: c, district: undefined })}
-              onDistrictChange={(d) => applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: d })}
-              onSortChange={(nextSort) => setSort(nextSort)}
-              onPriceRangeChange={(range) => setPriceRange(range)}
-              onDateChange={(d) => setSelectedDate(d)}
-              onTimeSlotRangeChange={(t) => setTimeSlotRange(t)}
-              onResetFilters={handleResetAll}
-            />
-          </div>
+          <Sheet open={showMobileFilter} onOpenChange={setShowMobileFilter}>
+            <SheetContent side="bottom" className="p-4 sm:p-6">
+              <SheetHeader className="mb-4 text-left">
+                <SheetTitle>Bộ lọc tìm kiếm sân</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-4 pb-16">
+                <FilterSidebar
+                  sportType={sportTypeParam}
+                  city={effectiveCity}
+                  district={districtParam}
+                  sort={sort}
+                  hasGps={userCoords !== null}
+                  priceRange={priceRange}
+                  selectedDate={selectedDate}
+                  timeSlotRange={timeSlotRange}
+                  onSportTypeChange={(s) =>
+                    applyFilters({ q, sportType: s, city: effectiveCity, district: districtParam })
+                  }
+                  onCityChange={(c) =>
+                    applyFilters({ q, sportType: sportTypeParam, city: c, district: undefined })
+                  }
+                  onDistrictChange={(d) =>
+                    applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: d })
+                  }
+                  onSortChange={(nextSort) => setSort(nextSort)}
+                  onPriceRangeChange={(range) => setPriceRange(range)}
+                  onDateChange={(d) => setSelectedDate(d)}
+                  onTimeSlotRangeChange={(t) => setTimeSlotRange(t)}
+                  onResetFilters={handleResetAll}
+                />
+              </div>
+              <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-border/80 bg-card p-4 shadow-lg">
+                <Button variant="outline" onClick={handleResetAll} className="flex-1 rounded-xl text-xs font-bold">
+                  Xoá bộ lọc
+                </Button>
+                <Button
+                  onClick={() => setShowMobileFilter(false)}
+                  className="flex-1 rounded-xl text-xs font-bold shadow-sm"
+                >
+                  Xem kết quả ({items.length})
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         ) : null}
 
+        {/* Results Container */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-muted-foreground">
-              Tìm thấy <span className="font-bold text-foreground">{items.length}</span> cụm sân phù hợp
-            </p>
+          {/* Header Bar: Total Count + Active Chips */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+            <div>
+              {query.data ? (
+                <h2 className="text-base font-extrabold tracking-tight text-foreground">
+                  Kết quả ({query.data.total} sân)
+                </h2>
+              ) : (
+                <div className="h-6 w-32 animate-pulse rounded bg-muted" />
+              )}
+              {sort === 'distance' && userCoords === null ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  Bạn chưa bật định vị GPS. Vui lòng bấm "Gần tôi" để tính khoảng cách.
+                </p>
+              ) : null}
+            </div>
+
+            {/* Active filter pills (chỉ hiện khi có kết quả items > 0 để tránh đụng nút Xoá bộ lọc của empty state) */}
+            {activeFiltersCount > 0 && items.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                {sportTypeParam ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 font-semibold text-accent-foreground">
+                    {SPORT_TYPE_LABELS[sportTypeParam as SportType] ?? sportTypeParam}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        applyFilters({ q, sportType: undefined, city: effectiveCity, district: districtParam })
+                      }
+                      className="hover:opacity-75"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ) : null}
+                {districtParam ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 font-semibold text-accent-foreground">
+                    <MapPin className="size-3" />
+                    {districtParam}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: undefined })
+                      }
+                      className="hover:opacity-75"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetAll}
+                  className="h-6 px-2 text-[11px] font-bold text-muted-foreground hover:text-foreground"
+                >
+                  Xoá tất cả
+                </Button>
+              </div>
+            ) : null}
           </div>
 
+          {/* Grid or Empty/Loading States */}
           {query.isPending ? (
             <SkeletonGrid />
           ) : query.isError ? (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center text-destructive">
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-8 text-center text-destructive">
               Đã xảy ra lỗi khi tải danh sách sân. Vui lòng thử lại sau.
             </div>
+          ) : isFarFromHanoi ? (
+            /* EC-04: > 50km from Hanoi */
+            <div className="rounded-2xl border border-dashed border-border/80 p-10 text-center space-y-3 bg-card/60">
+              <MapPin className="mx-auto size-12 text-primary/60" />
+              <h3 className="font-bold text-base">
+                Bạn đang ở cách Hà Nội ~{Math.round(distanceToHanoi)} km
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                Hiện tại hệ thống SanGo đang phục vụ các cụm sân chất lượng cao tại Hà Nội và TP.HCM.
+              </p>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  handleClearGps();
+                  applyFilters({ city: 'Hà Nội' });
+                }}
+                className="mt-2 rounded-xl text-xs font-bold"
+              >
+                Xem tất cả sân Hà Nội
+              </Button>
+            </div>
           ) : items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/80 p-12 text-center space-y-3 bg-card/50">
+            /* EC-05 & Standard Empty State */
+            <div className="rounded-2xl border border-dashed border-border/80 p-10 text-center space-y-3 bg-card/60">
               <SearchX className="mx-auto size-12 text-muted-foreground/50" />
-              <h3 className="font-bold text-base">Không tìm thấy sân phù hợp</h3>
+              <h3 className="font-bold text-base">
+                {userCoords !== null && radiusKm !== undefined
+                  ? `Không tìm thấy cụm sân nào trong bán kính ${radiusKm} km quanh bạn`
+                  : 'Không tìm thấy sân phù hợp'}
+              </h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 Hãy thử nới lỏng bộ lọc khoảng giá, mở rộng bán kính GPS hoặc chọn khu vực lân cận.
               </p>
-              <Button variant="outline" size="sm" onClick={handleResetAll} className="mt-2 rounded-xl text-xs">
-                Xóa tất cả bộ lọc
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2 pt-2">
+                {userCoords !== null && radiusKm !== undefined && radiusKm < 20 ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const next = radiusKm === 3 ? 5 : radiusKm === 5 ? 10 : 20;
+                      setRadiusKm(next);
+                    }}
+                    className="rounded-xl text-xs font-bold"
+                  >
+                    Mở rộng bán kính lên {radiusKm === 3 ? 5 : radiusKm === 5 ? 10 : 20} km
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetAll}
+                  className="rounded-xl text-xs font-bold"
+                >
+                  Xoá bộ lọc
+                </Button>
+                {userCoords !== null ? (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => {
+                      handleClearGps();
+                      applyFilters({ city: 'Hà Nội' });
+                    }}
+                    className="rounded-xl text-xs font-bold"
+                  >
+                    Xem tất cả sân Hà Nội
+                  </Button>
+                ) : null}
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4">
               {items.map((venue) => (
                 <VenueCard key={venue.id} venue={venue} />
               ))}
             </div>
           )}
 
+          {/* Pagination */}
           {query.data && query.data.pages > 1 ? (
-            <div className="flex justify-center gap-2 pt-6">
+            <div className="flex justify-center items-center gap-2 pt-6">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
-                onClick={() => applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: districtParam, page: page - 1 })}
-                className="rounded-xl text-xs"
+                onClick={() =>
+                  applyFilters({
+                    q,
+                    sportType: sportTypeParam,
+                    city: effectiveCity,
+                    district: districtParam,
+                    page: page - 1,
+                  })
+                }
+                className="rounded-xl text-xs font-bold"
               >
                 Trang trước
               </Button>
-              <span className="flex items-center px-3 text-xs font-semibold text-muted-foreground">
+              <span className="flex items-center px-3 font-score text-xs font-bold text-muted-foreground">
                 Trang {page} / {query.data.pages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page >= query.data.pages}
-                onClick={() => applyFilters({ q, sportType: sportTypeParam, city: effectiveCity, district: districtParam, page: page + 1 })}
-                className="rounded-xl text-xs"
+                onClick={() =>
+                  applyFilters({
+                    q,
+                    sportType: sportTypeParam,
+                    city: effectiveCity,
+                    district: districtParam,
+                    page: page + 1,
+                  })
+                }
+                className="rounded-xl text-xs font-bold"
               >
                 Trang sau
               </Button>

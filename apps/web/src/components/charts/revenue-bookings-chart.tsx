@@ -18,6 +18,7 @@ import {
 import type { ReactElement } from 'react';
 import { Chart } from 'react-chartjs-2';
 
+import { useChartTheme } from '../theme/use-chart-theme';
 import { formatReviewDate, formatVnd } from '../../features/public/format';
 
 ChartJS.register(
@@ -29,13 +30,6 @@ ChartJS.register(
   Tooltip,
   Legend,
 );
-
-/** Màu chủ đạo dark-friendly theo đặc tả: xanh lá #16a34a cho cột doanh thu. */
-const COLOR_REVENUE = '#16a34a';
-/** Màu bổ trợ cho đường lượt đặt — nổi trên cả nền sáng và tối. */
-const COLOR_BOOKINGS = '#f59e0b';
-const COLOR_TICK = '#94a3b8';
-const COLOR_GRID = 'rgba(148, 163, 184, 0.16)';
 
 /** Một điểm chuỗi ngày sau khi gộp (shape giống series /owner/analytics). */
 export interface RevenueBookingsPoint {
@@ -65,6 +59,8 @@ export function RevenueBookingsChart(options: {
   testId?: string;
 }): ReactElement {
   const { series, testId } = options;
+  const chartTheme = useChartTheme();
+
   // Mixed bar+line: ChartData<'bar'> không mô tả được dataset 'line' nên ép kiểu tại đây.
   const data = {
     labels: series.map((point) => axisDateLabel(point.date)),
@@ -73,48 +69,66 @@ export function RevenueBookingsChart(options: {
         type: 'bar',
         label: 'Doanh thu',
         data: series.map((point) => point.revenue),
-        backgroundColor: COLOR_REVENUE,
-        borderRadius: 3,
-        maxBarThickness: 14,
+        backgroundColor: chartTheme.revenueBackground,
+        hoverBackgroundColor: chartTheme.revenue,
+        borderRadius: 4,
+        maxBarThickness: 16,
         yAxisID: 'y',
       },
       {
         type: 'line',
         label: 'Lượt đặt',
         data: series.map((point) => point.bookings),
-        borderColor: COLOR_BOOKINGS,
-        backgroundColor: COLOR_BOOKINGS,
-        borderWidth: 2,
+        borderColor: chartTheme.bookings,
+        backgroundColor: chartTheme.bookingsBackground,
+        borderWidth: 2.5,
         pointRadius: 0,
-        pointHoverRadius: 4,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: chartTheme.bookings,
         tension: 0.35,
         yAxisID: 'y1',
       },
     ],
   } as unknown as ChartData<'bar'>;
+
   const chartOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     scales: {
       x: {
-        ticks: { color: COLOR_TICK, maxTicksLimit: 12, maxRotation: 0, autoSkip: true },
+        ticks: { color: chartTheme.mutedText, maxTicksLimit: 12, maxRotation: 0, autoSkip: true },
         grid: { display: false },
       },
       y: {
         position: 'left',
-        ticks: { color: COLOR_TICK, callback: (value) => compactMoney(Number(value)) },
-        grid: { color: COLOR_GRID },
+        ticks: { color: chartTheme.mutedText, callback: (value) => compactMoney(Number(value)) },
+        grid: { color: chartTheme.grid },
       },
       y1: {
         position: 'right',
-        ticks: { color: COLOR_TICK, precision: 0 },
+        ticks: { color: chartTheme.mutedText, precision: 0 },
         grid: { drawOnChartArea: false },
       },
     },
     plugins: {
-      legend: { labels: { color: COLOR_TICK, usePointStyle: true, boxWidth: 8 } },
+      legend: {
+        labels: {
+          color: chartTheme.text,
+          usePointStyle: true,
+          boxWidth: 8,
+          font: { family: 'Plus Jakarta Sans', size: 12, weight: 600 },
+        },
+      },
       tooltip: {
+        backgroundColor: chartTheme.tooltipBg,
+        titleColor: chartTheme.text,
+        bodyColor: chartTheme.text,
+        borderColor: chartTheme.tooltipBorder,
+        borderWidth: 1,
+        padding: 10,
+        boxPadding: 4,
+        usePointStyle: true,
         callbacks: {
           title: (items) => {
             const point = series[items[0]?.dataIndex ?? -1];
@@ -128,6 +142,7 @@ export function RevenueBookingsChart(options: {
       },
     },
   };
+
   return (
     <div className="h-72" data-testid={testId}>
       <Chart type="bar" data={data} options={chartOptions} />

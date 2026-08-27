@@ -1,13 +1,13 @@
 import { type ReactElement } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Calendar, Check, Home, QrCode, RotateCcw, X } from 'lucide-react';
+import { Calendar, Check, Home, RotateCcw, X, ShieldCheck } from 'lucide-react';
 
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { generateQrSvg } from '../../../lib/qrcode';
 import { formatVnd } from '../../public/format';
 
-/** Trang kết quả thanh toán — chuẩn UI/UX Pro-Max với animated checkmark + QR Check-in. */
+/** Trang kết quả thanh toán — chuẩn UI/UX Pro-Max với Match Pass Ticket + QR Check-in. */
 export function PaymentResultPage(): ReactElement {
   const [searchParams] = useSearchParams();
 
@@ -18,14 +18,18 @@ export function PaymentResultPage(): ReactElement {
     searchParams.get('code') || searchParams.get('txnRef') || searchParams.get('vnp_TxnRef') || '';
   const message = searchParams.get('message') || '';
   const amountStr = searchParams.get('amount') || searchParams.get('vnp_Amount');
-  const amount = amountStr ? (amountStr.length > 6 && amountStr.endsWith('00') && !amountStr.includes('.') ? Number(amountStr) / 100 : Number(amountStr)) : null;
+  const amount = amountStr
+    ? amountStr.length > 6 && amountStr.endsWith('00') && !amountStr.includes('.')
+      ? Number(amountStr) / 100
+      : Number(amountStr)
+    : null;
 
   const isSuccess = status === 'SUCCESS' || status === '00';
   const isAddOn = searchParams.get('type') === 'ADD_ON';
 
   return (
     <div className="mx-auto w-full max-w-xl py-6">
-      <Card className="overflow-hidden rounded-2xl border-border/60 p-6 text-center shadow-lg sm:p-10 bg-card">
+      <Card className="overflow-hidden rounded-2xl border-border/60 p-6 text-center shadow-[0_12px_40px_rgba(15,23,42,0.08)] sm:p-10 bg-card">
         {/* Animated Checkmark / Failure Icon */}
         <div className="flex justify-center">
           {isSuccess ? (
@@ -74,18 +78,18 @@ export function PaymentResultPage(): ReactElement {
                   }}
                 />
               </div>
-              <div className="mt-3 font-mono text-xl font-extrabold tracking-widest text-primary">
-                #{bookingCode}
+              <div className="mt-3 font-score text-xl font-extrabold tracking-widest text-primary">
+                <span>{bookingCode}</span>
               </div>
               {amount && !isNaN(amount) && amount > 0 ? (
                 <div className="text-xs text-muted-foreground mt-1">
-                  Đã thanh toán: <strong className="text-foreground font-mono">{formatVnd(amount)}</strong>
+                  Đã thanh toán: <strong className="text-foreground font-score">{formatVnd(amount)}</strong>
                 </div>
               ) : null}
             </div>
 
             <div className="flex items-start gap-2 rounded-lg bg-background p-3 text-left text-xs text-muted-foreground border border-border/60">
-              <QrCode className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+              <ShieldCheck className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
               <div>
                 <p className="font-semibold text-foreground">Hướng dẫn nhận sân:</p>
                 <p>Đến sân trước 10-15 phút và xuất trình mã QR này cho quản lý sân để check-in.</p>
@@ -93,36 +97,40 @@ export function PaymentResultPage(): ReactElement {
             </div>
           </div>
         ) : !isSuccess && bookingCode ? (
-          <div className="mt-6 rounded-xl border border-border/60 bg-muted/40 p-4 text-xs font-mono text-muted-foreground">
+          <div className="mt-6 rounded-xl border border-border/60 bg-muted/40 p-4 text-xs font-score text-muted-foreground">
             Mã giao dịch: <span className="font-bold text-foreground">{bookingCode}</span>
           </div>
         ) : null}
 
-        {/* Action buttons */}
+        {/* Action Buttons */}
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           {isSuccess ? (
             <>
-              <Button asChild size="lg" className="w-full sm:w-auto font-bold px-6">
-                <Link to="/bookings">
-                  <Calendar className="mr-2 size-4" aria-hidden /> Xem đơn của tôi
+              <Button asChild className="rounded-xl font-bold shadow-xs">
+                <Link to="/bookings" className="gap-2">
+                  <Calendar className="size-4" />
+                  Xem đơn của tôi
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto font-semibold px-6">
-                <Link to="/">
-                  <Home className="mr-2 size-4" aria-hidden /> Về trang chủ
+              <Button variant="outline" asChild className="rounded-xl font-bold">
+                <Link to="/" className="gap-2">
+                  <Home className="size-4" />
+                  Trang chủ
                 </Link>
               </Button>
             </>
           ) : (
             <>
-              <Button asChild size="lg" className="w-full sm:w-auto font-bold px-6">
-                <Link to="/venues">
-                  <RotateCcw className="mr-2 size-4" aria-hidden /> Chọn giờ khác
+              <Button asChild className="rounded-xl font-bold shadow-xs">
+                <Link to="/venues" className="gap-2">
+                  <RotateCcw className="size-4" />
+                  Chọn giờ khác
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto font-semibold px-6">
-                <Link to="/bookings">
-                  <Calendar className="mr-2 size-4" aria-hidden /> Đơn đã đặt
+              <Button variant="outline" asChild className="rounded-xl font-bold">
+                <Link to="/bookings" className="gap-2">
+                  <Calendar className="size-4" />
+                  Xem đơn của tôi
                 </Link>
               </Button>
             </>

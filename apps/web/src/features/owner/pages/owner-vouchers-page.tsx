@@ -1,6 +1,6 @@
 /** Trang 'Voucher của tôi' (F3) — tạo/bật-tắt/xoá mã giảm theo cửa sổ giờ thấp điểm. */
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Power, TicketPercent, Trash2 } from 'lucide-react';
+import { Plus, Power, TicketPercent, Trash2, TrendingUp } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -290,6 +290,49 @@ export function OwnerVouchersPage(): ReactElement {
           <Plus className="size-4" aria-hidden /> Tạo voucher
         </Button>
       </header>
+
+      {/* Dải tóm tắt Bento: tổng mã / đang chạy / lượt đã dùng */}
+      <div className="grid gap-3 sm:grid-cols-3" data-testid="voucher-summary">
+        <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+          <CardContent className="flex items-center justify-between gap-2 p-4">
+            <div>
+              <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Tổng mã
+              </p>
+              <p className="font-score text-2xl font-extrabold tabular-nums tracking-tight">
+                {items.length}
+              </p>
+            </div>
+            <TicketPercent className="size-6 text-primary" aria-hidden />
+          </CardContent>
+        </Card>
+        <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+          <CardContent className="flex items-center justify-between gap-2 p-4">
+            <div>
+              <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Đang chạy
+              </p>
+              <p className="font-score text-2xl font-extrabold tabular-nums tracking-tight">
+                {items.filter((v) => v.active).length}
+              </p>
+            </div>
+            <Power className="size-6 text-primary" aria-hidden />
+          </CardContent>
+        </Card>
+        <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+          <CardContent className="flex items-center justify-between gap-2 p-4">
+            <div>
+              <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Lượt đã dùng
+              </p>
+              <p className="font-score text-2xl font-extrabold tabular-nums tracking-tight">
+                {items.reduce((sum, v) => sum + (v._count?.redemptions ?? 0), 0)}
+              </p>
+            </div>
+            <TrendingUp className="size-6 text-amber-500" aria-hidden />
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="rounded-xl border-border/60 p-0">
         <CardContent className="p-0">

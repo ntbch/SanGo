@@ -46,7 +46,7 @@ import {
 import { useToast } from '../../../components/ui/use-toast';
 import { friendlyApiMessage } from '../../../lib/api/api-error';
 import { useAuthStore } from '../../../lib/auth/auth-store';
-import { formatVnd } from '../../public/format';
+import { formatVnd, minutesToTime } from '../../public/format';
 import { useMyBookings } from '../../booking/queries';
 import {
   useContributeTeamFund,
@@ -466,10 +466,48 @@ export function TeamDetailPage(): ReactElement {
         updating={updateStatusMutation.isPending}
       />
 
+      {/* S2-F1: Lịch sử đặt sân của đội */}
+      <Card className="rounded-2xl border-border/70 bg-card overflow-hidden shadow-xs">
+        <CardHeader className="border-b py-4">
+          <CardTitle className="text-base font-bold">Lịch sử đặt sân của đội</CardTitle>
+          <CardDescription className="text-xs">
+            Các đơn đặt sân được đặt dưới tư cách đội {team?.name}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          {teamBookings.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              Chưa có đơn đặt sân nào gắn với đội này.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {teamBookings.map((b) => (
+                <div
+                  key={b.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 p-3.5 hover:bg-muted/30 transition"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-score text-xs font-bold text-primary">{b.code}</span>
+                      <Badge variant="secondary" className="text-[10px]">{b.status}</Badge>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{b.venueName}</p>
+                    <p className="text-xs text-muted-foreground">{b.date} · {minutesToTime(b.startMinute)} - {minutesToTime(b.endMinute)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-score text-sm font-extrabold text-foreground">{formatVnd(b.totalPrice)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Danh sách thành viên */}
       <Card className="rounded-2xl border-border/70 bg-card overflow-hidden shadow-xs">
         <CardHeader className="border-b py-4">
-          <CardTitle className="text-base">Thành viên đội ({team?.members.length ?? 0})</CardTitle>
+          <CardTitle className="text-base">Thành viên ({team?.members.length ?? 0})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <ul role="list" aria-label="Danh sách thành viên">
@@ -780,7 +818,7 @@ function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
     <Card className="rounded-2xl border-border/70 bg-card overflow-hidden shadow-xs">
       <CardHeader className="flex-row items-center justify-between space-y-0 border-b py-4">
         <div>
-          <CardTitle className="text-base">Sổ nợ chia tiền thành viên</CardTitle>
+          <CardTitle className="text-base font-bold">Sổ quỹ chia tiền</CardTitle>
           <CardDescription className="text-xs">Theo dõi từng khoản nợ và đối soát trạng thái trả</CardDescription>
         </div>
         <Button
@@ -800,14 +838,14 @@ function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Tổng nợ chưa trả
             </p>
-            <p className="font-mono mt-0.5 text-lg font-bold text-foreground">{formatVnd(totalUnpaid)}</p>
+            <p className="font-mono mt-0.5 text-lg font-bold text-foreground">{totalUnpaid.toLocaleString('vi-VN')}₫</p>
           </div>
           <div className="px-5 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Tôi đang nợ
             </p>
             <p className="font-mono mt-0.5 text-lg font-bold text-destructive">
-              {formatVnd(myOwed)}
+              {myOwed.toLocaleString('vi-VN')}₫
             </p>
           </div>
           <div className="px-5 py-3">
@@ -815,7 +853,7 @@ function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
               Tôi được nhận
             </p>
             <p className="font-mono mt-0.5 text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {formatVnd(myReceivable)}
+              {myReceivable.toLocaleString('vi-VN')}₫
             </p>
           </div>
         </div>
@@ -849,7 +887,7 @@ function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
                 <TableRow key={share.id}>
                   <TableCell className="font-semibold text-xs text-foreground">{share.payer.fullName}</TableCell>
                   <TableCell className="text-xs">{share.debtor.fullName}</TableCell>
-                  <TableCell className="font-mono font-bold text-xs">{formatVnd(share.amount)}</TableCell>
+                  <TableCell className="font-mono font-bold text-xs">{share.amount.toLocaleString('vi-VN')}₫</TableCell>
                   <TableCell className="max-w-[180px] truncate text-xs text-muted-foreground">
                     {share.booking?.code ? `Đơn ${share.booking.code}` : (share.note ?? '—')}
                   </TableCell>
@@ -871,7 +909,7 @@ function TeamExpensesPanel(props: ExpensesPanelProps): ReactElement {
                         ) : (
                           <Check className="size-3" aria-hidden />
                         )}
-                        Đánh dấu đã trả
+                        Đánh dấu đã thanh toán
                       </Button>
                     )}
                   </TableCell>

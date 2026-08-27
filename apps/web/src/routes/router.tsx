@@ -1,6 +1,6 @@
 import { UserRole } from '@sango/shared';
 import { useEffect, useRef, type ReactElement } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 
 import { ProtectedRoute, GuestRoute } from '../components/auth/guards';
 import { DashboardLayout } from '../components/layout/dashboard-layout';
@@ -65,6 +65,18 @@ function useSessionBootstrap(): void {
       });
     }
   }, []);
+}
+
+function RedirectWithSearch({ to }: { to: string }): ReactElement {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+}
+
+function RedirectTeamDetail(): ReactElement {
+  const { teamId } = useParams();
+  const location = useLocation();
+  const id = teamId || location.pathname.split('/').filter(Boolean).pop();
+  return <Navigate to={`/teams/${id ?? ''}${location.search}`} replace />;
 }
 
 export function AppRoutes(): ReactElement {
@@ -263,15 +275,15 @@ export function AppRoutes(): ReactElement {
         />
 
         {/* Legacy redirect aliases từ /dashboard/* cho CUSTOMER */}
-        <Route path="/dashboard/my-bookings" element={<Navigate to="/bookings" replace />} />
-        <Route path="/dashboard/wallet" element={<Navigate to="/wallet" replace />} />
-        <Route path="/dashboard/notifications" element={<Navigate to="/notifications" replace />} />
-        <Route path="/dashboard/teams" element={<Navigate to="/teams" replace />} />
-        <Route path="/dashboard/teams/new" element={<Navigate to="/teams/new" replace />} />
-        <Route path="/dashboard/teams/join" element={<Navigate to="/teams/join" replace />} />
-        <Route path="/dashboard/teams/:teamId" element={<Navigate to="/teams" replace />} />
-        <Route path="/dashboard/ranking" element={<Navigate to="/ranking" replace />} />
-        <Route path="/dashboard/profile" element={<Navigate to="/profile" replace />} />
+        <Route path="/dashboard/my-bookings" element={<RedirectWithSearch to="/bookings" />} />
+        <Route path="/dashboard/wallet" element={<RedirectWithSearch to="/wallet" />} />
+        <Route path="/dashboard/notifications" element={<RedirectWithSearch to="/notifications" />} />
+        <Route path="/dashboard/teams" element={<RedirectWithSearch to="/teams" />} />
+        <Route path="/dashboard/teams/new" element={<RedirectWithSearch to="/teams/new" />} />
+        <Route path="/dashboard/teams/join" element={<RedirectWithSearch to="/teams/join" />} />
+        <Route path="/dashboard/teams/:teamId" element={<RedirectTeamDetail />} />
+        <Route path="/dashboard/ranking" element={<RedirectWithSearch to="/ranking" />} />
+        <Route path="/dashboard/profile" element={<RedirectWithSearch to="/profile" />} />
 
         {/* Dashboard dành riêng cho OWNER và ADMIN (DashboardLayout có sidebar quản trị) */}
         <Route

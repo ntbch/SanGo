@@ -89,10 +89,10 @@ function NotificationPanel(): ReactElement {
   return (
     <div
       data-testid="notification-panel"
-      className="flex max-h-[420px] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
+      className="flex max-h-[420px] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-[0_12px_40px_rgba(15,23,42,0.12)]"
     >
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <p className="text-sm font-semibold">Thông báo</p>
+      <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5">
+        <p className="text-sm font-bold text-foreground">Thông báo</p>
         {unreadCount > 0 ? (
           <Button
             variant="ghost"
@@ -100,19 +100,19 @@ function NotificationPanel(): ReactElement {
             data-testid="mark-all-read"
             disabled={markAllRead.isPending}
             onClick={() => markAllRead.mutate()}
-            className="h-7 gap-1 px-2 text-xs"
+            className="h-7 gap-1 px-2 text-xs font-semibold text-primary hover:bg-accent"
           >
             {markAllRead.isPending ? (
               <Loader2 className="size-3 animate-spin" aria-hidden />
             ) : (
-              <CheckCheck className="size-3" aria-hidden />
+              <CheckCheck className="size-3.5" aria-hidden />
             )}
             Đánh dấu tất cả đã đọc
           </Button>
         ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto" role="list" aria-label="Danh sách thông báo">
+      <div className="flex-1 overflow-y-auto divide-y divide-border/40" role="list" aria-label="Danh sách thông báo">
         {/* Lỗi tải hộp thư: im lặng thân thiện — giữ panel mở được, không toast/red alert. */}
         {query.isError ? (
           <p
@@ -124,7 +124,7 @@ function NotificationPanel(): ReactElement {
         ) : items.length === 0 ? (
           <div className="px-3 py-10 text-center" data-testid="notifications-empty">
             <Bell className="mx-auto size-8 text-muted-foreground/40" aria-hidden />
-            <p className="mt-2 text-sm text-muted-foreground">Chưa có thông báo nào</p>
+            <p className="mt-2 text-sm text-muted-foreground">Chưa có thông báo nào.</p>
           </div>
         ) : (
           items.map((item) => <NotificationItem key={item.id} item={item} />)
@@ -133,8 +133,8 @@ function NotificationPanel(): ReactElement {
 
       {/* F8: vào Trung tâm thông báo để lọc theo loại và xem hết hộp thư. */}
       <Link
-        to="/dashboard/notifications"
-        className="border-t px-3 py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-accent"
+        to="/notifications"
+        className="border-t border-border/60 px-3 py-2.5 text-center text-xs font-bold text-primary transition-colors hover:bg-accent"
       >
         Xem tất cả thông báo
       </Link>
@@ -156,14 +156,14 @@ export function NotificationBell(): ReactElement {
           size="icon"
           data-testid="notification-bell"
           aria-label="Chuông thông báo"
-          className="relative"
+          className="relative rounded-lg hover:bg-accent"
         >
           <Bell className="size-5" aria-hidden />
           {unreadCount > 0 ? (
             <span
               data-testid="notification-badge"
               aria-hidden
-              className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-white"
+              className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 font-score text-[10px] font-bold leading-none text-white shadow-xs"
             >
               {unreadCount > 9 ? '9+' : String(unreadCount)}
             </span>

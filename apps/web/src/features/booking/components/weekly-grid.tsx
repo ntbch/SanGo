@@ -155,7 +155,7 @@ export function WeeklyGrid({
                         aria-pressed={isSelected}
                         aria-label={`Slot ${d.date} ${minutesToTime(slot.startMinute)} - ${style.label}`}
                         className={cn(
-                          'w-full px-1 py-2 rounded-lg border text-xs font-medium transition-all flex flex-col items-center justify-center gap-0.5 min-h-[46px]',
+                          'w-full px-1 py-2 rounded-lg border text-xs font-medium transition-all flex flex-col items-center justify-center gap-0.5 min-h-[48px]',
                           isSelected
                             ? 'border-turf bg-turf font-bold text-navy-deep shadow-sm'
                             : style.bg,

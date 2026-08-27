@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { useToast } from '../components/ui/use-toast';
@@ -32,6 +33,14 @@ export function PartnerPage(): ReactElement {
     notes: '',
   });
   const [submitted, setSubmitted] = useState(false);
+
+  // Trạng thái công cụ tính toán doanh thu (Interactive Revenue Calculator)
+  const [calcCourts, setCalcCourts] = useState<number>(4);
+  const [calcPrice, setCalcPrice] = useState<number>(200000);
+  const [calcSlotsPerDay, setCalcSlotsPerDay] = useState<number>(8);
+
+  const monthlyBoost = Math.round(calcCourts * calcPrice * calcSlotsPerDay * 30 * 0.35);
+  const bookingsBoost = Math.round(calcCourts * calcSlotsPerDay * 30 * 0.35);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -163,6 +172,117 @@ export function PartnerPage(): ReactElement {
               </p>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Công cụ tính toán doanh thu gia tăng (Interactive Revenue Calculator) */}
+      <section className="rounded-2xl border border-border/70 bg-card p-6 md:p-8 shadow-[0_4px_20px_rgba(15,23,42,0.05)] space-y-6">
+        <div className="text-center space-y-2 max-w-2xl mx-auto">
+          <Badge className="bg-primary/15 text-primary border-primary/20">Ước Tính Hiệu Quả</Badge>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Công Cụ Tính Doanh Thu Tăng Thêm Cùng SanGo
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Dựa trên số liệu thực tế từ các cụm sân đối tác đã tối ưu hóa tỷ lệ lấp đầy thêm trung bình 35%.
+          </p>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-12 items-center">
+          {/* Cột điều chỉnh thông số */}
+          <div className="lg:col-span-7 space-y-5 rounded-xl border border-border/60 bg-muted/20 p-5">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-foreground">Số lượng sân con của cụm:</span>
+                <span className="font-score font-bold text-primary">{calcCourts} sân</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="12"
+                step="1"
+                value={calcCourts}
+                onChange={(e) => setCalcCourts(Number(e.target.value))}
+                className="w-full accent-primary h-2 bg-muted rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>1 sân</span>
+                <span>6 sân</span>
+                <span>12 sân</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-foreground">Giá thuê trung bình / slot (60-90p):</span>
+                <span className="font-score font-bold text-primary">{calcPrice.toLocaleString('vi-VN')}₫</span>
+              </div>
+              <input
+                type="range"
+                min="100000"
+                max="600000"
+                step="20000"
+                value={calcPrice}
+                onChange={(e) => setCalcPrice(Number(e.target.value))}
+                className="w-full accent-primary h-2 bg-muted rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>100.000₫</span>
+                <span>350.000₫</span>
+                <span>600.000₫</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-foreground">Số khung giờ hoạt động / ngày:</span>
+                <span className="font-score font-bold text-primary">{calcSlotsPerDay} slot/ngày</span>
+              </div>
+              <input
+                type="range"
+                min="4"
+                max="14"
+                step="1"
+                value={calcSlotsPerDay}
+                onChange={(e) => setCalcSlotsPerDay(Number(e.target.value))}
+                className="w-full accent-primary h-2 bg-muted rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>4 slot (Sáng/Tối)</span>
+                <span>8 slot</span>
+                <span>14 slot (Full ngày)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cột kết quả ước tính Bento */}
+          <div className="lg:col-span-5 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-accent/30 to-background p-6 space-y-5 text-center shadow-sm">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Doanh thu ước tính tăng thêm mỗi tháng
+              </p>
+              <div className="font-score text-3xl sm:text-4xl font-extrabold text-primary tracking-tight">
+                +{monthlyBoost.toLocaleString('vi-VN')}₫
+              </div>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                (~ +{(monthlyBoost * 12).toLocaleString('vi-VN')}₫ mỗi năm)
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/60 text-left">
+              <div className="rounded-lg bg-card/80 p-3 border border-border/60">
+                <p className="text-[11px] text-muted-foreground">Đơn đặt mới tăng thêm:</p>
+                <p className="font-score font-bold text-base text-foreground mt-0.5">+{bookingsBoost} lượt/tháng</p>
+              </div>
+              <div className="rounded-lg bg-card/80 p-3 border border-border/60">
+                <p className="text-[11px] text-muted-foreground">Tỷ lệ lấp đầy giờ vắng:</p>
+                <p className="font-score font-bold text-base text-emerald-600 dark:text-emerald-400 mt-0.5">+35% công suất</p>
+              </div>
+            </div>
+
+            <Button asChild className="w-full font-bold shadow-xs">
+              <a href="#register-form">Nhận tư vấn mở rộng doanh thu</a>
+            </Button>
+          </div>
         </div>
       </section>
 

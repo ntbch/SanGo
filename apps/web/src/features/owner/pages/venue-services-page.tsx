@@ -1,6 +1,6 @@
 /** Trang 'Dịch vụ' của chủ sân (F4) — thêm món nước/đồ thuê, đổi giá, bật-tắt bán. */
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Pencil, Plus, Power, ShoppingBag, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Power, ShoppingBag, Trash2, TrendingUp } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -289,6 +289,53 @@ export function VenueServicesPage(): ReactElement {
           ))}
         </select>
       </div>
+
+      {/* Dải tóm tắt Bento menu dịch vụ */}
+      {venueId !== '' && !servicesQuery.isPending && items.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-3" data-testid="services-summary">
+          <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+            <CardContent className="flex items-center justify-between gap-2 p-4">
+              <div>
+                <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Tổng món
+                </p>
+                <p className="font-score text-2xl font-extrabold tabular-nums tracking-tight">
+                  {items.length}
+                </p>
+              </div>
+              <ShoppingBag className="size-6 text-primary" aria-hidden />
+            </CardContent>
+          </Card>
+          <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+            <CardContent className="flex items-center justify-between gap-2 p-4">
+              <div>
+                <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Đang bán
+                </p>
+                <p className="font-score text-2xl font-extrabold tabular-nums tracking-tight">
+                  {items.filter((s) => s.isAvailable).length}
+                </p>
+              </div>
+              <Power className="size-6 text-primary" aria-hidden />
+            </CardContent>
+          </Card>
+          <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+            <CardContent className="flex items-center justify-between gap-2 p-4">
+              <div>
+                <p className="font-score text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Tổng giá trị menu
+                </p>
+                <p className="font-score text-2xl font-extrabold tabular-nums tracking-tight">
+                  {formatVnd(items.reduce((sum, s) => sum + s.price, 0))}
+                </p>
+              </div>
+              <span className="flex size-6 items-center justify-center text-amber-500">
+                <TrendingUp className="size-6" aria-hidden />
+              </span>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
       <Card className="rounded-xl border-border/60 p-0">
         <CardContent className="p-0">

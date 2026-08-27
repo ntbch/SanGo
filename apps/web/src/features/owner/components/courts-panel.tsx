@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Wrench } from 'lucide-react';
+import { Loader2, Lock, LockOpen, Plus, Wrench } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -26,7 +26,7 @@ interface CourtsPanelProps {
   venueId: string;
 }
 
-/** Quản lý sân con của một cụm sân: thêm/sửa/xoá + bật/tắt bảo trì. */
+/** Quản lý sân con của một cụm sân: thêm/sửa/xoá + 1-Click khoá bảo trì. */
 export function CourtsPanel({ venueId }: CourtsPanelProps): ReactElement {
   const courtsQuery = useVenueCourts(venueId);
   const createMutation = useCreateCourt(venueId);
@@ -35,6 +35,7 @@ export function CourtsPanel({ venueId }: CourtsPanelProps): ReactElement {
   const [editing, setEditing] = useState<CourtRow | 'new' | undefined>(undefined);
 
   const courts = courtsQuery.data?.items ?? [];
+  const maintenanceCount = courts.filter((court) => court.status === 'MAINTENANCE').length;
 
   function toggleMaintenance(court: CourtRow): void {
     updateMutation.mutate({
@@ -44,11 +45,22 @@ export function CourtsPanel({ venueId }: CourtsPanelProps): ReactElement {
   }
 
   return (
-    <Card>
+    <Card className="border-border/60 shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
       <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Sân con ({courts.length})</CardTitle>
-        <Button size="sm" onClick={() => setEditing('new')}>
-          Thêm sân con
+        <div className="space-y-1">
+          <CardTitle className="text-base">Sân con ({courts.length})</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {maintenanceCount > 0 ? (
+              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <Lock className="size-3" aria-hidden /> {maintenanceCount} sân đang khoá bảo trì
+              </span>
+            ) : (
+              'Tất cả sân con đang hoạt động'
+            )}
+          </p>
+        </div>
+        <Button size="sm" className="rounded-lg font-bold" onClick={() => setEditing('new')}>
+          <Plus className="size-4" aria-hidden /> Thêm sân con
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -59,7 +71,14 @@ export function CourtsPanel({ venueId }: CourtsPanelProps): ReactElement {
           </p>
         ) : null}
         {courts.map((court) => (
-          <div key={court.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+          <div
+            key={court.id}
+            className={`flex flex-wrap items-center gap-2 rounded-lg border p-3 transition-colors ${
+              court.status === 'MAINTENANCE'
+                ? 'border-destructive/30 bg-destructive/5'
+                : 'border-border/60 hover:border-primary/40'
+            }`}
+          >
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 font-medium">
                 {court.name}
@@ -76,15 +95,33 @@ export function CourtsPanel({ venueId }: CourtsPanelProps): ReactElement {
                 {court.slotMinutes}′ · từ {formatVnd(court.defaultPricePerSlot)}
               </p>
             </div>
+            {/* 1-Click khoá/mở bảo trì */}
             <Button
-              variant="outline"
+              variant={court.status === 'MAINTENANCE' ? 'outline' : 'secondary'}
               size="sm"
+              className={`rounded-lg font-bold ${
+                court.status === 'MAINTENANCE'
+                  ? 'text-destructive border-destructive/40 hover:bg-destructive/10'
+                  : ''
+              }`}
+              title={
+                court.status === 'MAINTENANCE'
+                  ? 'Mở lại sân cho nhận đặt'
+                  : '1-Click khoá sân để bảo trì'
+              }
               onClick={() => toggleMaintenance(court)}
               disabled={updateMutation.isPending}
             >
+              {updateMutation.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : court.status === 'MAINTENANCE' ? (
+                <LockOpen className="size-3.5" aria-hidden />
+              ) : (
+                <Lock className="size-3.5" aria-hidden />
+              )}
               {court.status === 'MAINTENANCE' ? 'Bật lại' : 'Bảo trì'}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setEditing(court)}>
+            <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setEditing(court)}>
               Sửa
             </Button>
             <Button
@@ -220,11 +257,8 @@ function CourtsDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Huỷ
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : null}
-              Lưu
+            <Button type="submit" className="rounded-lg font-bold">
+              {isEdit ? 'Lưu thay đổi' : 'Thêm sân con'}
             </Button>
           </DialogFooter>
         </form>

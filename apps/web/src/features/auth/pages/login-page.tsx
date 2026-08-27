@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Lock, LogIn, Mail } from 'lucide-react';
+import { CheckCircle2, Lock, LogIn, Mail, QrCode, Sparkles, Users } from 'lucide-react';
 import { type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -22,7 +22,7 @@ import { useAuthStore } from '../../../lib/auth/auth-store';
 import { env } from '../../../lib/env';
 import { login } from '../api';
 import { AuthInput } from '../components/auth-input';
-import { AUTH_CARD_CLASS, AuthShell } from '../components/auth-shell';
+import { AUTH_SPLIT_CARD_CLASS, AuthShell } from '../components/auth-shell';
 import { loginSchema, type LoginDto } from '../schemas';
 
 /** Tài khoản demo hiển thị khi chạy chế độ mock (VITE_USE_MOCK=true). */
@@ -70,99 +70,177 @@ export function LoginPage(): ReactElement {
 
   return (
     <AuthShell>
-      <Card className={AUTH_CARD_CLASS}>
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <LogIn className="size-5" aria-hidden />
-          </span>
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-bold tracking-tight">Đăng nhập {APP_NAME}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Đặt sân nhanh, giữ chỗ an toàn, check-in bằng mã QR.
-            </p>
+      <Card className={AUTH_SPLIT_CARD_CLASS}>
+        <div className="grid grid-cols-1 md:grid-cols-12">
+          {/* Cột trái: Form đăng nhập */}
+          <div className="p-6 sm:p-8 md:col-span-7 flex flex-col justify-between">
+            <div>
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                  <LogIn className="size-5" aria-hidden />
+                </span>
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-bold tracking-tight">Đăng nhập {APP_NAME}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Đặt sân nhanh, giữ chỗ an toàn, check-in bằng mã QR.
+                  </p>
+                </div>
+              </div>
+
+              <Form {...form}>
+                <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <AuthInput
+                            icon={<Mail aria-hidden />}
+                            type="email"
+                            placeholder="ban@sango.vn"
+                            autoComplete="email"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mật khẩu</FormLabel>
+                        <FormControl>
+                          <AuthInput
+                            icon={<Lock aria-hidden />}
+                            type="password"
+                            placeholder="••••••••"
+                            autoComplete="current-password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="h-11 w-full rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
+                  >
+                    {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
+                  </Button>
+                </form>
+              </Form>
+
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                Chưa có tài khoản?{'  '}
+                <Link
+                  to="/register"
+                  className="font-semibold text-primary underline-offset-4 hover:underline"
+                >
+                  Đăng ký
+                </Link>
+                {'  '}·{'  '}
+                <Link
+                  to="/quen-mat-khau"
+                  className="underline-offset-4 transition-colors hover:text-primary hover:underline"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </p>
+            </div>
+
+            {env.useMock && (
+              <div className="mt-6 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground">Chế độ demo (mock)</p>
+                Đăng nhập thử với mật khẩu <code className="font-score text-primary font-bold">Sango@2026</code>:
+                <ul className="mt-1 list-inside list-disc">
+                  {MOCK_HINT_ACCOUNTS.map((account) => (
+                    <li key={account} className="font-score">
+                      {account}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Cột phải: Bento Feature Highlights trên nền Navy Mesh */}
+          <div className="relative isolate hidden md:flex md:col-span-5 flex-col justify-between overflow-hidden bg-navy p-8 text-white border-l border-white/10">
+            {/* Ambient glows */}
+            <div
+              aria-hidden
+              className="absolute -right-12 -top-12 size-48 rounded-full bg-turf/20 blur-2xl"
+            />
+            <div
+              aria-hidden
+              className="absolute -bottom-12 -left-12 size-48 rounded-full bg-oxygen/20 blur-2xl"
+            />
+
+            <div className="relative z-10 space-y-6">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-turf/20 px-3 py-1 font-score text-[11px] font-bold text-turf-bright">
+                  <Sparkles className="size-3" /> MODERN ATHLETIC BENTO
+                </span>
+                <h3 className="mt-3 text-2xl font-extrabold tracking-tight text-white leading-tight">
+                  Nền tảng thể thao thế hệ mới
+                </h3>
+                <p className="mt-1 text-xs text-white/70">
+                  Trải nghiệm đặt sân và kết nối thể thao mượt mà, tiện lợi.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3 backdrop-blur-xs border border-white/10">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-turf text-navy-deep font-bold">
+                    <CheckCircle2 className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white">Giữ chỗ tức thì 10 phút</p>
+                    <p className="text-[11px] text-white/60">
+                      Khoá slot thời gian thực, chống trùng sân tuyệt đối.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3 backdrop-blur-xs border border-white/10">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-oxygen text-navy-deep font-bold">
+                    <QrCode className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white">Check-in QR 1 chạm</p>
+                    <p className="text-[11px] text-white/60">
+                      Mở mã QR tại sân, nhận sân nhanh chóng không chờ đợi.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3 backdrop-blur-xs border border-white/10">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-400 text-navy-deep font-bold">
+                    <Users className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white">Ghép trận & Quỹ đội</p>
+                    <p className="text-[11px] text-white/60">
+                      Tìm đối thủ cùng trình độ, chia tiền sân tự động.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 border-t border-white/10 pt-4 text-center">
+              <p className="text-[11px] text-white/50">
+                © 2026 {APP_NAME} Platform · All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
-
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <AuthInput
-                      icon={<Mail aria-hidden />}
-                      type="email"
-                      placeholder="ban@sango.vn"
-                      autoComplete="email"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mật khẩu</FormLabel>
-                  <FormControl>
-                    <AuthInput
-                      icon={<Lock aria-hidden />}
-                      type="password"
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-11 w-full rounded-lg font-bold shadow-[0_4px_20px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_30px_rgba(15,23,42,0.1)]"
-            >
-              {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
-            </Button>
-          </form>
-        </Form>
-
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Chưa có tài khoản?{'  '}
-          <Link
-            to="/register"
-            className="font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            Đăng ký
-          </Link>
-          {'  '}·{'  '}
-          <Link
-            to="/quen-mat-khau"
-            className="underline-offset-4 transition-colors hover:text-primary hover:underline"
-          >
-            Quên mật khẩu?
-          </Link>
-        </p>
-
-        {env.useMock && (
-          <div className="mt-4 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground">Chế độ demo (mock)</p>
-            Đăng nhập thử với mật khẩu <code className="font-score text-primary">Sango@2026</code>:
-            <ul className="mt-1 list-inside list-disc">
-              {MOCK_HINT_ACCOUNTS.map((account) => (
-                <li key={account} className="font-score">
-                  {account}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </Card>
     </AuthShell>
   );
