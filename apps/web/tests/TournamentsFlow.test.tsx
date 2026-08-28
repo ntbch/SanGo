@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { TournamentsPage, TournamentDetailPage } from '../src/features/tournaments/pages/tournaments-pages';
+import { TournamentsPage, TournamentDetailPage } from '../src/features/tournaments/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { UserRole } from '../src/lib/constants';
 

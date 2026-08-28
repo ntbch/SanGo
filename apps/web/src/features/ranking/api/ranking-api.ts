@@ -182,7 +182,8 @@ export async function getClubRankingsApi(params?: {
   if (params?.city && params.city !== 'ALL') {
     list = list.filter((item) => item.city === params.city);
   }
-  return list;
+  list.sort((a, b) => b.eloScore - a.eloScore);
+  return list.map((item, idx) => ({ ...item, rank: idx + 1 }));
 }
 
 export async function getAthleteRankingsApi(params?: {
@@ -196,5 +197,6 @@ export async function getAthleteRankingsApi(params?: {
   if (params?.city && params.city !== 'ALL') {
     list = list.filter((item) => item.city === params.city);
   }
-  return list;
+  list.sort((a, b) => b.reputationScore - a.reputationScore || b.mvpCount - a.mvpCount);
+  return list.map((item, idx) => ({ ...item, rank: idx + 1 }));
 }

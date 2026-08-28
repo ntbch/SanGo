@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Bell,
   Calendar,
   Compass,
   LayoutDashboard,
@@ -23,6 +22,7 @@ import { useAuthStore } from '../../lib/auth-store';
 import { UserRole } from '../../lib/constants';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
+import { NotificationDropdown } from '../../features/notifications/components/notification-dropdown';
 
 export function Navbar(): React.ReactElement {
   const { user, logout } = useAuthStore();
@@ -138,15 +138,8 @@ export function Navbar(): React.ReactElement {
 
           {user ? (
             <div className="flex items-center gap-2 relative">
-              {/* Notification Bell (Đặt cạnh Avatar) */}
-              <Link
-                to="/notifications"
-                className="relative p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                title="Thông báo"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-              </Link>
+              {/* Notification Bell Popup */}
+              <NotificationDropdown />
 
               {/* User Avatar Button & Dropdown Menu */}
               <div className="relative" ref={userMenuRef}>
@@ -277,9 +270,7 @@ export function Navbar(): React.ReactElement {
           </Button>
 
           {user && (
-            <Link to="/notifications" className="p-2 text-muted-foreground hover:text-foreground">
-              <Bell className="h-5 w-5" />
-            </Link>
+            <NotificationDropdown />
           )}
           <button
             type="button"

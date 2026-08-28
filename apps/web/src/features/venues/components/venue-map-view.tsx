@@ -91,6 +91,19 @@ function MapEventsHandler({
   return null;
 }
 
+// Controller kích hoạt invalidateSize khi map mount hoặc container resize
+function MapInitController() {
+  const map = useMap();
+  React.useEffect(() => {
+    map.invalidateSize();
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
 // Controller xử lý flyTo: Chỉ kích hoạt đúng 1 lần khi đổi sân được chọn
 function MapFlyToController({
   venueId,
@@ -154,6 +167,35 @@ export interface VenueMapViewProps {
   zoom?: number;
 }
 
+type MapTileType = 'google-street' | 'google-satellite' | 'voyager';
+
+const MAP_TILES: Record<
+  MapTileType,
+  { name: string; url: string; subdomains?: string[] | string; attribution: string; maxZoom: number }
+> = {
+  'google-street': {
+    name: 'Google Maps',
+    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps',
+    maxZoom: 20,
+  },
+  'google-satellite': {
+    name: 'Vệ Tinh',
+    url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps Satellite',
+    maxZoom: 20,
+  },
+  'voyager': {
+    name: 'Vector',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: 'abcd',
+    attribution: '&copy; CARTO',
+    maxZoom: 20,
+  },
+};
+
 export const VenueMapView = React.memo(function VenueMapView({
   venues,
   onBoundsChange,
@@ -161,6 +203,7 @@ export const VenueMapView = React.memo(function VenueMapView({
   zoom = 13,
 }: VenueMapViewProps): React.ReactElement {
   const [selectedVenue, setSelectedVenue] = React.useState<VenueItem | null>(null);
+  const [tileType, setTileType] = React.useState<MapTileType>('google-street');
 
   const handleMarkerClick = React.useCallback((venue: VenueItem) => {
     setSelectedVenue((prev) => (prev?.id === venue.id ? prev : venue));
@@ -170,8 +213,28 @@ export const VenueMapView = React.memo(function VenueMapView({
     setSelectedVenue(null);
   }, []);
 
+  const currentTile = MAP_TILES[tileType];
+
   return (
     <div className="relative h-full w-full overflow-hidden">
+      {/* Map Layer Mode Switcher */}
+      <div className="absolute top-3 right-3 z-20 flex items-center bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-md gap-1 text-xs">
+        {(['google-street', 'google-satellite', 'voyager'] as MapTileType[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTileType(t)}
+            className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] transition-colors cursor-pointer ${
+              tileType === t
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+            }`}
+          >
+            {MAP_TILES[t].name}
+          </button>
+        ))}
+      </div>
+
       <MapContainer
         center={center}
         zoom={zoom}
@@ -179,10 +242,14 @@ export const VenueMapView = React.memo(function VenueMapView({
         scrollWheelZoom={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={tileType}
+          attribution={currentTile.attribution}
+          url={currentTile.url}
+          subdomains={currentTile.subdomains}
+          maxZoom={currentTile.maxZoom}
         />
 
+        <MapInitController />
         <MapEventsHandler onBoundsChange={onBoundsChange} />
         <MapFlyToController
           venueId={selectedVenue?.id}

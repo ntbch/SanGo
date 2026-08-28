@@ -31,7 +31,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
   const rating = venue.avgRating ? Number(venue.avgRating).toFixed(1) : '5.0';
 
   return (
-    <Card className="group overflow-hidden rounded-2xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col justify-between">
+    <Card className="group overflow-hidden rounded-3xl border border-border/80 bg-card hover:border-primary/60 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col justify-between">
       <div>
         {/* Aspect 16:9 Image Container */}
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
@@ -41,7 +41,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
           {/* Top Badges */}
           <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
@@ -85,7 +85,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
               {venue.name}
             </h3>
             <p className="text-xs text-muted-foreground line-clamp-1 flex items-center gap-1 mt-0.5">
-              <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span>{venue.address ? `${venue.address}, ` : ''}{venue.district}, {venue.city}</span>
             </p>
           </div>
@@ -95,7 +95,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
             {sports.slice(0, 2).map((s) => (
               <span
                 key={s}
-                className="px-2 py-0.5 rounded-md bg-secondary/80 text-[11px] font-semibold text-foreground border border-border/50"
+                className="px-2 py-0.5 rounded-lg bg-secondary/80 text-[11px] font-semibold text-foreground border border-border/50"
               >
                 {SPORT_LABELS[s as SportType] || s}
               </span>
@@ -112,7 +112,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
       {/* Card Footer: Price & Direct Booking Action */}
       <div className="px-4 pb-4 pt-2 border-t border-border/50 flex items-center justify-between gap-2">
         <div>
-          <span className="text-[10px] text-muted-foreground block font-medium">Giá thuê từ</span>
+          <span className="text-[10px] text-muted-foreground block font-medium uppercase tracking-wider">Giá từ</span>
           <span className="text-xs sm:text-sm font-mono-num font-bold text-primary">
             {venue.priceFrom ? formatVND(venue.priceFrom) : '250.000 đ'}
             <span className="text-[10px] font-normal text-muted-foreground"> / slot</span>
@@ -120,7 +120,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
         </div>
 
         <Link to={`/venues/${venue.slug || venue.id}`}>
-          <div className="flex items-center gap-1 text-xs font-bold text-primary hover:text-emerald-400 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl border border-primary/20 transition-all cursor-pointer">
+          <div className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-foreground bg-primary/10 hover:bg-primary px-3 py-1.5 rounded-xl border border-primary/20 transition-all cursor-pointer active:scale-[0.98]">
             <span>Đặt sân</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </div>

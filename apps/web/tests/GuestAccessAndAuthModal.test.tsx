@@ -3,8 +3,8 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppRoutes } from '../src/app/routes';
-import { VenueDetailPage } from '../src/features/venues/pages/venues-pages';
-import { TournamentsPage } from '../src/features/tournaments/pages/tournaments-pages';
+import { VenueDetailPage } from '../src/features/venues/pages';
+import { TournamentsPage } from '../src/features/tournaments/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { SportType } from '../src/lib/constants';
 

@@ -101,11 +101,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const freshUser = await apiClient<User>('/auth/me');
         if (freshUser && freshUser.id) {
           localStorage.setItem('sango_user', JSON.stringify(freshUser));
-          set({ user: freshUser, accessToken: token, status: 'authenticated' });
+          set({ user: freshUser, accessToken: localStorage.getItem('sango_access_token'), status: 'authenticated' });
         }
       } catch {
-        // Giữ nguyên cached user & token trên localStorage khi reload/mất mạng
+        // Nếu token hết hạn và không refresh được, apiClient đã tự chuyển event sango_auth_change
       }
     },
   };
 });
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('sango_auth_change', () => {
+    const token = localStorage.getItem('sango_access_token');
+    const userStr = localStorage.getItem('sango_user');
+    if (!token || !userStr) {
+      useAuthStore.setState({ user: null, accessToken: null, status: 'unauthenticated' });
+    }
+  });
+}

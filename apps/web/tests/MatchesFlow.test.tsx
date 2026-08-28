@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { MatchesPage, MatchDetailPage } from '../src/features/matches/pages/matches-pages';
+import { MatchesPage, MatchDetailPage } from '../src/features/matches/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { UserRole } from '../src/lib/constants';
 

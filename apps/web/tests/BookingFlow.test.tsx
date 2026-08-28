@@ -7,7 +7,7 @@ import {
   CheckoutHoldPage,
   PaymentResultPage,
   MyBookingsPage,
-} from '../src/features/booking/pages/booking-pages';
+} from '../src/features/booking/pages';
 import { BookingStatus, SportType } from '../src/lib/constants';
 
 const queryClient = new QueryClient({

@@ -7,7 +7,7 @@ import {
   ForgotPasswordPage,
   ResetPasswordPage,
   ProfilePage,
-} from '../src/features/auth/pages/auth-pages';
+} from '../src/features/auth/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { UserRole } from '../src/lib/constants';
 

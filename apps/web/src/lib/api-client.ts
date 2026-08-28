@@ -75,26 +75,19 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
     ...(headers as Record<string, string>),
   };
 
-  const token = localStorage.getItem('sango_access_token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('sango_access_token') : null;
   if (token && !skipAuth) {
     reqHeaders.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(url, {
     ...customConfig,
+    credentials: 'include',
     headers: reqHeaders,
   });
 
+  // Tự động làm mới token trong nền khi gặp 401 qua httpOnly cookie sango_refresh
   if (response.status === 401 && !skipAuth && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
-    const refreshToken = localStorage.getItem('sango_refresh_token');
-    if (!refreshToken) {
-      localStorage.removeItem('sango_access_token');
-      localStorage.removeItem('sango_refresh_token');
-      localStorage.removeItem('sango_user');
-      window.dispatchEvent(new Event('sango_auth_change'));
-      throw new ApiError('Phiên đăng nhập đã hết hạn', 401, 'UNAUTHORIZED');
-    }
-
     if (isRefreshing) {
       return new Promise<T>((resolve, reject) => {
         failedQueue.push({
@@ -110,21 +103,24 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
 
     isRefreshing = true;
     try {
-      const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const refreshRes = await fetch(`${base}/auth/refresh`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
       });
 
       if (!refreshRes.ok) {
-        throw new Error('Refresh failed');
+        throw new Error('Refresh token invalid or expired');
       }
 
       const refreshData = await refreshRes.json();
-      localStorage.setItem('sango_access_token', refreshData.accessToken);
-      if (refreshData.refreshToken) {
-        localStorage.setItem('sango_refresh_token', refreshData.refreshToken);
+      if (refreshData.accessToken) {
+        localStorage.setItem('sango_access_token', refreshData.accessToken);
+        if (refreshData.user) {
+          localStorage.setItem('sango_user', JSON.stringify(refreshData.user));
+        }
       }
+
       processQueue(null, refreshData.accessToken);
       return apiClient<T>(endpoint, options);
     } catch (err) {
@@ -133,7 +129,7 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
       localStorage.removeItem('sango_refresh_token');
       localStorage.removeItem('sango_user');
       window.dispatchEvent(new Event('sango_auth_change'));
-      throw new ApiError('Phiên đăng nhập đã hết hạn', 401, 'UNAUTHORIZED');
+      throw new ApiError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 401, 'UNAUTHORIZED');
     } finally {
       isRefreshing = false;
     }

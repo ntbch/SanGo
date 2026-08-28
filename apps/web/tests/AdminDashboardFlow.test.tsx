@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { AdminDashboardPage } from '../src/features/admin/pages/admin-pages';
+import { AdminDashboardPage } from '../src/features/admin/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import * as adminApi from '../src/features/admin/api/admin-api';
 import { UserRole, UserStatus, VenueStatus, BookingStatus, SportType } from '@sango/shared';

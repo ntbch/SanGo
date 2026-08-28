@@ -83,11 +83,11 @@ export function AuthModal({
 
   const fillDemoAccount = (accRole: UserRole) => {
     if (accRole === UserRole.CUSTOMER) {
-      setLoginIdentifier('player1@sango.vn');
-      setLoginPassword('123456');
+      setLoginIdentifier('customer@sango.vn');
+      setLoginPassword('Sango@2026');
     } else {
-      setLoginIdentifier('owner1@sango.vn');
-      setLoginPassword('123456');
+      setLoginIdentifier('owner@sango.vn');
+      setLoginPassword('Sango@2026');
     }
   };
 

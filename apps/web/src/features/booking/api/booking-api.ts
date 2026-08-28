@@ -26,15 +26,22 @@ export interface CourtSlotsResponse {
 export interface CreateHoldParams {
   courtId: string;
   date: string; // YYYY-MM-DD
-  startMinute: number;
-  endMinute: number;
+  slots?: number[];
+  startMinute?: number;
+  endMinute?: number;
   teamId?: string;
+  isPublicMatch?: boolean;
+  slotsNeeded?: number;
+  matchLevel?: 'FRIENDLY' | 'CASUAL' | 'SCRIM' | 'SEMI_PRO';
+  targetPositions?: string[];
+  costPerPerson?: number;
 }
 
 export interface BookingHoldResponse {
   id: string;
   courtId: string;
-  customerId: string;
+  userId?: string;
+  customerId?: string;
   date: string;
   startMinute: number;
   endMinute: number;
@@ -44,21 +51,25 @@ export interface BookingHoldResponse {
   voucherId?: string | null;
   status: 'ACTIVE' | 'CONVERTED' | 'EXPIRED';
   expiresAt: string;
+  courtName?: string;
+  venueName?: string;
+  depositPercent?: number;
+  slots?: Array<{ startMinute: number; endMinute: number }>;
   court?: {
     id: string;
     name: string;
-    sportType: SportType;
-    slotMinutes: number;
-    defaultPricePerSlot: number;
+    sportType?: SportType;
+    slotMinutes?: number;
+    defaultPricePerSlot?: number;
     venue: {
-      id: string;
+      id?: string;
       name: string;
-      slug: string;
-      address: string;
-      district: string;
-      city: string;
-      depositPercent: number;
-      images: string[];
+      slug?: string;
+      address?: string;
+      district?: string;
+      city?: string;
+      depositPercent?: number;
+      images?: string[];
     };
   };
 }
@@ -125,9 +136,31 @@ export async function getCourtSlotsApi(courtId: string, fromDate: string, days =
 
 // 2. Tạo giữ chỗ 10 phút chống trùng lịch
 export async function createBookingHoldApi(params: CreateHoldParams): Promise<BookingHoldResponse> {
+  const slots =
+    params.slots && params.slots.length > 0
+      ? params.slots
+      : params.startMinute !== undefined
+      ? [params.startMinute]
+      : [];
+
+  const body: Record<string, any> = {
+    courtId: params.courtId,
+    date: params.date,
+    slots,
+  };
+
+  if (params.teamId) body.teamId = params.teamId;
+  if (params.isPublicMatch !== undefined) {
+    body.isPublicMatch = params.isPublicMatch;
+    if (params.slotsNeeded) body.slotsNeeded = params.slotsNeeded;
+    if (params.matchLevel) body.matchLevel = params.matchLevel;
+    if (params.targetPositions) body.targetPositions = params.targetPositions;
+    if (params.costPerPerson !== undefined) body.costPerPerson = params.costPerPerson;
+  }
+
   return apiClient<BookingHoldResponse>('/bookings/holds', {
     method: 'POST',
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
 }
 

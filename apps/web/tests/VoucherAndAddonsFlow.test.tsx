@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { CheckoutHoldPage } from '../src/features/booking/pages/booking-pages';
+import { CheckoutHoldPage } from '../src/features/booking/pages';
 import { TicketCard } from '../src/features/booking/components/ticket-card';
 import { useAuthStore } from '../src/lib/auth-store';
 import { SportType, UserRole, BookingStatus } from '../src/lib/constants';

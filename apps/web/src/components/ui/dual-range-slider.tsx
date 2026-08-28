@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { formatVND } from '../../lib/utils';
 
 export interface DualRangeSliderProps {
@@ -18,24 +18,115 @@ export function DualRangeSlider({
   onChange,
   className = '',
 }: DualRangeSliderProps): React.ReactElement {
-  const minVal = value?.[0] ?? min;
-  const maxVal = value?.[1] ?? max;
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
 
-  const minPercent = Math.min(100, Math.max(0, Math.round(((minVal - min) / (max - min)) * 100)));
-  const maxPercent = Math.min(100, Math.max(0, Math.round(((maxVal - min) / (max - min)) * 100)));
+  const rawMin = value?.[0] ?? min;
+  const rawMax = value?.[1] ?? max;
 
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Math.min(Number(e.target.value), maxVal - step);
-    onChange?.([val, maxVal]);
+  const minVal = Math.min(Math.max(rawMin, min), max);
+  const maxVal = Math.max(Math.min(rawMax, max), minVal);
+
+  const minPercent = Math.min(100, Math.max(0, ((minVal - min) / (max - min)) * 100));
+  const maxPercent = Math.min(100, Math.max(0, ((maxVal - min) / (max - min)) * 100));
+
+  const getValueFromPointer = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current) return min;
+      const rect = trackRef.current.getBoundingClientRect();
+      const fraction = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const rawValue = min + fraction * (max - min);
+      const steppedValue = Math.round(rawValue / step) * step;
+      return Math.min(max, Math.max(min, steppedValue));
+    },
+    [min, max, step],
+  );
+
+  const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!trackRef.current) return;
+
+    const clickedValue = getValueFromPointer(e.clientX);
+    const distToMin = Math.abs(clickedValue - minVal);
+    const distToMax = Math.abs(clickedValue - maxVal);
+
+    let thumbToMove: 'min' | 'max';
+    if (distToMin < distToMax) {
+      thumbToMove = 'min';
+    } else if (distToMax < distToMin) {
+      thumbToMove = 'max';
+    } else {
+      thumbToMove = clickedValue <= minVal ? 'min' : 'max';
+    }
+
+    setActiveThumb(thumbToMove);
+    trackRef.current.setPointerCapture(e.pointerId);
+
+    if (thumbToMove === 'min') {
+      const newMin = Math.min(clickedValue, maxVal - step);
+      onChange?.([newMin, maxVal]);
+    } else {
+      const newMax = Math.max(clickedValue, minVal + step);
+      onChange?.([minVal, newMax]);
+    }
   };
 
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Math.max(Number(e.target.value), minVal + step);
-    onChange?.([minVal, val]);
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activeThumb) return;
+    const currentVal = getValueFromPointer(e.clientX);
+
+    if (activeThumb === 'min') {
+      const newMin = Math.min(Math.max(min, currentVal), maxVal - step);
+      onChange?.([newMin, maxVal]);
+    } else {
+      const newMax = Math.max(Math.min(max, currentVal), minVal + step);
+      onChange?.([minVal, newMax]);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activeThumb) {
+      try {
+        trackRef.current?.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+      setActiveThumb(null);
+    }
+  };
+
+  const handleThumbPointerDown = (thumb: 'min' | 'max') => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setActiveThumb(thumb);
+    trackRef.current?.setPointerCapture(e.pointerId);
+  };
+
+  const handleKeyDownMin = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const newMin = Math.max(min, minVal - step);
+      onChange?.([newMin, maxVal]);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const newMin = Math.min(maxVal - step, minVal + step);
+      onChange?.([newMin, maxVal]);
+    }
+  };
+
+  const handleKeyDownMax = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const newMax = Math.max(minVal + step, maxVal - step);
+      onChange?.([minVal, newMax]);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const newMax = Math.min(max, maxVal + step);
+      onChange?.([minVal, newMax]);
+    }
   };
 
   return (
-    <div className={`space-y-2.5 ${className}`}>
+    <div className={`space-y-2.5 select-none ${className}`}>
       <div className="flex items-center justify-between text-xs font-mono-num">
         <span className="font-bold text-foreground bg-secondary/80 px-2 py-0.5 rounded-md border border-border/40">
           {formatVND(minVal)}
@@ -46,52 +137,61 @@ export function DualRangeSlider({
         </span>
       </div>
 
-      <div className="relative h-6 flex items-center">
+      <div
+        ref={trackRef}
+        onPointerDown={handleTrackPointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="relative h-7 flex items-center cursor-pointer touch-none"
+      >
         {/* Background Track */}
-        <div className="absolute w-full h-1.5 rounded-full bg-secondary/80" />
+        <div className="absolute w-full h-1.5 rounded-full bg-secondary/80 pointer-events-none" />
 
         {/* Selected Range Highlight Track */}
         <div
-          className="absolute h-1.5 rounded-full bg-primary"
+          className="absolute h-1.5 rounded-full bg-primary pointer-events-none"
           style={{
             left: `${minPercent}%`,
             width: `${Math.max(0, maxPercent - minPercent)}%`,
           }}
         />
 
-        {/* Left Thumb Input */}
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={minVal}
-          onChange={handleMinChange}
-          className="pointer-events-none absolute w-full h-1.5 opacity-0 cursor-pointer z-30"
-          style={{ pointerEvents: 'auto' }}
-        />
-
-        {/* Right Thumb Input */}
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={maxVal}
-          onChange={handleMaxChange}
-          className="pointer-events-none absolute w-full h-1.5 opacity-0 cursor-pointer z-30"
-          style={{ pointerEvents: 'auto' }}
-        />
-
-        {/* Custom Visual Thumbs */}
+        {/* Left Thumb */}
         <div
-          className="absolute w-4 h-4 rounded-full bg-background border-2 border-primary shadow-xs -translate-x-1/2 pointer-events-none transition-transform hover:scale-110 z-20"
+          role="slider"
+          tabIndex={0}
+          aria-label="Giá tối thiểu"
+          aria-valuemin={min}
+          aria-valuemax={maxVal - step}
+          aria-valuenow={minVal}
+          onKeyDown={handleKeyDownMin}
+          onPointerDown={handleThumbPointerDown('min')}
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-card border-2 border-primary shadow-md flex items-center justify-center transition-transform cursor-grab active:cursor-grabbing hover:scale-125 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+            activeThumb === 'min' ? 'scale-125 ring-2 ring-primary/40 z-30' : 'z-20'
+          }`}
           style={{ left: `${minPercent}%` }}
-        />
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+        </div>
+
+        {/* Right Thumb */}
         <div
-          className="absolute w-4 h-4 rounded-full bg-background border-2 border-primary shadow-xs -translate-x-1/2 pointer-events-none transition-transform hover:scale-110 z-20"
+          role="slider"
+          tabIndex={0}
+          aria-label="Giá tối đa"
+          aria-valuemin={minVal + step}
+          aria-valuemax={max}
+          aria-valuenow={maxVal}
+          onKeyDown={handleKeyDownMax}
+          onPointerDown={handleThumbPointerDown('max')}
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-card border-2 border-primary shadow-md flex items-center justify-center transition-transform cursor-grab active:cursor-grabbing hover:scale-125 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+            activeThumb === 'max' ? 'scale-125 ring-2 ring-primary/40 z-30' : 'z-20'
+          }`}
           style={{ left: `${maxPercent}%` }}
-        />
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+        </div>
       </div>
     </div>
   );

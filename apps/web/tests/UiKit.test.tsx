@@ -63,6 +63,12 @@ describe('UI Kit Primitives', () => {
     );
     expect(screen.getByText(/100.000/i)).toBeDefined();
     expect(screen.getByText(/800.000/i)).toBeDefined();
+
+    const minThumb = screen.getByRole('slider', { name: /Giá tối thiểu/i });
+    const maxThumb = screen.getByRole('slider', { name: /Giá tối đa/i });
+
+    expect(minThumb).toBeDefined();
+    expect(maxThumb).toBeDefined();
   });
 
   it('formats currency and minutes properly', () => {

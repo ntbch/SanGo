@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { RankingPage } from '../src/features/ranking/pages/ranking-pages';
+import { RankingPage } from '../src/features/ranking/pages';
 
 describe('Ranking Flow Integration', () => {
   it('renders RankingPage with Podium and switches between Clubs and Athletes', async () => {
@@ -34,5 +34,18 @@ describe('Ranking Flow Integration', () => {
       expect(screen.getByRole('heading', { name: /Bảng Vàng Vận Động Viên Phong Trào/i })).toBeDefined();
     });
     expect(screen.getAllByText(/Trần Đức Người Chơi/i).length).toBeGreaterThan(0);
+
+    // Filter by Pickleball where there is 1 athlete
+    const pickleballBtn = screen.getByRole('button', { name: /Pickleball/i });
+    fireEvent.click(pickleballBtn);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Ngô Thuỳ Linh/i).length).toBeGreaterThan(0);
+    });
+
+    // When 1 person in the list, their rank badge must be 1, not 3
+    const rankBadges = screen.getAllByText('1');
+    expect(rankBadges.length).toBeGreaterThanOrEqual(1);
   });
 });
+
