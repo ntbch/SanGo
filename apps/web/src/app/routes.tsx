@@ -1,7 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { PublicLayout } from '../components/layout/public-layout';
-import { DashboardLayout } from '../components/layout/dashboard-layout';
 import { ProtectedRoute, GuestRoute } from '../components/auth/guards';
 import { UserRole } from '../lib/constants';
 import { useAuthStore } from '../lib/auth-store';
@@ -29,19 +28,8 @@ import {
   ProfilePage,
 } from '../features/auth/pages/auth-pages';
 import { AboutPage, PartnerPage } from '../features/static/pages/static-pages';
-import {
-  OwnerVenuesPage,
-  OwnerBookingsPage,
-  OwnerPricingPage,
-  OwnerServicesPage,
-  OwnerAnalyticsPage,
-} from '../features/owner/pages/owner-pages';
-import {
-  AdminStatsPage,
-  AdminVenuesPage,
-  AdminUsersPage,
-  AdminBookingsPage,
-} from '../features/admin/pages/admin-pages';
+import { OwnerDashboardPage } from '../features/dashboard/pages/owner-dashboard-page';
+import { AdminDashboardPage } from '../features/admin/pages/admin-pages';
 
 function NotFoundPage() {
   return (
@@ -103,20 +91,15 @@ export function AppRoutes(): React.ReactElement {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
-      {/* 2. Owner & Admin Dashboard Layout */}
+      {/* 2. Owner & Admin Dashboard Route */}
       <Route path="dashboard" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, UserRole.ADMIN]} />}>
-        <Route element={<DashboardLayout />}>
-          <Route index element={<Navigate to="owner/venues" replace />} />
-          <Route path="owner/venues" element={<OwnerVenuesPage />} />
-          <Route path="owner/bookings" element={<OwnerBookingsPage />} />
-          <Route path="owner/pricing" element={<OwnerPricingPage />} />
-          <Route path="owner/services" element={<OwnerServicesPage />} />
-          <Route path="owner/analytics" element={<OwnerAnalyticsPage />} />
-          <Route path="admin/stats" element={<AdminStatsPage />} />
-          <Route path="admin/venues" element={<AdminVenuesPage />} />
-          <Route path="admin/users" element={<AdminUsersPage />} />
-          <Route path="admin/bookings" element={<AdminBookingsPage />} />
-        </Route>
+        <Route index element={<Navigate to="owner" replace />} />
+        <Route path="owner" element={<OwnerDashboardPage />} />
+        <Route path="owner/*" element={<Navigate to="/dashboard/owner" replace />} />
+
+        {/* Admin Dashboard Hub */}
+        <Route path="admin" element={<AdminDashboardPage />} />
+        <Route path="admin/*" element={<AdminDashboardPage />} />
       </Route>
     </Routes>
   );

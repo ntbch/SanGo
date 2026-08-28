@@ -16,6 +16,8 @@ import {
   Wallet,
   X,
   ChevronDown,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth-store';
 import { UserRole } from '../../lib/constants';
@@ -29,6 +31,23 @@ export function Navbar(): React.ReactElement {
   const userMenuRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [theme, setTheme] = React.useState<'dark' | 'light'>(() => {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    if (next === 'dark') {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('sango-theme', 'dark');
+      localStorage.setItem('sango_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('sango-theme', 'light');
+      localStorage.setItem('sango_theme', 'light');
+    }
+  };
 
   // Đóng dropdown khi chuyển route
   React.useEffect(() => {
@@ -106,6 +125,17 @@ export function Navbar(): React.ReactElement {
 
         {/* Actions & User Area */}
         <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0">
+          {/* Theme Switcher Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+            title="Đổi giao diện Sáng/Tối"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+          </Button>
+
           {user ? (
             <div className="flex items-center gap-2 relative">
               {/* Notification Bell (Đặt cạnh Avatar) */}
@@ -235,6 +265,17 @@ export function Navbar(): React.ReactElement {
 
         {/* Mobile Controls */}
         <div className="flex md:hidden items-center gap-1.5">
+          {/* Theme Switcher Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+            title="Đổi giao diện Sáng/Tối"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+          </Button>
+
           {user && (
             <Link to="/notifications" className="p-2 text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
