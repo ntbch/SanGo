@@ -5,6 +5,7 @@ import { getVenueDetailApi } from '../../venues/api/venues-api';
 import {
   getCourtSlotsApi,
   createBookingHoldApi,
+  getActiveBookingHoldApi,
 } from '../api/booking-api';
 import { SlotMatrix, type SelectedSlot } from '../components/slot-matrix';
 import { BookingCourtTabs } from '../components/booking-court-tabs';
@@ -88,13 +89,31 @@ export function BookingCalendarPage(): React.ReactElement {
 
   const [holdError, setHoldError] = React.useState<string | null>(null);
 
+  const { data: activeHold } = useQuery({
+    queryKey: ['active-booking-hold'],
+    queryFn: getActiveBookingHoldApi,
+    enabled: Boolean(user),
+    staleTime: 10_000,
+  });
+
   const holdMutation = useMutation({
     mutationFn: createBookingHoldApi,
     onSuccess: (hold) => {
       setHoldError(null);
       navigate(`/checkout/hold/${hold.id}`);
     },
-    onError: (err: any) => {
+    onError: async (err: any) => {
+      if (err.code === 'HOLD_LIMIT') {
+        try {
+          const existingHold = await getActiveBookingHoldApi();
+          if (existingHold) {
+            navigate(`/checkout/hold/${existingHold.id}`);
+            return;
+          }
+        } catch {
+          // Hiển thị thông báo backend gốc nếu không thể lấy lại hold.
+        }
+      }
       setHoldError(err.message || 'Không thể giữ chỗ. Vui lòng thử lại sau.');
     },
   });
@@ -135,7 +154,7 @@ export function BookingCalendarPage(): React.ReactElement {
   }
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-8 pb-32">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-8 pb-32">
       {/* Top Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -153,6 +172,16 @@ export function BookingCalendarPage(): React.ReactElement {
           <span>{venue.address}, {venue.district}, {venue.city}</span>
         </p>
       </div>
+
+      {activeHold && (
+        <div className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-foreground">Bạn đang giữ một khung giờ</p>
+            <p className="text-xs text-muted-foreground">Hoàn tất thanh toán trước khi thời gian giữ chỗ kết thúc.</p>
+          </div>
+          <Button size="sm" onClick={() => navigate(`/checkout/hold/${activeHold.id}`)}>Tiếp tục thanh toán</Button>
+        </div>
+      )}
 
       {/* 1. Court Selector Tabs */}
       <BookingCourtTabs

@@ -180,6 +180,9 @@ export class BookingsService {
         },
       });
       return {
+        // `id` là khóa chuẩn dùng bởi các endpoint /bookings/holds/:id và checkout.
+        // Giữ `holdId` trong một giai đoạn tương thích với các client/QA script cũ.
+        id: hold.id,
         holdId: hold.id,
         courtId: court.id,
         date: dto.date,
@@ -214,6 +217,34 @@ export class BookingsService {
     }
     // FE checkout cần tên sân/%cọc và danh sách slot — hold trong DB chỉ lưu
     // startMinute/endMinute nên tách lại theo bước slotMinutes của sân con.
+    const step = hold.court.slotMinutes;
+    const slots: Array<{ startMinute: number; endMinute: number }> = [];
+    for (let m = hold.startMinute; m < hold.endMinute; m += step) {
+      slots.push({ startMinute: m, endMinute: Math.min(m + step, hold.endMinute) });
+    }
+    const { court, ...holdData } = hold;
+    return {
+      ...holdData,
+      courtName: court.name,
+      venueName: court.venue.name,
+      depositPercent: court.venue.depositPercent,
+      slots,
+    };
+  }
+
+  /** Hold ACTIVE duy nhất của khách, để có thể quay lại checkout sau khi rời trang. */
+  async getActiveHold(user: { id: string }) {
+    const hold = await this.prisma.bookingHold.findFirst({
+      where: { userId: user.id, status: 'ACTIVE', expiresAt: { gt: new Date() } },
+      orderBy: { expiresAt: 'asc' },
+      include: {
+        court: {
+          select: { name: true, slotMinutes: true, venue: { select: { name: true, depositPercent: true } } },
+        },
+      },
+    });
+    if (!hold) return null;
+
     const step = hold.court.slotMinutes;
     const slots: Array<{ startMinute: number; endMinute: number }> = [];
     for (let m = hold.startMinute; m < hold.endMinute; m += step) {

@@ -1,10 +1,11 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getBookingHoldApi,
   applyHoldVoucherApi,
   createCheckoutApi,
+  releaseBookingHoldApi,
 } from '../api/booking-api';
 import { HoldTimer } from '../components/hold-timer';
 import { CheckoutVoucherPicker } from '../components/checkout-voucher-picker';
@@ -18,11 +19,14 @@ import { XCircle } from 'lucide-react';
 
 export function CheckoutHoldPage(): React.ReactElement {
   const { holdId } = useParams<{ holdId: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [voucherCode, setVoucherCode] = React.useState('');
   const [voucherError, setVoucherError] = React.useState<string | null>(null);
   const [voucherSuccess, setVoucherSuccess] = React.useState<string | null>(null);
   const [paymentType, setPaymentType] = React.useState<'DEPOSIT' | 'FULL'>('DEPOSIT');
-  const [paymentGateway, setPaymentGateway] = React.useState<'WALLET' | 'VNPAY'>('WALLET');
+  const [paymentGateway, setPaymentGateway] = React.useState<'WALLET' | 'VNPAY'>('VNPAY');
+  const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
 
   const { data: hold, isLoading, isError, refetch } = useQuery({
     queryKey: ['booking-hold', holdId],
@@ -55,8 +59,26 @@ export function CheckoutHoldPage(): React.ReactElement {
   const checkoutMutation = useMutation({
     mutationFn: createCheckoutApi,
     onSuccess: (data) => {
+      if (data.mode === 'mock') {
+        navigate(
+          `/checkout/payment?mode=mock&txnRef=${encodeURIComponent(data.txnRef)}&amount=${data.amount}&holdId=${holdId}`,
+        );
+        return;
+      }
       window.location.href = data.paymentUrl;
     },
+    onError: (err: any) => {
+      setCheckoutError(err.message || 'Không thể khởi tạo thanh toán. Vui lòng thử lại.');
+    },
+  });
+
+  const releaseMutation = useMutation({
+    mutationFn: releaseBookingHoldApi,
+    onSuccess: () => {
+      queryClient.setQueryData(['active-booking-hold'], null);
+      navigate('/venues');
+    },
+    onError: (err: any) => setCheckoutError(err.message || 'Không thể hủy giữ chỗ. Vui lòng thử lại.'),
   });
 
   if (isLoading) {
@@ -138,7 +160,10 @@ export function CheckoutHoldPage(): React.ReactElement {
             depositAmount={depositAmount}
             finalTotal={finalTotal}
             paymentGateway={paymentGateway}
-            onPaymentGatewayChange={setPaymentGateway}
+            onPaymentGatewayChange={(gateway) => {
+              setPaymentGateway(gateway);
+              setCheckoutError(null);
+            }}
           />
 
           <CheckoutVoucherPicker
@@ -154,7 +179,7 @@ export function CheckoutHoldPage(): React.ReactElement {
 
         {/* Right 1 Column: Cost Breakdown & Checkout CTA */}
         <div className="md:col-span-1 space-y-4">
-          <CheckoutOrderSummary
+            <CheckoutOrderSummary
             subtotal={subtotal}
             discount={discount}
             finalTotal={finalTotal}
@@ -163,8 +188,24 @@ export function CheckoutHoldPage(): React.ReactElement {
             paymentType={paymentType}
             isPending={checkoutMutation.isPending}
             isActive={hold.status === 'ACTIVE'}
-            onCheckout={() => checkoutMutation.mutate({ holdId: hold.id, type: paymentType })}
+            onCheckout={() => {
+              setCheckoutError(null);
+              if (paymentGateway === 'WALLET') {
+                setCheckoutError('Ví SanGo chưa hỗ trợ thanh toán đặt sân. Vui lòng chọn VNPAY.');
+                return;
+              }
+              checkoutMutation.mutate({ holdId: hold.id, type: paymentType });
+            }}
           />
+          {checkoutError && <p className="text-xs font-medium text-destructive">{checkoutError}</p>}
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={releaseMutation.isPending || hold.status !== 'ACTIVE'}
+            onClick={() => releaseMutation.mutate(hold.id)}
+          >
+            {releaseMutation.isPending ? 'Đang hủy giữ chỗ...' : 'Hủy giữ chỗ'}
+          </Button>
         </div>
       </div>
     </div>

@@ -3,25 +3,28 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { formatVND } from '../../../lib/utils';
-import { CheckCircle2, Ticket } from 'lucide-react';
+import { CheckCircle2, Ticket, XCircle } from 'lucide-react';
 
 export function PaymentResultPage(): React.ReactElement {
   const [searchParams] = useSearchParams();
   const txnRef = searchParams.get('txnRef') || 'TXN-SUCCESS';
   const amount = Number(searchParams.get('amount')) || 0;
+  const isSuccess = searchParams.get('status') !== 'FAIL';
 
   return (
     <div className="w-full px-4 py-16 text-center space-y-6 max-w-md mx-auto animate-in fade-in duration-200">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-inner">
-        <CheckCircle2 className="h-8 w-8" />
+      <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-3xl shadow-inner ${isSuccess ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-destructive/10 text-destructive'}`}>
+        {isSuccess ? <CheckCircle2 className="h-8 w-8" /> : <XCircle className="h-8 w-8" />}
       </div>
 
       <div className="space-y-1.5">
         <h1 className="text-xl sm:text-2xl font-black text-foreground">
-          Thanh Toán Đặt Sân Thành Công!
+          {isSuccess ? 'Thanh Toán Đặt Sân Thành Công!' : 'Thanh Toán Không Thành Công'}
         </h1>
         <p className="text-xs text-muted-foreground">
-          Vé đặt sân của bạn đã được xác nhận. Mã QR Check-in đã sẵn sàng.
+          {isSuccess
+            ? 'Vé đặt sân của bạn đã được xác nhận. Mã QR Check-in đã sẵn sàng.'
+            : 'Giao dịch chưa được xác nhận. Bạn có thể quay lại lượt giữ chỗ nếu vẫn còn thời gian.'}
         </p>
       </div>
 
@@ -41,10 +44,10 @@ export function PaymentResultPage(): React.ReactElement {
       </Card>
 
       <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
-        <Link to="/bookings">
+        <Link to={isSuccess ? '/bookings' : '/venues'}>
           <Button size="lg" className="w-full sm:w-auto font-bold gap-2 shadow-xs">
             <Ticket className="h-4 w-4" />
-            <span>Xem Vé Của Tôi</span>
+            <span>{isSuccess ? 'Xem Vé Của Tôi' : 'Đặt lại sân'}</span>
           </Button>
         </Link>
         <Link to="/">

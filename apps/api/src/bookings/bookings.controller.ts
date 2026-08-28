@@ -149,6 +149,12 @@ export class BookingsController {
     return this.bookingsService.createHold(user, dto);
   }
 
+  @Get('holds/active')
+  @ApiOperation({ summary: 'Lấy lượt giữ chỗ ACTIVE hiện tại của mình để tiếp tục thanh toán' })
+  activeHold(@CurrentUser() user: AuthUser) {
+    return this.bookingsService.getActiveHold(user);
+  }
+
   @Get('holds/:id')
   @ApiOperation({ summary: 'Xem lượt giữ chỗ của mình' })
   getHold(

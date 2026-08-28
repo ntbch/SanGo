@@ -220,6 +220,13 @@ describe('Booking engine chống double-booking (integration)', () => {
       response: { code: 'HOLD_LIMIT' },
     });
 
+    // Rời checkout rồi quay lại phải tìm được chính hold còn hiệu lực, không bị kẹt HOLD_LIMIT.
+    await expect(bookings.getActiveHold(uA())).resolves.toMatchObject({
+      id: hold.holdId,
+      courtId,
+      status: 'ACTIVE',
+    });
+
     // Nhả hold sớm -> giữ lại được ngay
     await bookings.releaseHold(hold.holdId, uA());
     const again = await bookings.createHold(uA(), { courtId, date: DATE, slots: [600] });

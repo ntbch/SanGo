@@ -74,6 +74,12 @@ export interface BookingHoldResponse {
   };
 }
 
+interface CreateHoldResponse extends Omit<BookingHoldResponse, 'id' | 'status'> {
+  id?: string;
+  holdId?: string;
+  status?: BookingHoldResponse['status'];
+}
+
 export interface CreateCheckoutParams {
   holdId: string;
   type: 'DEPOSIT' | 'FULL';
@@ -158,15 +164,23 @@ export async function createBookingHoldApi(params: CreateHoldParams): Promise<Bo
     if (params.costPerPerson !== undefined) body.costPerPerson = params.costPerPerson;
   }
 
-  return apiClient<BookingHoldResponse>('/bookings/holds', {
+  const response = await apiClient<CreateHoldResponse>('/bookings/holds', {
     method: 'POST',
     body: JSON.stringify(body),
   });
+  const id = response.id ?? response.holdId;
+  if (!id) throw new Error('Server không trả về mã giữ chỗ');
+  return { ...response, id, status: response.status ?? 'ACTIVE' } as BookingHoldResponse;
 }
 
 // 3. Lấy thông tin giữ chỗ & đồng hồ đếm ngược
 export async function getBookingHoldApi(holdId: string): Promise<BookingHoldResponse> {
   return apiClient<BookingHoldResponse>(`/bookings/holds/${holdId}`);
+}
+
+/** Nguồn sự thật phía server cho lượt giữ chỗ còn hiệu lực của khách hiện tại. */
+export async function getActiveBookingHoldApi(): Promise<BookingHoldResponse | null> {
+  return apiClient<BookingHoldResponse | null>('/bookings/holds/active');
 }
 
 // 4. Áp dụng voucher vào đơn giữ chỗ
@@ -178,8 +192,8 @@ export async function applyHoldVoucherApi(holdId: string, code: string): Promise
 }
 
 // 5. Hủy / giải phóng giữ chỗ sớm
-export async function releaseBookingHoldApi(holdId: string): Promise<{ success: boolean }> {
-  return apiClient<{ success: boolean }>(`/bookings/holds/${holdId}`, {
+export async function releaseBookingHoldApi(holdId: string): Promise<{ released: boolean }> {
+  return apiClient<{ released: boolean }>(`/bookings/holds/${holdId}`, {
     method: 'DELETE',
   });
 }
@@ -189,6 +203,17 @@ export async function createCheckoutApi(params: CreateCheckoutParams): Promise<C
   return apiClient<CheckoutResponse>('/payments/checkout', {
     method: 'POST',
     body: JSON.stringify(params),
+  });
+}
+
+/** Chỉ dùng cho PAYMENT_MODE=mock: xác nhận sau khi người dùng hoàn tất bước QR demo. */
+export async function confirmMockPaymentApi(
+  txnRef: string,
+  amount: number,
+): Promise<{ success: boolean; txnRef?: string; bookingCode?: string }> {
+  return apiClient<{ success: boolean; txnRef?: string; bookingCode?: string }>('/payments/mock/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ txnRef, amount }),
   });
 }
 

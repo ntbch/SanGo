@@ -14,6 +14,7 @@ const VenueDetailPage = lazy(() => import('../features/venues/pages/venue-detail
 const MapPage = lazy(() => import('../features/venues/pages/map-page').then((m) => ({ default: m.MapPage })));
 const BookingCalendarPage = lazy(() => import('../features/booking/pages/booking-calendar-page').then((m) => ({ default: m.BookingCalendarPage })));
 const CheckoutHoldPage = lazy(() => import('../features/booking/pages/checkout-hold-page').then((m) => ({ default: m.CheckoutHoldPage })));
+const PaymentPendingPage = lazy(() => import('../features/booking/pages/payment-pending-page').then((m) => ({ default: m.PaymentPendingPage })));
 const PaymentResultPage = lazy(() => import('../features/booking/pages/payment-result-page').then((m) => ({ default: m.PaymentResultPage })));
 const MyBookingsPage = lazy(() => import('../features/booking/pages/my-bookings-page').then((m) => ({ default: m.MyBookingsPage })));
 const WalletPage = lazy(() => import('../features/wallet/pages/wallet-page').then((m) => ({ default: m.WalletPage })));
@@ -87,8 +88,10 @@ export function AppRoutes(): React.ReactElement {
             <Route path="bookings" element={<MyBookingsPage />} />
             <Route path="bookings/hold/:holdId" element={<CheckoutHoldPage />} />
             <Route path="checkout/hold/:holdId" element={<CheckoutHoldPage />} />
+            <Route path="checkout/payment" element={<PaymentPendingPage />} />
             <Route path="bookings/payment-result" element={<PaymentResultPage />} />
             <Route path="payment/result" element={<PaymentResultPage />} />
+            <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
