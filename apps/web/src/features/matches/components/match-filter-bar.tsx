@@ -32,13 +32,13 @@ export function MatchFilterBar({
   searchDistrict,
   onSearchDistrictChange,
 }: MatchFilterBarProps): React.ReactElement {
-  const availableDistricts =
-    searchCity !== 'ALL'
-      ? DISTRICTS_BY_CITY[searchCity as (typeof CITIES)[number]] || []
-      : [...DISTRICTS_BY_CITY['Hà Nội'], ...DISTRICTS_BY_CITY['TP. Hồ Chí Minh']];
+  const isAllCities = searchCity === 'ALL';
+  const availableDistricts = !isAllCities
+    ? DISTRICTS_BY_CITY[searchCity as (typeof CITIES)[number]] || []
+    : [];
 
   return (
-    <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
+    <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 rounded-3xl bg-card border border-border/80 shadow-xs">
       {/* Sport Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
         {DEFAULT_MATCH_SPORTS.map((sp) => {
@@ -49,10 +49,10 @@ export function MatchFilterBar({
               key={sp.id}
               onClick={() => onSportFilterChange(sp.id)}
               className={cn(
-                'px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer',
+                'px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer',
                 isSelected
                   ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'bg-secondary/60 text-muted-foreground hover:text-foreground',
+                  : 'bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary',
               )}
             >
               {sp.label}
@@ -65,11 +65,12 @@ export function MatchFilterBar({
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={searchCity}
+          aria-label="Chọn thành phố"
           onChange={(e) => {
             onSearchCityChange(e.target.value);
             onSearchDistrictChange('ALL');
           }}
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer shadow-xs"
+          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer shadow-xs transition-colors"
         >
           <option value="ALL">Tất cả Thành phố</option>
           {CITIES.map((c) => (
@@ -81,10 +82,19 @@ export function MatchFilterBar({
 
         <select
           value={searchDistrict}
+          disabled={isAllCities}
+          aria-label="Chọn quận huyện"
           onChange={(e) => onSearchDistrictChange(e.target.value)}
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer shadow-xs"
+          className={cn(
+            'h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden shadow-xs transition-opacity',
+            isAllCities
+              ? 'opacity-50 cursor-not-allowed bg-muted text-muted-foreground'
+              : 'cursor-pointer',
+          )}
         >
-          <option value="ALL">Tất cả Quận / Huyện</option>
+          <option value="ALL">
+            {isAllCities ? 'Chọn TP để lọc Quận' : 'Tất cả Quận / Huyện'}
+          </option>
           {availableDistricts.map((d) => (
             <option key={d} value={d}>
               {d}

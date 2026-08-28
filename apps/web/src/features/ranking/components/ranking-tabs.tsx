@@ -10,13 +10,20 @@ interface RankingTabsProps {
 
 export function RankingTabs({ activeTab, onTabChange }: RankingTabsProps): React.ReactElement {
   return (
-    <div className="flex border-b border-border/60 gap-4 overflow-x-auto no-scrollbar pb-1">
+    <div
+      role="tablist"
+      aria-label="Tùy chọn Bảng xếp hạng"
+      className="flex border-b border-border/60 gap-6 overflow-x-auto no-scrollbar pb-0.5"
+    >
       <button
         type="button"
-        aria-label="Bảng Xếp Hạng Câu Lạc Bộ"
+        role="tab"
+        id="tab-clubs"
+        aria-selected={activeTab === 'CLUBS'}
+        aria-controls="tabpanel-clubs"
         onClick={() => onTabChange('CLUBS')}
         className={cn(
-          'pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap',
+          'pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap',
           activeTab === 'CLUBS'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -28,10 +35,13 @@ export function RankingTabs({ activeTab, onTabChange }: RankingTabsProps): React
 
       <button
         type="button"
-        aria-label="Bảng Vàng Vận Động Viên"
+        role="tab"
+        id="tab-athletes"
+        aria-selected={activeTab === 'ATHLETES'}
+        aria-controls="tabpanel-athletes"
         onClick={() => onTabChange('ATHLETES')}
         className={cn(
-          'pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap',
+          'pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap',
           activeTab === 'ATHLETES'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground',

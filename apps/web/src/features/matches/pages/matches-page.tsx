@@ -4,6 +4,7 @@ import { listOpenMatchesApi, type OpenMatch } from '../api/matches-api';
 import { MatchHeader } from '../components/match-header';
 import { MatchFilterBar } from '../components/match-filter-bar';
 import { MatchCard } from '../components/match-card';
+import { PageContainer } from '../../../components/layout/page-container';
 
 export function MatchesPage(): React.ReactElement {
   const [matches, setMatches] = React.useState<OpenMatch[]>([]);
@@ -33,7 +34,7 @@ export function MatchesPage(): React.ReactElement {
   }, [fetchMatches]);
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-10 space-y-8 max-w-7xl mx-auto">
+    <PageContainer>
       <MatchHeader />
 
       <MatchFilterBar
@@ -67,6 +68,6 @@ export function MatchesPage(): React.ReactElement {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

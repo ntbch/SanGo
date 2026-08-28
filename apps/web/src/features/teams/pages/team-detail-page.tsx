@@ -75,7 +75,7 @@ export function TeamDetailPage(): React.ReactElement {
     e.preventDefault();
     if (!id || !inviteEmail) return;
     try {
-      await addMemberApi(id, { email: inviteEmail, role: 'MEMBER' });
+      await addMemberApi(id, { emailOrPhone: inviteEmail, role: 'MEMBER' });
       setInviteMsg('Đã gửi lời mời tham gia đội!');
       setInviteEmail('');
       setTimeout(() => {

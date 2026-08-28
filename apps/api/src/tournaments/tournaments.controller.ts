@@ -15,13 +15,13 @@ import {
 import { TournamentsService } from './tournaments.service';
 
 @ApiTags('tournaments')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tournaments')
 export class TournamentsController {
   constructor(private readonly tournamentsService: TournamentsService) {}
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('OWNER', 'ADMIN')
   @ApiOperation({ summary: '[S3-F7] Tạo giải đấu loại trực tiếp (OWNER/ADMIN)' })
   @ApiResponse({ status: 201, description: 'Giải vừa tạo, trạng thái REGISTRATION' })
@@ -33,18 +33,20 @@ export class TournamentsController {
   }
 
   @Get()
-  @ApiOperation({ summary: '[S3-F7] Danh sách giải đấu' })
+  @ApiOperation({ summary: '[Public] [S3-F7] Danh sách giải đấu' })
   listTournaments() {
     return this.tournamentsService.listTournaments();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: '[S3-F7] Chi tiết giải + bracket đầy đủ theo round/position' })
+  @ApiOperation({ summary: '[Public] [S3-F7] Chi tiết giải + bracket đầy đủ theo round/position' })
   getTournament(@Param('id') id: string) {
     return this.tournamentsService.getTournament(id);
   }
 
   @Post(':id/register')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: '[S3-F7] Đăng ký đội vào giải (chỉ CAPTAIN của đội)' })
   registerTeam(
     @Param('id') id: string,
@@ -55,6 +57,8 @@ export class TournamentsController {
   }
 
   @Post(':id/start')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: '[S3-F7] Khóa đăng ký + tự sinh bracket single-elimination' })
   startTournament(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.tournamentsService.startTournament(user, id);

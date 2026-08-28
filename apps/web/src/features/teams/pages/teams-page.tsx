@@ -11,6 +11,7 @@ import { TeamHeader } from '../components/team-header';
 import { TeamFilterBar } from '../components/team-filter-bar';
 import { TeamCard } from '../components/team-card';
 import { TeamCreateModal } from '../components/team-create-modal';
+import { PageContainer } from '../../../components/layout/page-container';
 
 export function TeamsPage(): React.ReactElement {
   const [memberships, setMemberships] = React.useState<MyTeamMembership[]>([]);
@@ -63,7 +64,7 @@ export function TeamsPage(): React.ReactElement {
   });
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-10 space-y-8 max-w-7xl mx-auto">
+    <PageContainer>
       <TeamHeader onCreateTeam={() => setShowCreateModal(true)} />
 
       <TeamFilterBar
@@ -128,6 +129,6 @@ export function TeamsPage(): React.ReactElement {
         isSubmitting={isSubmitting}
         onSubmit={handleCreateTeam}
       />
-    </div>
+    </PageContainer>
   );
 }

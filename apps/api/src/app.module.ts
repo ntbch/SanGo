@@ -16,6 +16,7 @@ import { ReputationModule } from './reputation/reputation.module';
 import { TeamsModule } from './teams/teams.module';
 import { UsersModule } from './users/users.module';
 import { VenuesModule } from './venues/venues.module';
+import { RankingModule } from './ranking/ranking.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
 import { VenueServicesModule } from './venue-services/venue-services.module';
 import { VouchersModule } from './vouchers/vouchers.module';
@@ -43,6 +44,7 @@ import { WalletsModule } from './wallets/wallets.module';
     ReputationModule,
     TeamsModule,
     TournamentsModule,
+    RankingModule,
   ],
 })
 export class AppModule {}

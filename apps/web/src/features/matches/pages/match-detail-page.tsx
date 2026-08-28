@@ -18,6 +18,7 @@ import { MatchParticipantsList } from '../components/match-participants-list';
 import { MatchCommentsSection } from '../components/match-comments-section';
 import { MatchJoinRequestCard } from '../components/match-join-request-card';
 import { MatchPendingRequestsCard } from '../components/match-pending-requests-card';
+import { PageContainer } from '../../../components/layout/page-container';
 
 export function MatchDetailPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -95,23 +96,23 @@ export function MatchDetailPage(): React.ReactElement {
 
   if (isLoading || !match) {
     return (
-      <div className="w-full max-w-7xl mx-auto px-4 py-12 text-center space-y-3">
+      <PageContainer className="py-16 text-center space-y-3">
         <div className="h-8 w-48 bg-muted rounded mx-auto animate-pulse" />
         <p className="text-xs text-muted-foreground">Đang tải thông tin kèo thi đấu...</p>
-      </div>
+      </PageContainer>
     );
   }
 
   const isHost = match.hostUser?.id === user?.id;
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-10 space-y-8 max-w-7xl mx-auto">
+    <PageContainer>
       <MatchDetailHero match={match} isHost={isHost} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Description, Line-up, Comments */}
         <div className="lg:col-span-8 space-y-6">
-          <Card className="p-6 border border-border/80 bg-card shadow-md space-y-3">
+          <Card className="p-6 border border-border/80 bg-card shadow-sm space-y-3 rounded-3xl">
             <h3 className="text-base font-black text-foreground">Ghi Chú &amp; Thể Thức Thi Đấu</h3>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {match.description || 'Trận đấu giao lưu phong trào. Vui lòng có mặt trước 15 phút để khởi động.'}
@@ -148,6 +149,6 @@ export function MatchDetailPage(): React.ReactElement {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -4,63 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getVenuesListApi } from '../../venues/api/venues-api';
 import { VenueCard } from '../../venues/components/venue-card';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { ArrowRight, Star } from 'lucide-react';
-import { SportType } from '../../../lib/constants';
-
-const CURATED_FEATURED_VENUES = [
-  {
-    id: 'curated-1',
-    name: 'Sân Bóng Đá Đại Học Thủy Lợi',
-    address: '175 Tây Sơn, Đống Đa, Hà Nội',
-    city: 'Hà Nội',
-    sportTypes: [SportType.FOOTBALL5],
-    minPrice: 350000,
-    maxPrice: 650000,
-    rating: 4.9,
-    totalReviews: 128,
-    images: ['/mock-football.svg'],
-    isOnlineBooking: true,
-  },
-  {
-    id: 'curated-2',
-    name: 'Pickleball Thảo Điền Sport Complex',
-    address: '28 Thảo Điền, Quận 2, TP. Hồ Chí Minh',
-    city: 'TP. Hồ Chí Minh',
-    sportTypes: [SportType.PICKLEBALL],
-    minPrice: 150000,
-    maxPrice: 280000,
-    rating: 5.0,
-    totalReviews: 94,
-    images: ['/mock-pickleball.svg'],
-    isOnlineBooking: true,
-  },
-  {
-    id: 'curated-3',
-    name: 'Cụm Sân Cầu Lông Cầu Giấy Pro',
-    address: '35 Trần Quý Kiên, Cầu Giấy, Hà Nội',
-    city: 'Hà Nội',
-    sportTypes: [SportType.BADMINTON],
-    minPrice: 90000,
-    maxPrice: 160000,
-    rating: 4.8,
-    totalReviews: 76,
-    images: ['/mock-badminton.svg'],
-    isOnlineBooking: true,
-  },
-  {
-    id: 'curated-4',
-    name: 'CLB Tennis Phú Thọ Chuẩn Quốc Tế',
-    address: '219 Lý Thường Kiệt, Quận 11, TP. Hồ Chí Minh',
-    city: 'TP. Hồ Chí Minh',
-    sportTypes: [SportType.TENNIS],
-    minPrice: 200000,
-    maxPrice: 400000,
-    rating: 4.9,
-    totalReviews: 115,
-    images: ['/mock-tennis.svg'],
-    isOnlineBooking: true,
-  },
-];
+import { ArrowRight, Star, MapPin } from 'lucide-react';
 
 export function HomeFeaturedVenues(): React.ReactElement {
   const { data, isLoading } = useQuery({
@@ -68,7 +12,7 @@ export function HomeFeaturedVenues(): React.ReactElement {
     queryFn: () => getVenuesListApi({ limit: 4 }),
   });
 
-  const venuesToDisplay = data?.items && data.items.length > 0 ? data.items.slice(0, 4) : CURATED_FEATURED_VENUES;
+  const venuesToDisplay = data?.items && data.items.length > 0 ? data.items.slice(0, 4) : [];
 
   return (
     <section className="space-y-4">
@@ -107,11 +51,29 @@ export function HomeFeaturedVenues(): React.ReactElement {
             </div>
           ))}
         </div>
-      ) : (
+      ) : venuesToDisplay.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {venuesToDisplay.map((venue: any) => (
             <VenueCard key={venue.id} venue={venue} />
           ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center bg-card/40">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+            <MapPin className="h-6 w-6" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">Đang tải và cập nhật cụm sân thể thao</h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+            Hệ thống đang đồng bộ dữ liệu sân thi đấu. Bạn có thể duyệt danh sách sân hoặc chủ sân có thể đăng ký tạo cụm sân mới.
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Link
+              to="/venues"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Duyệt tất cả sân
+            </Link>
+          </div>
         </div>
       )}
     </section>

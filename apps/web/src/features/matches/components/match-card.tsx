@@ -16,6 +16,10 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
   const fillPercent = Math.min(100, Math.round((filled / total) * 100));
   const hostName = m.hostUser?.fullName || 'Chủ kèo SanGo';
 
+  // Capacity states
+  const isFull = slotsLeft === 0;
+  const isUrgent = slotsLeft > 0 && slotsLeft <= 2;
+
   // Skill level styling
   const skill = (m.skillLevel || 'Giao lưu nhẹ').toUpperCase();
   const isAdvanced = skill.includes('D1') || skill.includes('BÁN CHUYÊN');
@@ -24,26 +28,46 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
   return (
     <Card
       key={m.id}
-      className="group relative overflow-hidden rounded-3xl border border-border/80 hover:border-primary/60 bg-card hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col justify-between"
+      className="group relative overflow-hidden rounded-3xl border border-border/80 hover:border-primary/50 bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
     >
-      <div className="p-6 space-y-4">
+      {/* Full-card accessible click hitbox */}
+      <Link
+        to={`/matches/${m.id}`}
+        aria-label={`Xem chi tiết kèo thi đấu: ${m.title}`}
+        className="absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-3xl"
+      />
+
+      <div className="p-6 space-y-4 relative z-20 pointer-events-none">
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2">
           <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-mono-num font-extrabold uppercase tracking-wider border border-primary/20">
             {m.sportType || 'THỂ THAO'}
           </span>
-          <span
-            className={cn(
-              'px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold border',
-              isAdvanced
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                : isIntermediate
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                  : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+
+          <div className="flex items-center gap-1.5">
+            {isFull ? (
+              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold bg-muted text-muted-foreground border border-border">
+                Đã đủ người
+              </span>
+            ) : isUrgent ? (
+              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                Còn {slotsLeft} slot!
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  'px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold border',
+                  isAdvanced
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                    : isIntermediate
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+                )}
+              >
+                {m.skillLevel || 'Giao lưu nhẹ'}
+              </span>
             )}
-          >
-            {m.skillLevel || 'Giao lưu nhẹ'}
-          </span>
+          </div>
         </div>
 
         {/* Title & Description */}
@@ -67,7 +91,9 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
             <span>{m.date ? new Date(m.date).toLocaleDateString('vi-VN') : 'Hôm nay'}</span>
             <span className="text-border">·</span>
             <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="font-mono-num font-medium text-foreground">{m.startTime || '18:00'} - {m.endTime || '19:30'}</span>
+            <span className="font-mono-num font-medium text-foreground">
+              {m.startTime || '18:00'} - {m.endTime || '19:30'}
+            </span>
           </div>
         </div>
 
@@ -83,7 +109,11 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
             <div
               className={cn(
                 'h-full rounded-full transition-all',
-                slotsLeft === 0 ? 'bg-muted-foreground' : 'bg-primary',
+                isFull
+                  ? 'bg-muted-foreground/60'
+                  : isUrgent
+                    ? 'bg-amber-500'
+                    : 'bg-primary',
               )}
               style={{ width: `${fillPercent}%` }}
             />
@@ -100,18 +130,19 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
       </div>
 
       {/* Footer Link & Action */}
-      <div className="px-6 py-3.5 bg-secondary/30 border-t border-border/50 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate mr-2">
-          <span>Chủ kèo:</span>
-          <strong className="text-foreground truncate font-semibold">{hostName}</strong>
+      <div className="px-6 py-3.5 bg-secondary/30 border-t border-border/50 flex items-center justify-between relative z-20 pointer-events-none">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground truncate mr-2">
+          <span className="h-5 w-5 rounded-full bg-primary/15 text-primary font-black text-[10px] flex items-center justify-center shrink-0">
+            {hostName.charAt(0).toUpperCase()}
+          </span>
+          <span className="truncate">
+            Chủ kèo: <strong className="text-foreground font-semibold">{hostName}</strong>
+          </span>
         </div>
-        <Link
-          to={`/matches/${m.id}`}
-          className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-emerald-400 shrink-0 cursor-pointer active:scale-[0.98]"
-        >
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform shrink-0">
           <span>Tham gia ngay</span>
           <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+        </span>
       </div>
     </Card>
   );

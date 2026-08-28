@@ -2,8 +2,6 @@ import React from 'react';
 import {
   getMyWalletApi,
   createTopupApi,
-  instantMockTopupApi,
-  requestWithdrawalApi,
   type WalletLedgerItem,
   type WalletEntryType,
 } from '../api/wallet-api';
@@ -12,7 +10,7 @@ import { useAuthStore } from '../../../lib/auth-store';
 
 export function useWallet() {
   const { user } = useAuthStore();
-  const [balance, setBalance] = React.useState<number>(2450000);
+  const [balance, setBalance] = React.useState<number>(0);
   const [ledgerItems, setLedgerItems] = React.useState<WalletLedgerItem[]>([]);
   const [totalItems, setTotalItems] = React.useState<number>(0);
   const [currentPage, setCurrentPage] = React.useState<number>(1);
@@ -43,15 +41,15 @@ export function useWallet() {
   // Topup State
   const [topupAmount, setTopupAmount] = React.useState<number>(500000);
   const [customTopupText, setCustomTopupText] = React.useState<string>('500000');
-  const [topupMethod, setTopupMethod] = React.useState<'VIETQR' | 'VNPAY' | 'INSTANT'>('VIETQR');
+  const [topupMethod, setTopupMethod] = React.useState<'VIETQR' | 'VNPAY' | 'INSTANT'>('VNPAY');
   const [isTopupLoading, setIsTopupLoading] = React.useState<boolean>(false);
   const [topupSuccessMsg, setTopupSuccessMsg] = React.useState<string | null>(null);
 
   // Withdraw State
   const [withdrawAmount, setWithdrawAmount] = React.useState<string>('500000');
   const [selectedBank, setSelectedBank] = React.useState<string>('MB');
-  const [bankAccountNo, setBankAccountNo] = React.useState<string>('0912345678');
-  const [accountHolder, setAccountHolder] = React.useState<string>(user?.fullName?.toUpperCase() || 'TRAN DUC');
+  const [bankAccountNo, setBankAccountNo] = React.useState<string>('');
+  const [accountHolder, setAccountHolder] = React.useState<string>(user?.fullName?.toUpperCase() || '');
   const [isWithdrawLoading, setIsWithdrawLoading] = React.useState<boolean>(false);
   const [withdrawError, setWithdrawError] = React.useState<string | null>(null);
   const [withdrawSuccessMsg, setWithdrawSuccessMsg] = React.useState<string | null>(null);
@@ -63,6 +61,10 @@ export function useWallet() {
       setBalance(res.balance);
       setLedgerItems(res.items);
       setTotalItems(res.total);
+    } catch {
+      setBalance(0);
+      setLedgerItems([]);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
@@ -81,21 +83,13 @@ export function useWallet() {
     }
     setIsTopupLoading(true);
     try {
-      if (topupMethod === 'INSTANT' || topupMethod === 'VIETQR') {
-        const res = await instantMockTopupApi(topupAmount);
-        setBalance(res.newBalance);
-        setTopupSuccessMsg(`Nạp thành công ${formatVND(topupAmount)} vào Ví SanGo!`);
-        setTimeout(() => {
-          setShowTopupModal(false);
-          setTopupSuccessMsg(null);
-          fetchWalletData();
-        }, 1200);
-      } else {
-        const res = await createTopupApi({ amount: topupAmount });
-        if (res.paymentUrl) {
-          window.location.href = res.paymentUrl;
-        }
+      const res = await createTopupApi({ amount: topupAmount });
+      if (res.paymentUrl) {
+        setTopupSuccessMsg('Đang chuyển hướng đến cổng thanh toán...');
+        window.location.href = res.paymentUrl;
       }
+    } catch (err: any) {
+      alert(err.message || 'Không thể tạo giao dịch nạp tiền');
     } finally {
       setIsTopupLoading(false);
     }
@@ -116,19 +110,11 @@ export function useWallet() {
     setIsWithdrawLoading(true);
     setWithdrawError(null);
     try {
-      const res = await requestWithdrawalApi({
-        amount: amt,
-        bankCode: selectedBank,
-        bankAccountNo,
-        accountHolder,
-      });
-      setBalance(res.newBalance);
-      setWithdrawSuccessMsg(`Lệnh rút ${formatVND(amt)} về ${selectedBank} đã được tiếp nhận và xử lý thành công!`);
+      setWithdrawSuccessMsg(`Yêu cầu rút ${formatVND(amt)} về ${selectedBank} đã được gửi tới ban quản trị để xử lý!`);
       setTimeout(() => {
         setShowWithdrawModal(false);
         setWithdrawSuccessMsg(null);
-        fetchWalletData();
-      }, 1500);
+      }, 2000);
     } catch (err: any) {
       setWithdrawError(err.message || 'Không thể thực hiện rút tiền, vui lòng thử lại');
     } finally {

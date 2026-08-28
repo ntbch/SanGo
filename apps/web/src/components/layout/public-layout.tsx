@@ -33,7 +33,7 @@ export function PublicLayout(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary pb-16 md:pb-0 relative">
+    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pb-0 relative">
       <Navbar />
       <main className="flex-1 w-full">
         <Outlet />
@@ -43,15 +43,18 @@ export function PublicLayout(): React.ReactElement {
       {/* Floating AI Sports Assistant Widget */}
       <AiChatWidget />
 
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-border/80 bg-card/90 backdrop-blur-lg px-2 py-1 flex items-center justify-around">
+      {/* Mobile Bottom Navigation Bar with Safe Area Insets */}
+      <nav
+        aria-label="Thanh điều hướng di động"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-border/80 bg-card/95 backdrop-blur-xl px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg"
+      >
         {bottomNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center py-1 px-2 rounded-lg text-[10px] font-semibold transition-colors gap-0.5 min-w-[54px]',
+                'flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-semibold transition-colors gap-0.5 min-w-[54px]',
                 isActive ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground',
               )
             }
@@ -60,7 +63,7 @@ export function PublicLayout(): React.ReactElement {
             <span>{item.label}</span>
           </NavLink>
         ))}
-      </div>
+      </nav>
     </div>
   );
 }

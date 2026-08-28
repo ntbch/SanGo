@@ -11,6 +11,7 @@ import { RankingTabs } from '../components/ranking-tabs';
 import { RankingPodium } from '../components/ranking-podium';
 import { RankingLeaderboardTable } from '../components/ranking-leaderboard-table';
 import { RankingSkeleton } from '../components/ranking-skeleton';
+import { PageContainer } from '../../../components/layout/page-container';
 
 export type RankingTab = 'CLUBS' | 'ATHLETES';
 
@@ -41,7 +42,7 @@ export function RankingPage(): React.ReactElement {
   }, [fetchRankings]);
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-10 space-y-8 max-w-7xl mx-auto">
+    <PageContainer>
       <RankingHeader />
 
       <RankingFilterBar
@@ -69,6 +70,6 @@ export function RankingPage(): React.ReactElement {
           />
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
