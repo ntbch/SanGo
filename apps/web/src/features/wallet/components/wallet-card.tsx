@@ -32,9 +32,7 @@ export function WalletCard({
   onOpenQrPay,
 }: WalletCardProps): React.ReactElement {
   return (
-    <div className="lg:col-span-2 relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/10 p-6 sm:p-8 shadow-xl flex flex-col justify-between space-y-6">
-      <div className="absolute top-0 right-0 -mt-8 -mr-8 h-48 w-48 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/3 -mb-12 h-36 w-36 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
+    <div className="lg:col-span-2 relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm flex flex-col justify-between space-y-6">
 
       {/* Card Header */}
       <div className="flex items-center justify-between relative z-10">

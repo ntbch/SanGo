@@ -6,10 +6,13 @@ import {
   Swords,
   Trophy,
   ArrowRight,
-  Award,
   Zap,
-  Clock,
-  Flame,
+  CheckCircle2,
+  Sliders,
+  BellRing,
+  GitBranch,
+  Radio,
+  Medal,
 } from 'lucide-react';
 
 export function HomeCommunityFeatures(): React.ReactElement {
@@ -26,7 +29,7 @@ export function HomeCommunityFeatures(): React.ReactElement {
             Kết Nối Đồng Đội &amp; Thi Đấu Thể Thao
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Thiếu chân đá? Muốn tìm đối tác giao hữu cân tài cân sức hay tranh tài tại các giải phong trào? SanGo kết nối bạn với hàng ngàn người chơi thể thao mỗi ngày.
+            Nền tảng kết nối cộng đồng thể thao phong trào hàng đầu: từ việc ghép kèo giao hữu cân tài cân sức đến tổ chức các giải đấu chuyên nghiệp tự động.
           </p>
         </div>
       </div>
@@ -42,53 +45,58 @@ export function HomeCommunityFeatures(): React.ReactElement {
                 </div>
                 <div>
                   <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-mono-num font-bold uppercase tracking-wider">
-                    Sàn Ghép Trận
+                    Sàn Ghép Kèo Thông Minh
                   </span>
                   <h3 className="text-base sm:text-lg font-bold text-foreground mt-0.5">
-                    Mở Kèo &amp; Tìm Đồng Đội Cùng Trình Độ
+                    Mở Kèo &amp; Tìm Đối Thủ Cân Sức
                   </h3>
                 </div>
               </div>
 
-              <span className="px-2.5 py-1 rounded-lg bg-secondary text-[11px] font-mono-num font-bold text-foreground">
-                Live 45+ Kèo
+              <span className="px-2.5 py-1 rounded-lg bg-secondary text-[11px] font-semibold text-foreground border border-border">
+                Tính năng cộng đồng
               </span>
             </div>
 
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Mở kèo nhanh cho Bóng đá 5-7, Pickleball đôi, Cầu lông, Tennis. Thiết lập giới hạn trình độ (D1/D2/Open), tự động chia tiền cọc và khóa danh sách khi đủ slot.
+              Giải pháp toàn diện khi đội bóng thiếu chân, cần tìm đối tác giao hữu hoặc người chơi cá nhân muốn tham gia các trận đấu thể thao quanh khu vực.
             </p>
 
-            {/* Live Match Preview Mock Card */}
-            <div className="rounded-2xl border border-border/80 bg-background/90 p-4 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                  <Flame className="h-3.5 w-3.5 fill-emerald-500 text-emerald-500" />
-                  <span>Kèo Bóng Đá 7v7 — Tuyển thêm 3 slot</span>
+            {/* Core Feature Pillars (No fake data records) */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <Sliders className="h-3.5 w-3.5" />
                 </div>
-                <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono-num font-bold text-[10px]">
-                  Rank D2 (Khá)
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50 text-muted-foreground">
-                <div className="flex items-center gap-1 font-mono-num">
-                  <Clock className="h-3.5 w-3.5 text-primary" />
-                  <span>19:30 Tối Nay • Sân Ngọc Khánh</span>
-                </div>
-                <div className="flex items-center gap-1 font-mono-num font-bold text-primary">
-                  <span>50.000 đ / slot</span>
+                <div className="space-y-0.5 text-xs">
+                  <div className="font-bold text-foreground">Phân hạng trình độ công bằng</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    Thiết lập phân hạng (D1, D2, Open) giúp các đội tìm được đối thủ tương xứng, hạn chế chênh lệch trình độ.
+                  </div>
                 </div>
               </div>
 
-              {/* Slots Fill Progress */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[11px] font-mono-num">
-                  <span className="text-muted-foreground">Thành viên đã tham gia:</span>
-                  <span className="font-bold text-foreground">11 / 14 Cầu thủ</span>
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60">
+                <div className="h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full w-[78%]" />
+                <div className="space-y-0.5 text-xs">
+                  <div className="font-bold text-foreground">Tự động chốt danh sách &amp; Quản lý cọc</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    Hệ thống tự động khóa danh sách khi đủ người tham gia và bảo đảm tiền cọc trách nhiệm cho từng vị trí.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60">
+                <div className="h-7 w-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <BellRing className="h-3.5 w-3.5" />
+                </div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="font-bold text-foreground">Thông báo trạng thái thời gian thực</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    Nhận thông báo ngay lập tức khi có thành viên gửi yêu cầu tham gia hoặc khi đội trưởng phê duyệt slot.
+                  </div>
                 </div>
               </div>
             </div>
@@ -98,7 +106,7 @@ export function HomeCommunityFeatures(): React.ReactElement {
             <Link to="/matches">
               <Button className="w-full sm:w-auto gap-2 font-bold text-xs shadow-xs active:scale-[0.98]">
                 <Swords className="h-4 w-4" />
-                <span>Xem tất cả kèo đang mở</span>
+                <span>Xem danh sách sàn ghép kèo</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </Link>
@@ -115,43 +123,58 @@ export function HomeCommunityFeatures(): React.ReactElement {
                 </div>
                 <div>
                   <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-mono-num font-bold uppercase tracking-wider">
-                    Giải Đấu Phong Trào
+                    Hệ Thống Giải Đấu Phong Trào
                   </span>
                   <h3 className="text-base sm:text-lg font-bold text-foreground mt-0.5">
-                    Hệ Thống Giải Đấu &amp; Bảng Điểm Tự Động
+                    Tổ Chức Giải &amp; Cập Nhật Tỉ Số Tự Động
                   </h3>
                 </div>
               </div>
 
-              <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-mono-num font-bold border border-amber-500/20">
-                12 Giải mở đăng ký
+              <span className="px-2.5 py-1 rounded-lg bg-secondary text-[11px] font-semibold text-foreground border border-border">
+                Chuẩn thi đấu
               </span>
             </div>
 
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Tự động hóa toàn bộ khâu tổ chức giải: bốc thăm ngẫu nhiên, tạo sơ đồ thi đấu loại trực tiếp hoặc vòng bảng, trọng tài cập nhật tỉ số trực tiếp từng set đấu.
+              Giải pháp số hóa toàn diện giúp ban tổ chức, cụm sân và các hội nhóm thể thao quản trị giải đấu từ khâu đăng ký đến trận chung kết.
             </p>
 
-            {/* Tournament Bracket Preview Mock Card */}
-            <div className="rounded-2xl border border-border/80 bg-background/90 p-4 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold">
-                  <Award className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                  <span>SanGo Pickleball Championship 2026</span>
+            {/* Core Feature Pillars (No fake data records) */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60">
+                <div className="h-7 w-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <GitBranch className="h-3.5 w-3.5" />
                 </div>
-                <span className="font-mono-num font-extrabold text-amber-600 dark:text-amber-400 text-[11px]">
-                  Tổng thưởng 20.000.000 đ
-                </span>
+                <div className="space-y-0.5 text-xs">
+                  <div className="font-bold text-foreground">Sơ đồ thi đấu Bracket tự động</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    Hỗ trợ đa dạng thể thức: Vòng tròn tính điểm, Loại trực tiếp (Knockout) và Nhánh Thắng - Nhánh Thua.
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
-                <div className="p-2 rounded-xl bg-secondary/50 border border-border/60">
-                  <div className="text-[10px] text-muted-foreground">Quy mô giải:</div>
-                  <div className="font-mono-num font-bold text-foreground">16 Cặp VĐV Đôi Nam</div>
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60">
+                <div className="h-7 w-7 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Radio className="h-3.5 w-3.5" />
                 </div>
-                <div className="p-2 rounded-xl bg-secondary/50 border border-border/60">
-                  <div className="text-[10px] text-muted-foreground">Thể thức:</div>
-                  <div className="font-mono-num font-bold text-foreground">Loại trực tiếp (Best of 3)</div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="font-bold text-foreground">Cập nhật tỉ số trực tiếp từng hiệp</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    Trọng tài và BTC cập nhật điểm số theo thời gian thực, bảng xếp hạng và nhánh đấu tự động nhảy kết quả.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/60">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <Medal className="h-3.5 w-3.5" />
+                </div>
+                <div className="space-y-0.5 text-xs">
+                  <div className="font-bold text-foreground">Lưu trữ thành tích &amp; Điểm Elo</div>
+                  <div className="text-muted-foreground text-[11px] leading-relaxed">
+                    Ghi nhận bảng thành tích VĐV, danh hiệu vô địch và cập nhật thứ hạng trên bảng xếp hạng thể thao toàn hệ thống.
+                  </div>
                 </div>
               </div>
             </div>
@@ -164,7 +187,7 @@ export function HomeCommunityFeatures(): React.ReactElement {
                 className="w-full sm:w-auto gap-2 font-bold text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 active:scale-[0.98]"
               >
                 <Trophy className="h-4 w-4" />
-                <span>Khám phá các giải đấu</span>
+                <span>Khám phá các giải đấu thể thao</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </Link>

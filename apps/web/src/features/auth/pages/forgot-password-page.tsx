@@ -31,10 +31,10 @@ export function ForgotPasswordPage(): React.ReactElement {
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gradient-to-b from-background via-card/30 to-background">
+    <div className="w-full min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-background">
       <AuthBrandHeader />
 
-      <Card className="w-full max-w-md border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl">
+      <Card className="w-full max-w-md border border-border bg-card shadow-md">
         <CardHeader className="space-y-1.5 text-center pb-4">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-xs">
             <Mail className="h-6 w-6" />

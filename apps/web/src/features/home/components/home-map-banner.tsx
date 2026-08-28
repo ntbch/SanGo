@@ -5,7 +5,7 @@ import { MapPin, Navigation, Crosshair, ArrowRight } from 'lucide-react';
 
 export function HomeMapBanner(): React.ReactElement {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-r from-card via-card/90 to-emerald-950/20 p-6 sm:p-10 shadow-xs">
+    <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-10 shadow-xs">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-3 max-w-xl">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold border border-primary/20">

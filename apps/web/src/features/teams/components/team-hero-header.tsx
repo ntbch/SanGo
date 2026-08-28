@@ -22,7 +22,7 @@ export function TeamHeroHeader({
   onOpenInviteModal,
 }: TeamHeroHeaderProps): React.ReactElement {
   return (
-    <Card className="relative overflow-hidden border border-primary/30 bg-gradient-to-r from-card via-card to-primary/5 p-6 sm:p-8 shadow-xl rounded-3xl">
+    <Card className="relative overflow-hidden border border-border bg-card p-6 sm:p-8 shadow-sm rounded-3xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-border/60">
         <div className="flex items-center gap-4">
           <div className="h-18 w-18 rounded-3xl bg-primary/20 text-primary flex items-center justify-center font-black text-3xl border-2 border-primary/40 shadow-md">

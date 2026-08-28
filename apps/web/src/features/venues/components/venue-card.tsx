@@ -21,13 +21,22 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
   const closeMin = typeof venue.closeMinute === 'number' ? venue.closeMinute : 1380;
   const isOpen = currentMinute >= openMin && currentMinute <= closeMin;
 
+  const sports = venue.availableSports ?? venue.sportTypes ?? (venue.courts ? Array.from(new Set(venue.courts.map(c => c.sportType))) : []);
+
+  const getFallbackImage = () => {
+    if (sports.includes(SportType.FOOTBALL5) || sports.includes(SportType.FOOTBALL7)) return '/mock-football.svg';
+    if (sports.includes(SportType.PICKLEBALL)) return '/mock-pickleball.svg';
+    if (sports.includes(SportType.BADMINTON)) return '/mock-badminton.svg';
+    if (sports.includes(SportType.TENNIS)) return '/mock-tennis.svg';
+    return '/sample-court.svg';
+  };
+
   const thumbnail =
-    venue.images && venue.images.length > 0 && venue.images[0]
+    venue.images && venue.images.length > 0 && !venue.images[0].includes('unsplash')
       ? venue.images[0]
-      : 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80';
+      : getFallbackImage();
 
   const courtCount = venue.totalCourts ?? venue.courtsCount ?? venue.courts?.length ?? 1;
-  const sports = venue.availableSports ?? venue.sportTypes ?? (venue.courts ? Array.from(new Set(venue.courts.map(c => c.sportType))) : []);
   const rating = venue.avgRating ? Number(venue.avgRating).toFixed(1) : '5.0';
 
   return (
@@ -39,6 +48,9 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
             src={thumbnail}
             alt={venue.name}
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.src = getFallbackImage();
+            }}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />

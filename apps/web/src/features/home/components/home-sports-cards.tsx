@@ -12,8 +12,7 @@ const SPORTS_DATA = [
     courts: '140+ Cụm sân',
     price: 'Từ 250.000đ',
     unit: '/ slot 90p',
-    image:
-      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80',
+    image: '/mock-football.svg',
     popular: true,
   },
   {
@@ -23,8 +22,7 @@ const SPORTS_DATA = [
     courts: '60+ Cụm sân',
     price: 'Từ 120.000đ',
     unit: '/ giờ',
-    image:
-      'https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?auto=format&fit=crop&w=800&q=80',
+    image: '/mock-pickleball.svg',
     popular: true,
   },
   {
@@ -34,8 +32,7 @@ const SPORTS_DATA = [
     courts: '95+ Cụm sân',
     price: 'Từ 80.000đ',
     unit: '/ giờ',
-    image:
-      'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=800&q=80',
+    image: '/mock-badminton.svg',
     popular: false,
   },
   {
@@ -45,8 +42,7 @@ const SPORTS_DATA = [
     courts: '40+ Cụm sân',
     price: 'Từ 180.000đ',
     unit: '/ giờ',
-    image:
-      'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=800&q=80',
+    image: '/mock-tennis.svg',
     popular: false,
   },
 ];

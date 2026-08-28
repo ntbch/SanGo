@@ -18,7 +18,7 @@ export function ProfileOverviewTab({
 }: ProfileOverviewTabProps): React.ReactElement {
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-200">
-      <Card className="relative overflow-hidden border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8 shadow-2xl rounded-3xl">
+      <Card className="relative overflow-hidden border border-border bg-card p-6 sm:p-8 shadow-sm rounded-3xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-border/60">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-2xl bg-primary/20 text-primary flex items-center justify-center font-mono-num font-black text-2xl border border-primary/30 overflow-hidden">

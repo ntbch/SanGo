@@ -95,7 +95,7 @@ export function AuthModal({
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
       <Card className="w-full max-w-md border border-border bg-card shadow-2xl rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Modal Header */}
-        <CardHeader className="p-6 pb-4 border-b border-border/60 bg-gradient-to-r from-card to-primary/5 relative">
+        <CardHeader className="p-6 pb-4 border-b border-border bg-card relative">
           <button
             type="button"
             onClick={onClose}

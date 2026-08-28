@@ -89,9 +89,11 @@ export function Navbar(): React.ReactElement {
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 flex h-16 items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold text-base shadow-sm shadow-emerald-500/25 transition-transform group-hover:scale-105">
-            SG
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="SanGo Logo"
+            className="h-9 w-9 object-contain transition-transform group-hover:scale-105"
+          />
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-tight text-foreground leading-none">
               San<span className="text-primary">Go</span>

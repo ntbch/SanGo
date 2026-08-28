@@ -1,13 +1,12 @@
 import React from 'react';
 import { Card } from '../../../components/ui/card';
 import {
-  Clock,
-  Users,
   QrCode,
   ShieldCheck,
   Zap,
   Lock,
   CheckCircle2,
+  Banknote,
 } from 'lucide-react';
 
 export function HomeTechPillars(): React.ReactElement {
@@ -18,186 +17,172 @@ export function HomeTechPillars(): React.ReactElement {
         <div className="space-y-1.5 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-widest">
             <Zap className="h-3.5 w-3.5" />
-            <span>Quy Trình Vận Hành Thể Thao SanGo</span>
+            <span>Nền tảng công nghệ thể thao</span>
           </div>
           <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Công Nghệ Vận Hành Thể Thao SanGo
+            Trụ Cột Công Nghệ Vận Hành SanGo
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Hệ thống tự động hóa từ khâu chọn khung giờ, thanh toán cọc an toàn, chia tiền quỹ đến check-in vé QR tại cụm sân.
+            Hệ sinh thái công nghệ khép kín giải quyết toàn diện các vấn đề về trùng lịch, thanh toán, quản lý quỹ và check-in thực địa.
           </p>
         </div>
 
         <div className="hidden sm:flex items-center gap-2 text-xs font-mono-num text-muted-foreground px-3 py-1.5 rounded-xl bg-card border border-border/80">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span>Hệ thống trực tuyến 24/7</span>
+          <span>Vận hành tự động 24/7</span>
         </div>
       </div>
 
-      {/* Athletic Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
-        {/* Bento Tile 1: Slot Lock (2 Columns on Desktop) */}
-        <Card className="md:col-span-2 p-6 sm:p-7 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-200 flex flex-col justify-between space-y-6 shadow-xs group">
-          <div className="space-y-3">
+      {/* Bento Grid with Pure Informational Architecture */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Pillar 1: Distributed Slot Locking */}
+        <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between space-y-5 shadow-xs group">
+          <div className="space-y-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <div>
-                  <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-mono-num font-bold uppercase tracking-wider">
-                    Giữ Chỗ Tự Động
-                  </span>
-                  <h3 className="text-base sm:text-lg font-bold text-foreground mt-0.5">
-                    Khóa Khung Giờ 10 Phút — Tránh Trùng Lịch Tuyệt Đối
-                  </h3>
-                </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 transition-transform group-hover:scale-105">
+                <Lock className="h-5 w-5" />
               </div>
-
-              <span className="hidden sm:inline-flex px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono-num font-bold border border-emerald-500/20">
-                Chính xác theo thời gian thực
+              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono-num font-bold">
+                100% Chống trùng
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Ngay khi chọn slot, hệ thống sẽ tạm giữ chỗ riêng cho bạn trong 10 phút. Không thành viên nào khác có thể đặt đè trong lúc bạn xác nhận và thanh toán cọc.
-            </p>
-          </div>
-
-          {/* Interactive Status Widget */}
-          <div className="rounded-2xl border border-border/80 bg-background/90 p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="font-bold text-foreground">Sân 7A — Khung 19:30 - 21:00</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary text-primary-foreground font-mono-num font-bold text-xs shadow-xs">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Giữ chỗ an toàn 10:00</span>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div className="h-full bg-primary w-full rounded-full" />
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Slot được bảo lưu riêng biệt cho tài khoản
+            <div>
+              <span className="text-[10px] font-mono-num font-bold uppercase tracking-wider text-muted-foreground">
+                Cơ chế 01
               </span>
-              <span className="font-mono-num">Chuẩn SanGo Core</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Bento Tile 2: Team Bill Split (1 Column) */}
-        <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-200 flex flex-col justify-between space-y-5 shadow-xs">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <Users className="h-5 w-5" />
-              </div>
-              <span className="px-2 py-0.5 rounded-md bg-secondary text-[10px] font-mono-num font-bold text-muted-foreground">
-                Tự động tính toán
-              </span>
+              <h3 className="text-base font-bold text-foreground mt-0.5 group-hover:text-primary transition-colors">
+                Khóa Slot 10 Phút Độc Quyền
+              </h3>
             </div>
 
-            <h3 className="text-base font-bold text-foreground">
-              Chia Tiền Quỹ &amp; Tách Bill Trận Đấu
-            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Tạo đợt thu quỹ theo đầu người tham gia. Thành viên chuyển khoản trực tiếp qua mã VietQR hoặc số dư ví nhanh chóng.
+              Cơ chế Distributed Lock tự động bảo lưu khung giờ riêng biệt cho người đặt trong 10 phút, loại bỏ hoàn toàn tình trạng 2 người cùng thanh toán một sân.
             </p>
           </div>
 
-          {/* Mini Split Calculator */}
-          <div className="rounded-2xl border border-border/70 bg-secondary/40 p-3.5 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Tiền sân + dịch vụ:</span>
-              <span className="font-mono-num font-bold text-foreground">600.000 đ</span>
+          <div className="space-y-2 pt-3 border-t border-border/50 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>Giải phóng slot tự động nếu hết hạn</span>
             </div>
-            <div className="flex items-center justify-between pt-1 border-t border-border/60">
-              <span className="font-bold text-primary">10 thành viên:</span>
-              <span className="font-mono-num font-extrabold text-primary text-sm">60.000 đ / người</span>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>Đồng bộ tức thì lên bảng lịch toàn mạng</span>
             </div>
           </div>
         </Card>
 
-        {/* Bento Tile 3: Speed QR Check-in (1 Column) */}
-        <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-200 flex flex-col justify-between space-y-5 shadow-xs">
-          <div className="space-y-3">
+        {/* Pillar 2: Smart Treasury Split */}
+        <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between space-y-5 shadow-xs group">
+          <div className="space-y-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 transition-transform group-hover:scale-105">
+                <Banknote className="h-5 w-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[10px] font-mono-num font-bold">
+                Tự động hóa
+              </span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-mono-num font-bold uppercase tracking-wider text-muted-foreground">
+                Cơ chế 02
+              </span>
+              <h3 className="text-base font-bold text-foreground mt-0.5 group-hover:text-sky-500 transition-colors">
+                Chia Quỹ &amp; Tách Bill Thông Minh
+              </h3>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Thuật toán tự động chia đều tiền thuê sân và dịch vụ theo số người tham gia. Tạo link thu quỹ kèm mã VietQR động riêng cho từng thành viên trong đội.
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-3 border-t border-border/50 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+              <span>Hỗ trợ VietQR &amp; Số dư ví SanGo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+              <span>Theo dõi tiến độ đóng tiền Real-time</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Pillar 3: Fast QR Pass */}
+        <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between space-y-5 shadow-xs group">
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 transition-transform group-hover:scale-105">
                 <QrCode className="h-5 w-5" />
               </div>
               <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono-num font-bold">
-                Check-in nhanh
+                1 Giây tại quầy
               </span>
             </div>
 
-            <h3 className="text-base font-bold text-foreground">
-              Vé Điện Tử &amp; Check-in QR
-            </h3>
+            <div>
+              <span className="text-[10px] font-mono-num font-bold uppercase tracking-wider text-muted-foreground">
+                Cơ chế 03
+              </span>
+              <h3 className="text-base font-bold text-foreground mt-0.5 group-hover:text-cyan-500 transition-colors">
+                Vé Điện Tử &amp; Check-in QR
+              </h3>
+            </div>
+
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Mã vé QR được tạo tự động sau khi thanh toán thành công. Quét mã tại quầy lễ tân cụm sân để nhận sân ngay lập tức.
+              Mã vé QR được sinh tự động ngay sau khi xác nhận đặt chỗ. Lễ tân chỉ cần quét mã để đối soát thông tin ca đá và bàn giao sân trong tích tắc.
             </p>
           </div>
 
-          {/* Mini Ticket Representation */}
-          <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-3 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Mã vé điện tử</span>
-              <p className="font-mono-num font-bold text-xs text-foreground">#SG-PASS-2026</p>
+          <div className="space-y-2 pt-3 border-t border-border/50 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-cyan-500 shrink-0" />
+              <span>Không cần gọi điện thoại hay xác minh sổ</span>
             </div>
-            <div className="h-8 w-8 rounded-lg bg-card border border-border/80 flex items-center justify-center text-primary">
-              <QrCode className="h-5 w-5" />
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-cyan-500 shrink-0" />
+              <span>Chống giả mạo và bảo mật thông tin</span>
             </div>
           </div>
         </Card>
 
-        {/* Bento Tile 4: Fairplay Reputation Score (2 Columns on Desktop) */}
-        <Card className="md:col-span-2 p-6 sm:p-7 rounded-3xl border border-border/80 bg-card hover:border-amber-500/40 transition-all duration-200 flex flex-col justify-between space-y-5 shadow-xs">
-          <div className="space-y-3">
+        {/* Pillar 4: Fairplay Reputation Network */}
+        <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-300 flex flex-col justify-between space-y-5 shadow-xs group">
+          <div className="space-y-3.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-mono-num font-bold uppercase tracking-wider">
-                    Điểm Tín Nhiệm
-                  </span>
-                  <h3 className="text-base sm:text-lg font-bold text-foreground mt-0.5">
-                    Hệ Thống Tín Nhiệm &amp; Xếp Hạng Fairplay
-                  </h3>
-                </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-transform group-hover:scale-105">
+                <ShieldCheck className="h-5 w-5" />
               </div>
-
-              <span className="hidden sm:inline-flex px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-mono-num font-bold border border-amber-500/20">
-                Xây dựng cộng đồng văn minh
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-mono-num font-bold">
+                Cộng đồng chuẩn
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Mỗi người chơi và đội bóng tích luỹ điểm tín nhiệm dựa trên mức độ đúng giờ và lịch sử thi đấu, giúp tìm bạn ghép kèo uy tín và hạn chế việc hủy trận đột ngột.
+            <div>
+              <span className="text-[10px] font-mono-num font-bold uppercase tracking-wider text-muted-foreground">
+                Cơ chế 04
+              </span>
+              <h3 className="text-base font-bold text-foreground mt-0.5 group-hover:text-amber-500 transition-colors">
+                Hệ Thống Tín Nhiệm &amp; Fairplay
+              </h3>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Đánh giá điểm uy tín và văn hóa thi đấu của từng người chơi và đội bóng, giúp các bên an tâm giao lưu và triệt tiêu vấn đề hủy trận phút chót.
             </p>
           </div>
 
-          {/* Metrics Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className="p-3 rounded-2xl bg-secondary/30 border border-border/70 flex items-center gap-3">
-              <div className="text-xl font-mono-num font-black text-primary">100%</div>
-              <div className="text-[11px] text-muted-foreground leading-tight">Chống trùng ca trực tuyến</div>
+          <div className="space-y-2 pt-3 border-t border-border/50 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>Ghi nhận lịch sử thi đấu &amp; Điểm đúng giờ</span>
             </div>
-            <div className="p-3 rounded-2xl bg-secondary/30 border border-border/70 flex items-center gap-3">
-              <div className="text-xl font-mono-num font-black text-amber-600 dark:text-amber-400">10 Phút</div>
-              <div className="text-[11px] text-muted-foreground leading-tight">Thời gian giữ chỗ bảo lưu</div>
-            </div>
-            <div className="p-3 rounded-2xl bg-secondary/30 border border-border/70 flex items-center gap-3">
-              <div className="text-xl font-mono-num font-black text-emerald-600 dark:text-emerald-400">1 Giây</div>
-              <div className="text-[11px] text-muted-foreground leading-tight">Quét mã QR nhận sân</div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>Ưu tiên ghép kèo cho thành viên uy tín cao</span>
             </div>
           </div>
         </Card>

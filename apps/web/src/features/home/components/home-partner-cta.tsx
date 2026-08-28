@@ -5,7 +5,7 @@ import { Building2, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export function HomePartnerCta(): React.ReactElement {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 sm:p-10 lg:p-12 shadow-xs">
+    <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-10 lg:p-12 shadow-sm">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
         <div className="space-y-4 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">

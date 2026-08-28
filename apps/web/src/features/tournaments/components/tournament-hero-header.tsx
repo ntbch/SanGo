@@ -19,7 +19,7 @@ export function TournamentHeroHeader({
   onStartTournament,
 }: TournamentHeroHeaderProps): React.ReactElement {
   return (
-    <Card className="relative overflow-hidden border border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8 shadow-xl rounded-3xl">
+    <Card className="relative overflow-hidden border border-border bg-card p-6 sm:p-8 shadow-sm rounded-3xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-border/60">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -120,7 +120,7 @@ export function TournamentHeroHeader({
 
       {/* Champion Trophy Display if finished */}
       {tournament.status === 'FINISHED' && tournament.championTeam && (
-        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/30 flex items-center justify-between">
+        <div className="mt-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shadow-lg shadow-amber-500/30">
               <Crown className="h-7 w-7" />

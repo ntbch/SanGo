@@ -48,7 +48,7 @@ export function HomeTournamentsSpotlight(): React.ReactElement {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {TOURNAMENTS.map((t) => (
-          <Card key={t.id} className="border border-border/80 bg-gradient-to-br from-card via-card to-secondary/30 p-5 space-y-4 hover:border-amber-500/40 transition-all">
+          <Card key={t.id} className="border border-border bg-card p-5 space-y-4 hover:border-amber-500/40 transition-all shadow-xs">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">

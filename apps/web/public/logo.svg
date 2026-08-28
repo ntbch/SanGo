@@ -1,16 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" width="280" height="80" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 70" width="260" height="70" fill="none">
   <defs>
-    <linearGradient id="sangoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#006d37" />
-      <stop offset="100%" stop-color="#2ecc71" />
+    <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="logoAccentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0284C7" />
     </linearGradient>
   </defs>
 
-  <!-- Logo Mark Icon -->
-  <rect x="10" y="10" width="60" height="60" rx="18" fill="url(#sangoGrad)" />
-  <text x="40" y="52" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-weight="900" font-size="32" fill="#ffffff" text-anchor="middle" letter-spacing="-1">SG</text>
+  <!-- Logo Mark Icon Container -->
+  <g transform="translate(6, 6)">
+    <rect width="58" height="58" rx="16" fill="url(#logoBgGrad)" stroke="#334155" stroke-width="1.5" />
+    
+    <!-- Dynamic S Emblem -->
+    <!-- Top bar -->
+    <path d="M17 19C17 16.5 19 15 22 15H38C40.5 15 42 16.5 41 19L38.5 24C38 25 36.5 25.5 35 25.5H23.5C21.5 25.5 20.5 26.5 20 28L18 32C17 34 14.5 35 13 33L15.5 22C16 20 17 19 17 19Z" fill="#F8FAFC" />
+    
+    <!-- Accent Bridge -->
+    <path d="M21 27L26.5 21.5H34L28.5 27H21Z" fill="url(#logoAccentGrad)" />
+    
+    <!-- Bottom bar -->
+    <path d="M41 39C41 41.5 39 43 36 43H20C17.5 43 16 41.5 17 39L19.5 34C20 33 21.5 32.5 23 32.5H34.5C36.5 32.5 37.5 31.5 38 30L40 26C41 24 43.5 23 45 25L42.5 36C42 38 41 39 41 39Z" fill="#F8FAFC" />
+    
+    <!-- Spark dot -->
+    <circle cx="41" cy="18" r="3.2" fill="url(#logoAccentGrad)" />
+  </g>
   
   <!-- Brand Text -->
-  <text x="85" y="46" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-weight="800" font-size="30" fill="#131b2e" letter-spacing="-0.5">San<tspan fill="#2ecc71">Go</tspan></text>
-  <text x="86" y="62" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="10" fill="#64748b" letter-spacing="3.5">SPORTS HUB</text>
+  <text x="76" y="41" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="28" fill="#0F172A" letter-spacing="-0.8">
+    San<tspan fill="#0284C7">Go</tspan>
+  </text>
+  <text x="77" y="55" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="9" fill="#64748B" letter-spacing="3.2">
+    SPORTS HUB
+  </text>
 </svg>

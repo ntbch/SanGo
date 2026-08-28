@@ -9,14 +9,17 @@ export interface VenueGalleryProps {
 }
 
 const DEFAULT_IMAGES = [
-  'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1200&q=80',
+  '/mock-football.svg',
+  '/mock-pickleball.svg',
+  '/mock-badminton.svg',
+  '/mock-tennis.svg',
 ];
 
 export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
-  const images = venue.images && venue.images.length > 0 ? venue.images : DEFAULT_IMAGES;
+  const images =
+    venue.images && venue.images.length > 0 && !venue.images[0].includes('unsplash')
+      ? venue.images
+      : DEFAULT_IMAGES;
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [copied, setCopied] = React.useState(false);
 

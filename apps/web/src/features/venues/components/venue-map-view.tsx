@@ -8,12 +8,29 @@ import { Link } from 'react-router-dom';
 import { MapPin, Star, ArrowRight, X } from 'lucide-react';
 import { formatVND } from '../../../lib/utils';
 
+// Hook theo dõi trạng thái Dark mode từ <html> class
+function useIsDarkMode(): boolean {
+  const [isDark, setIsDark] = React.useState<boolean>(() => {
+    return typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  });
+
+  React.useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+}
+
 // Cache DivIcon để tránh tạo lại DOM icon mỗi lần re-render
 const priceIconCache = new Map<string, L.DivIcon>();
 
-function getOrCreatePriceIcon(priceFrom?: number, isSelected = false): L.DivIcon {
+function getOrCreatePriceIcon(priceFrom?: number, isSelected = false, isDark = false): L.DivIcon {
   const priceText = priceFrom ? `${Math.round(priceFrom / 1000)}k` : 'Sân';
-  const key = `${priceText}_${isSelected ? 'active' : 'normal'}`;
+  const key = `${priceText}_${isSelected ? 'active' : 'normal'}_${isDark ? 'dark' : 'light'}`;
 
   if (priceIconCache.has(key)) {
     return priceIconCache.get(key)!;
@@ -26,12 +43,18 @@ function getOrCreatePriceIcon(priceFrom?: number, isSelected = false): L.DivIcon
       <div class="px-2.5 py-1 rounded-full text-xs font-black shadow-md border ${
         isSelected
           ? 'bg-amber-400 text-black border-amber-300 shadow-amber-950/40'
+          : isDark
+          ? 'bg-emerald-500 text-slate-950 border-emerald-300/80 shadow-black/60 hover:bg-emerald-400 font-bold'
           : 'bg-emerald-600 text-white border-emerald-400/60 shadow-emerald-950/40 hover:bg-emerald-500'
       }">
         ${priceText}
       </div>
       <div class="absolute -bottom-1 w-2 h-2 rotate-45 ${
-        isSelected ? 'bg-amber-400 border-r border-b border-amber-300' : 'bg-emerald-600 border-r border-b border-emerald-400/60'
+        isSelected
+          ? 'bg-amber-400 border-r border-b border-amber-300'
+          : isDark
+          ? 'bg-emerald-500 border-r border-b border-emerald-300/80'
+          : 'bg-emerald-600 border-r border-b border-emerald-400/60'
       }"></div>
     </div>
   `;
@@ -138,15 +161,17 @@ function MapFlyToController({
 const VenueMarker = React.memo(function VenueMarker({
   venue,
   isSelected,
+  isDark,
   onClick,
 }: {
   venue: VenueItem;
   isSelected: boolean;
+  isDark: boolean;
   onClick: (venue: VenueItem) => void;
 }) {
   const icon = React.useMemo(
-    () => getOrCreatePriceIcon(venue.priceFrom ?? undefined, isSelected),
-    [venue.priceFrom, isSelected],
+    () => getOrCreatePriceIcon(venue.priceFrom ?? undefined, isSelected, isDark),
+    [venue.priceFrom, isSelected, isDark],
   );
 
   return (
@@ -167,11 +192,11 @@ export interface VenueMapViewProps {
   zoom?: number;
 }
 
-type MapTileType = 'google-street' | 'google-satellite' | 'voyager';
+export type GoogleMapLayerType = 'google-street' | 'google-satellite' | 'google-terrain';
 
-const MAP_TILES: Record<
-  MapTileType,
-  { name: string; url: string; subdomains?: string[] | string; attribution: string; maxZoom: number }
+const GOOGLE_TILES: Record<
+  GoogleMapLayerType,
+  { name: string; url: string; subdomains: string[]; attribution: string; maxZoom: number }
 > = {
   'google-street': {
     name: 'Google Maps',
@@ -187,11 +212,11 @@ const MAP_TILES: Record<
     attribution: '&copy; Google Maps Satellite',
     maxZoom: 20,
   },
-  'voyager': {
-    name: 'Vector',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    attribution: '&copy; CARTO',
+  'google-terrain': {
+    name: 'Địa Hình',
+    url: 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps Terrain',
     maxZoom: 20,
   },
 };
@@ -202,8 +227,9 @@ export const VenueMapView = React.memo(function VenueMapView({
   center = [21.028511, 105.854444], // Mặc định Hà Nội
   zoom = 13,
 }: VenueMapViewProps): React.ReactElement {
+  const isDarkMode = useIsDarkMode();
   const [selectedVenue, setSelectedVenue] = React.useState<VenueItem | null>(null);
-  const [tileType, setTileType] = React.useState<MapTileType>('google-street');
+  const [layerType, setLayerType] = React.useState<GoogleMapLayerType>('google-street');
 
   const handleMarkerClick = React.useCallback((venue: VenueItem) => {
     setSelectedVenue((prev) => (prev?.id === venue.id ? prev : venue));
@@ -213,24 +239,25 @@ export const VenueMapView = React.memo(function VenueMapView({
     setSelectedVenue(null);
   }, []);
 
-  const currentTile = MAP_TILES[tileType];
+  const currentTile = GOOGLE_TILES[layerType];
+  const isSatellite = layerType === 'google-satellite';
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className={`relative h-full w-full overflow-hidden bg-background ${isSatellite ? 'is-satellite-map' : 'is-street-map'}`}>
       {/* Map Layer Mode Switcher */}
       <div className="absolute top-3 right-3 z-20 flex items-center bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-md gap-1 text-xs">
-        {(['google-street', 'google-satellite', 'voyager'] as MapTileType[]).map((t) => (
+        {(['google-street', 'google-satellite', 'google-terrain'] as GoogleMapLayerType[]).map((t) => (
           <button
             key={t}
             type="button"
-            onClick={() => setTileType(t)}
+            onClick={() => setLayerType(t)}
             className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] transition-colors cursor-pointer ${
-              tileType === t
+              layerType === t
                 ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
             }`}
           >
-            {MAP_TILES[t].name}
+            {GOOGLE_TILES[t].name}
           </button>
         ))}
       </div>
@@ -242,7 +269,7 @@ export const VenueMapView = React.memo(function VenueMapView({
         scrollWheelZoom={true}
       >
         <TileLayer
-          key={tileType}
+          key={`${layerType}_${isDarkMode ? 'dark' : 'light'}`}
           attribution={currentTile.attribution}
           url={currentTile.url}
           subdomains={currentTile.subdomains}
@@ -263,6 +290,7 @@ export const VenueMapView = React.memo(function VenueMapView({
             key={venue.id}
             venue={venue}
             isSelected={selectedVenue?.id === venue.id}
+            isDark={isDarkMode}
             onClick={handleMarkerClick}
           />
         ))}
@@ -286,10 +314,14 @@ export const VenueMapView = React.memo(function VenueMapView({
               <div className="relative aspect-[16/9] w-full bg-muted overflow-hidden">
                 <img
                   src={
-                    selectedVenue.images?.[0] ||
-                    'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80'
+                    selectedVenue.images?.[0] && !selectedVenue.images[0].includes('unsplash')
+                      ? selectedVenue.images[0]
+                      : '/mock-football.svg'
                   }
                   alt={selectedVenue.name}
+                  onError={(e) => {
+                    e.currentTarget.src = '/mock-football.svg';
+                  }}
                   className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

@@ -94,26 +94,25 @@ export function AiChatWidget(): React.ReactElement {
             type="button"
             onClick={() => setIsOpen(true)}
             aria-label="Mở Trợ Lý AI Đặt Sân"
-            className="group relative flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-tr from-primary via-emerald-500 to-teal-400 text-white shadow-xl shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border-2 border-white/20"
+            className="group relative flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-primary/40"
           >
-            <div className="absolute -inset-1 rounded-full bg-primary/30 blur-md group-hover:blur-lg transition-all animate-pulse" />
             <div className="relative flex items-center justify-center">
               <Bot className="h-6 w-6 sm:h-7 sm:w-7 transition-transform group-hover:rotate-12" />
               <Sparkles className="h-3 w-3 text-amber-300 absolute -top-1 -right-1 animate-bounce" />
             </div>
 
             {/* Tooltip on hover (desktop only) */}
-            <span className="hidden sm:block absolute right-full mr-3 whitespace-nowrap rounded-xl bg-card/95 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-foreground shadow-lg border border-border opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <span className="hidden sm:block absolute right-full mr-3 whitespace-nowrap rounded-xl bg-card px-3 py-1.5 text-xs font-bold text-foreground shadow-md border border-border opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
               Trợ lý AI 
             </span>
           </button>
         ) : (
           /* Chat Window Modal / Popover */
-          <div className="w-[92vw] sm:w-[400px] h-[550px] max-h-[85vh] rounded-3xl bg-card/98 backdrop-blur-xl border border-border/80 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="w-[92vw] sm:w-[400px] h-[550px] max-h-[85vh] rounded-3xl bg-card border border-border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Window Header */}
-            <div className="px-5 py-4 bg-gradient-to-r from-card via-secondary/60 to-primary/10 border-b border-border/60 flex items-center justify-between">
+            <div className="px-5 py-4 bg-card border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 text-white shadow-xs">
+                <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
                   <Bot className="h-5 w-5" />
                   <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-card" />
                 </div>

@@ -25,7 +25,7 @@ export function TeamTreasuryTab({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Left Column: Balance & Contribute */}
       <Card className="lg:col-span-5 p-6 border border-border/80 bg-card shadow-md space-y-6">
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-500/15 via-primary/10 to-transparent border border-primary/20 space-y-2 text-center">
+        <div className="p-6 rounded-3xl bg-primary/10 border border-primary/20 space-y-2 text-center">
           <span className="text-[10px] uppercase font-bold text-muted-foreground block">
             Số Dư Quỹ Đội Hiện Tại
           </span>

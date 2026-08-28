@@ -21,7 +21,7 @@ export function ProfileWalletTab(): React.ReactElement {
         </Link>
       </div>
 
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-primary/5 border border-primary/20 space-y-2">
+      <div className="p-6 rounded-2xl bg-primary/10 border border-primary/20 space-y-2">
         <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số Dư Khả Dụng</span>
         <p className="font-mono-num font-black text-2xl sm:text-3xl text-primary">{formatVND(1500000)}</p>
         <p className="text-[11px] text-muted-foreground">Dùng để đặt cọc 30% nhanh chóng không cần qua cổng ngân hàng.</p>

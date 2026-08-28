@@ -24,10 +24,11 @@ services:
     # Build từ gốc monorepo (pnpm workspace)
     buildCommand: >-
       corepack enable &&
-      pnpm install --frozen-lockfile &&
-      pnpm --filter @sango/api prisma:generate &&
+      pnpm install --no-frozen-lockfile &&
+      pnpm --filter @sango/shared build &&
+      pnpm --filter @sango/api exec prisma generate &&
       pnpm --filter @sango/api build &&
-      pnpm --filter @sango/api prisma migrate deploy
+      pnpm --filter @sango/api exec prisma migrate deploy
     startCommand: pnpm --filter @sango/api start
     envVars:
       - key: NODE_ENV

@@ -13,7 +13,7 @@ export function MatchDetailHero({ match, isHost }: MatchDetailHeroProps): React.
   const hostName = match.hostUser?.fullName || 'Chủ kèo SanGo';
 
   return (
-    <Card className="relative overflow-hidden border border-primary/30 bg-gradient-to-r from-card via-card to-primary/5 p-6 sm:p-8 shadow-xl rounded-3xl">
+    <Card className="relative overflow-hidden border border-border bg-card p-6 sm:p-8 shadow-sm rounded-3xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-border/60">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
