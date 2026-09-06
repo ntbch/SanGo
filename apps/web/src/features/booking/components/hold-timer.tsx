@@ -42,25 +42,21 @@ export function HoldTimer({ expiresAt, onExpire, className }: HoldTimerProps): R
   return (
     <div
       className={cn(
-        'rounded-2xl border p-4 transition-all duration-300',
-        isExpired
-          ? 'bg-destructive/10 border-destructive/30 text-destructive'
-          : isUrgent
-          ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 animate-pulse'
-          : 'bg-primary/10 border-primary/20 text-foreground',
+        'rounded-2xl border p-4 transition-colors duration-200',
+        isExpired || isUrgent
+          ? 'bg-destructive/10 border-destructive text-destructive'
+          : 'bg-secondary/40 border-border text-foreground',
         className,
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <div
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-xl font-bold',
-              isExpired
+              'flex h-10 w-10 items-center justify-center rounded-xl font-bold shrink-0',
+              isExpired || isUrgent
                 ? 'bg-destructive/20 text-destructive'
-                : isUrgent
-                ? 'bg-rose-500/20 text-rose-500'
-                : 'bg-primary/20 text-primary',
+                : 'bg-primary/10 text-primary',
             )}
           >
             {isUrgent || isExpired ? (
@@ -70,7 +66,7 @@ export function HoldTimer({ expiresAt, onExpire, className }: HoldTimerProps): R
             )}
           </div>
           <div>
-            <p className="text-xs font-bold">
+            <p className="text-xs font-bold text-foreground">
               {isExpired
                 ? 'Lượt giữ chỗ đã hết hạn'
                 : isUrgent
@@ -85,15 +81,11 @@ export function HoldTimer({ expiresAt, onExpire, className }: HoldTimerProps): R
           </div>
         </div>
 
-        <div className="text-right">
+        <div className="text-right shrink-0">
           <span
             className={cn(
-              'font-mono-num text-xl sm:text-2xl font-black tracking-tight',
-              isExpired
-                ? 'text-destructive'
-                : isUrgent
-                ? 'text-rose-500'
-                : 'text-primary',
+              'font-mono-num font-black text-2xl tracking-tight tabular-nums',
+              isExpired || isUrgent ? 'text-destructive' : 'text-primary',
             )}
           >
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
@@ -103,11 +95,11 @@ export function HoldTimer({ expiresAt, onExpire, className }: HoldTimerProps): R
 
       {/* Visual Progress Bar */}
       {!isExpired && (
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-background/50">
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary/80">
           <div
             className={cn(
               'h-full transition-all duration-1000 ease-linear rounded-full',
-              isUrgent ? 'bg-rose-500' : 'bg-primary',
+              isUrgent ? 'bg-destructive' : 'bg-primary',
             )}
             style={{ width: `${progressPercent}%` }}
           />

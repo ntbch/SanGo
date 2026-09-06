@@ -4,7 +4,7 @@ import { Button } from '../../../components/ui/button';
 import { CreditCard } from 'lucide-react';
 import { formatVND } from '../../../lib/utils';
 
-interface CheckoutOrderSummaryProps {
+export interface CheckoutOrderSummaryProps {
   subtotal: number;
   courtSubtotal?: number;
   addOnsTotal?: number;
@@ -34,37 +34,43 @@ export function CheckoutOrderSummary({
   const calculatedCourtFee = courtSubtotal ?? (subtotal - addOnsTotal);
 
   return (
-    <Card className="p-5 border border-border/80 bg-card space-y-4 shadow-md">
-      <h3 className="text-sm font-bold text-foreground pb-2 border-b border-border/60">
+    <Card className="p-5 border border-border bg-card space-y-4 shadow-none">
+      <h3 className="text-sm font-bold text-foreground pb-2 border-b border-border">
         Tổng Kết Chi Phí
       </h3>
 
-      <div className="space-y-2 text-xs">
+      <div className="space-y-2.5 text-xs">
         <div className="flex items-center justify-between text-muted-foreground">
           <span>Tiền sân</span>
-          <span className="font-mono-num font-semibold text-foreground">{formatVND(calculatedCourtFee)}</span>
+          <span className="font-mono-num font-semibold text-foreground tabular-nums">
+            {formatVND(calculatedCourtFee)}
+          </span>
         </div>
 
         {addOnsTotal > 0 && (
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Dịch vụ đi kèm</span>
-            <span className="font-mono-num font-semibold text-primary">+{formatVND(addOnsTotal)}</span>
+            <span className="font-mono-num font-semibold text-primary tabular-nums">
+              +{formatVND(addOnsTotal)}
+            </span>
           </div>
         )}
 
         {discount > 0 && (
           <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
             <span>Giảm giá voucher</span>
-            <span className="font-mono-num">- {formatVND(discount)}</span>
+            <span className="font-mono-num tabular-nums">- {formatVND(discount)}</span>
           </div>
         )}
 
-        <div className="pt-2 border-t border-border/60 flex items-center justify-between font-bold text-sm">
+        <div className="pt-2.5 border-t border-border flex items-center justify-between font-bold text-sm">
           <span>Tổng giá trị đơn</span>
-          <span className="font-mono-num text-foreground">{formatVND(finalTotal)}</span>
+          <span className="font-mono-num text-foreground tabular-nums">
+            {formatVND(finalTotal)}
+          </span>
         </div>
 
-        <div className="pt-2 border-t border-border/60 flex items-baseline justify-between">
+        <div className="pt-2.5 border-t border-border flex items-baseline justify-between">
           <div>
             <span className="text-[11px] font-bold text-primary block">
               Số tiền cần thanh toán
@@ -73,7 +79,7 @@ export function CheckoutOrderSummary({
               ({paymentType === 'DEPOSIT' ? `Cọc ${depositPercent}%` : 'Toàn bộ'})
             </span>
           </div>
-          <span className="font-mono-num font-black text-lg sm:text-xl text-primary">
+          <span className="font-mono-num font-black text-lg sm:text-xl text-primary tabular-nums">
             {formatVND(amountToPay)}
           </span>
         </div>
@@ -83,7 +89,7 @@ export function CheckoutOrderSummary({
         size="lg"
         disabled={isPending || !isActive}
         onClick={onCheckout}
-        className="w-full font-bold gap-2 shadow-lg cursor-pointer"
+        className="w-full font-bold gap-2 active:scale-[0.98] transition-transform cursor-pointer"
       >
         <CreditCard className="h-4 w-4" />
         <span>{isPending ? 'Đang tạo giao dịch...' : 'Xác Nhận Thanh Toán'}</span>

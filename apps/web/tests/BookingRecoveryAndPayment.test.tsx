@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as bookingApi from '../src/features/booking/api/booking-api';
 import { PaymentResultPage } from '../src/features/booking/pages/payment-result-page';
 import { PaymentPendingPage } from '../src/features/booking/pages/payment-pending-page';
+import { HoldTimer } from '../src/features/booking/components/hold-timer';
 
 const activeHoldPayload = {
   holdId: '3a5fa37e-9f2e-4d90-b17a-8f0c9c9f2e72',
@@ -120,5 +121,39 @@ describe('booking recovery and payment outcome', () => {
       expect.stringContaining('/payments/mock/confirm'),
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('HoldTimer displays countdown in mm:ss format with tabular font-mono-num', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-06T12:00:00.000Z'));
+    const expiresAt = new Date('2026-09-06T12:05:00.000Z').toISOString();
+    const { container } = render(<HoldTimer expiresAt={expiresAt} />);
+
+    const timerText = screen.getByText('05:00');
+    expect(timerText).toBeDefined();
+    expect(timerText.className).toContain('font-mono-num');
+    expect(container.innerHTML).not.toContain('animate-pulse');
+    vi.useRealTimers();
+  });
+
+  it('HoldTimer activates border-destructive and bg-destructive/10 without animate-pulse when urgent (< 120s)', () => {
+    const expiresAt = new Date(Date.now() + 60 * 1000).toISOString();
+    const { container } = render(<HoldTimer expiresAt={expiresAt} />);
+
+    expect(screen.getByText(/Sắp hết thời gian giữ chỗ!/i)).toBeDefined();
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.className).toContain('border-destructive');
+    expect(wrapper.className).toContain('bg-destructive/10');
+    expect(wrapper.className).not.toContain('animate-pulse');
+  });
+
+  it('HoldTimer invokes onExpire when hold time has expired', () => {
+    const onExpire = vi.fn();
+    const expiresAt = new Date(Date.now() - 5000).toISOString();
+    render(<HoldTimer expiresAt={expiresAt} onExpire={onExpire} />);
+
+    expect(screen.getByText(/Lượt giữ chỗ đã hết hạn/i)).toBeDefined();
+    expect(screen.getByText(/00:00/i)).toBeDefined();
+    expect(onExpire).toHaveBeenCalled();
   });
 });
