@@ -20,11 +20,3 @@ export function formatMinutesToTime(minutes: number): string {
   const m = minutes % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 }
-
-/** Chuyển đối tượng Date thành chuỗi YYYY-MM-DD theo giờ địa phương */
-export function formatLocalDateToYMD(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}

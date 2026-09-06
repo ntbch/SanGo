@@ -21,13 +21,13 @@ function WalletDashboard(): React.ReactElement {
   const w = useWallet();
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-8 min-h-screen bg-background">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-6 min-h-screen bg-background" data-testid="wallet-passbook-page">
       <WalletHeader
         onOpenTopup={() => w.setShowTopupModal(true)}
         onOpenWithdraw={() => w.setShowWithdrawModal(true)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch" data-testid="wallet-balance-actions">
         <WalletCard
           user={w.user}
           balance={w.balance}

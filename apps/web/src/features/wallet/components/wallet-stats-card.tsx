@@ -18,8 +18,8 @@ export function WalletStatsCard({
     <Card className="border border-border/80 bg-card p-6 flex flex-col justify-between space-y-4">
       <div>
         <div className="flex items-center justify-between pb-3 border-b border-border/60">
-          <span className="text-xs font-bold text-foreground">Tổng Quan Tháng Này</span>
-          <span className="text-[11px] font-mono-num text-muted-foreground">Tháng 08/2026</span>
+          <span className="text-xs font-bold text-foreground">Tổng quan dữ liệu đã tải</span>
+          <span className="text-[11px] font-mono-num text-muted-foreground">Không gắn kỳ cố định</span>
         </div>
 
         <div className="space-y-3.5 pt-4">
@@ -31,7 +31,7 @@ export function WalletStatsCard({
               <span className="text-xs text-muted-foreground">Tổng Nạp Tiền</span>
             </div>
             <span className="font-mono-num font-bold text-xs text-emerald-500">
-              +{formatVND(totalTopupMonth || 3000000)}
+              +{formatVND(totalTopupMonth)}
             </span>
           </div>
 
@@ -43,7 +43,7 @@ export function WalletStatsCard({
               <span className="text-xs text-muted-foreground">Chi Tiêu Đặt Sân</span>
             </div>
             <span className="font-mono-num font-bold text-xs text-rose-500">
-              -{formatVND(totalSpentMonth || 850000)}
+              -{formatVND(totalSpentMonth)}
             </span>
           </div>
 
@@ -55,7 +55,7 @@ export function WalletStatsCard({
               <span className="text-xs text-muted-foreground">Hoàn Cọc &amp; Thưởng</span>
             </div>
             <span className="font-mono-num font-bold text-xs text-amber-500">
-              +{formatVND(totalRewardMonth || 200000)}
+              +{formatVND(totalRewardMonth)}
             </span>
           </div>
         </div>

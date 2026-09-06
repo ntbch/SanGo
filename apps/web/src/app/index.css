@@ -148,7 +148,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom Leaflet Popup Styling */
+/* Custom Leaflet Price Marker & Popup Styling */
+.custom-price-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 .leaflet-popup-content-wrapper {
   background: transparent !important;
   box-shadow: none !important;

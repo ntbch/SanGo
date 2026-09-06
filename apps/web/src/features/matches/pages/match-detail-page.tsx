@@ -186,7 +186,7 @@ export function MatchDetailPage(): React.ReactElement {
   }
 
   const isHost = match.hostUser?.id === user?.id;
-  const total = match.totalSlots ?? 10;
+  const total = match.totalSlots ?? 0;
   const filled = match.filledSlots ?? 0;
   const slotsLeft = Math.max(0, total - filled);
   const fillPercent = Math.min(100, Math.round((filled / total) * 100));
@@ -197,7 +197,7 @@ export function MatchDetailPage(): React.ReactElement {
       <MatchDetailHero match={match} isHost={isHost} />
 
       {/* 60/40 Asymmetric Command Center Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-8 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-8 gap-6 items-start" data-testid="match-command-center">
         {/* Left Column (60%): Match specs, venue address, participants, comments */}
         <div className="lg:col-span-7 space-y-6" data-testid="match-main-column">
           <Card className="p-6 border border-border bg-card rounded-2xl space-y-4 shadow-sm">
@@ -220,7 +220,7 @@ export function MatchDetailPage(): React.ReactElement {
                 <Calendar className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <span className="font-mono-num font-bold text-foreground block">
-                    {match.date ? new Date(match.date).toLocaleDateString('vi-VN') : 'Hôm nay'} ({match.startTime || '18:00'} - {match.endTime || '19:30'})
+                    {match.date ? new Date(match.date).toLocaleDateString('vi-VN') : 'Chưa cập nhật'} ({match.startTime && match.endTime ? match.startTime + ' - ' + match.endTime : 'Chưa cập nhật'})
                   </span>
                   <span className="text-muted-foreground">Trình độ: {match.skillLevel || 'Giao lưu'}</span>
                 </div>
@@ -258,7 +258,7 @@ export function MatchDetailPage(): React.ReactElement {
                   Chi phí mỗi người
                 </span>
                 <div className="font-mono-num font-black text-2xl text-primary mt-0.5 tabular-nums">
-                  {formatVND(match.costPerPerson || 65000)}
+                  {match.costPerPerson ? formatVND(match.costPerPerson) : 'Chưa cập nhật'}
                 </div>
               </div>
               <div className="text-right">

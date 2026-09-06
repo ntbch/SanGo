@@ -39,6 +39,7 @@ export function TeamRosterList({
         {team.members?.map((m) => (
           <div
             key={m.id}
+            data-testid="team-roster-row"
             className="p-4 rounded-2xl bg-secondary/30 border border-border/60 flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-3">

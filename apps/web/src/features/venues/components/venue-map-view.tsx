@@ -36,34 +36,25 @@ function getOrCreatePriceIcon(priceFrom?: number, isSelected = false, isDark = f
     return priceIconCache.get(key)!;
   }
 
+  // Marker HTML dùng inline styles để không phụ thuộc vào Tailwind trong DOM Leaflet.
+  // Leaflet đặt .leaflet-div-icon lên wrapper; mọi visual style của pill nằm ở đây.
+  const pillBackground = isSelected ? 'hsl(222 47% 11%)' : isDark ? 'hsl(224 20% 10%)' : '#ffffff';
+  const pillColor = isSelected ? '#ffffff' : isDark ? '#f8fafc' : '#111827';
+  const pillBorder = isSelected ? 'hsl(222 47% 11%)' : isDark ? '#475569' : '#cbd5e1';
   const html = `
-    <div class="relative flex items-center justify-center cursor-pointer group transition-all duration-200 ${
-      isSelected ? 'z-50 scale-110' : 'hover:scale-105'
-    }">
-      <div class="px-2.5 py-1 rounded-full text-xs font-black shadow-md border tracking-tight ${
-        isSelected
-          ? 'bg-primary text-primary-foreground border-primary shadow-primary/30 ring-2 ring-primary/40'
-          : isDark
-          ? 'bg-card text-foreground border-border/90 shadow-black/80 font-bold hover:border-primary'
-          : 'bg-white text-foreground border-border shadow-md font-bold hover:border-primary'
-      }">
+    <div aria-label="Giá từ ${priceText}" style="position:relative;display:flex;align-items:center;justify-content:center;width:64px;height:36px;transform:${isSelected ? 'scale(1.1)' : 'scale(1)'};transition:transform 150ms ease;cursor:pointer;">
+      <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;min-width:48px;height:28px;padding:0 10px;border:2px solid ${pillBorder};border-radius:9999px;background:${pillBackground};color:${pillColor};font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;line-height:1;white-space:nowrap;box-shadow:0 2px 6px rgba(15,23,42,.28);${isSelected ? 'outline:2px solid hsl(222 47% 11% / .35);' : ''}">
         ${priceText}
       </div>
-      <div class="absolute -bottom-1 w-2 h-2 rotate-45 ${
-        isSelected
-          ? 'bg-primary border-r border-b border-primary'
-          : isDark
-          ? 'bg-card border-r border-b border-border/90'
-          : 'bg-white border-r border-b border-border'
-      }"></div>
+      <span style="position:absolute;bottom:2px;left:50%;width:9px;height:9px;transform:translateX(-50%) rotate(45deg);border-right:2px solid ${pillBorder};border-bottom:2px solid ${pillBorder};background:${pillBackground};"></span>
     </div>
   `;
 
   const icon = L.divIcon({
     html,
     className: 'custom-price-marker',
-    iconSize: [48, 28],
-    iconAnchor: [24, 28],
+    iconSize: [64, 36],
+    iconAnchor: [32, 36],
   });
 
   priceIconCache.set(key, icon);

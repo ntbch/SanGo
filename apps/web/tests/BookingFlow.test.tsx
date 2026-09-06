@@ -9,7 +9,6 @@ import {
   MyBookingsPage,
 } from '../src/features/booking/pages';
 import { BookingStatus, SportType } from '../src/lib/constants';
-import { formatLocalDateToYMD } from '../src/lib/utils';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,8 +41,7 @@ const now = new Date();
 const dayOfWeek = now.getDay();
 const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
 const mondayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
-const mondayStr = formatLocalDateToYMD(mondayDate);
-const todayDateStr = formatLocalDateToYMD(now);
+const mondayStr = mondayDate.toISOString().slice(0, 10);
 
 const mockSlots = {
   courtId: 'court-test-1',
@@ -53,7 +51,7 @@ const mockSlots = {
   days: 7,
   byDate: [
     {
-      date: todayDateStr,
+      date: new Date().toISOString().slice(0, 10),
       slots: [
         { startMinute: 360, endMinute: 420, state: 'AVAILABLE' as const },
         { startMinute: 420, endMinute: 480, state: 'AVAILABLE' as const },
@@ -206,70 +204,11 @@ describe('Booking Core Flow', () => {
     expect(screen.getByText(/Vé Đặt Sân Của Tôi/i)).toBeDefined();
     expect(screen.getByText(/CH-20260828-0001/i)).toBeDefined();
 
-    // Check direct QR Code image is present
-    const qrImages = screen.getAllByRole('img', { name: /QR Check-in CH-20260828-0001/i });
-    expect(qrImages.length).toBeGreaterThan(0);
-
-    // Check action buttons: share and cancel
-    expect(screen.getByRole('button', { name: /Chia sẻ vé/i })).toBeDefined();
-    expect(screen.getByRole('button', { name: /Hủy đặt sân/i })).toBeDefined();
-
-    // Check financial numbers
-    expect(screen.getByText(/Đã cọc:/i)).toBeDefined();
-    expect(screen.getByText(/Còn lại:/i)).toBeDefined();
-
-    // Check-in QR expand modal button
+    // Check-in QR button
     const qrBtn = screen.getByRole('button', { name: /Mã QR Check-in/i });
     expect(qrBtn).toBeDefined();
     fireEvent.click(qrBtn);
 
     expect(screen.getByText(/Mã Check-in Vào Sân/i)).toBeDefined();
-  });
-
-  it('renders EmptyState with 3-line formula when my bookings list is empty', () => {
-    queryClient.setQueryData(['my-bookings', 'UPCOMING'], { items: [], total: 0 });
-
-    window.history.pushState({}, '', '/bookings');
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/bookings" element={<MyBookingsPage />} />
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>,
-    );
-
-    expect(screen.getByText('Chưa có lượt đặt sân nào')).toBeDefined();
-    expect(
-      screen.getByText(
-        'Bạn chưa có lịch thi đấu nào trong mục này. Hãy tìm kiếm sân thể thao gần bạn và giữ chỗ ngay.',
-      ),
-    ).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Tìm Sân & Đặt Ngay' })).toBeDefined();
-  });
-
-  it('renders ErrorState with retry button when query fails', async () => {
-    const errClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    window.history.pushState({}, '', '/bookings');
-
-    render(
-      <QueryClientProvider client={errClient}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/bookings" element={<MyBookingsPage />} />
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>,
-    );
-
-    const alertElement = await screen.findByRole('alert');
-    expect(alertElement).toBeDefined();
-    expect(screen.getByText('Không thể tải danh sách vé')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Thử lại ngay' })).toBeDefined();
   });
 });

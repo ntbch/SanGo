@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getBookingHoldApi,
@@ -16,9 +16,8 @@ import { updateHoldAddOnsApi } from '../../venues/api/venue-services-api';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { EmptyState } from '../../../components/feedback';
-import { formatMinutesToTime } from '../../../lib/utils';
-import { SportType, SPORT_LABELS } from '../../../lib/constants';
+import { formatMinutesToTime, formatVND } from '../../../lib/utils';
+import { XCircle } from 'lucide-react';
 
 export function CheckoutHoldPage(): React.ReactElement {
   const { holdId } = useParams<{ holdId: string }>();
@@ -42,7 +41,7 @@ export function CheckoutHoldPage(): React.ReactElement {
     mutationFn: ({ holdId, code }: { holdId: string; code: string }) =>
       applyHoldVoucherApi(holdId, code),
     onSuccess: (data) => {
-      setVoucherSuccess(`Đã áp dụng mã thành công! Giảm ${data.discountAmount?.toLocaleString('vi-VN') || '50.000'} đ`);
+      setVoucherSuccess(`Đã áp dụng mã thành công! Giảm ${formatVND(data.discountAmount || 50000)}`);
       setVoucherError(null);
       refetch();
     },
@@ -71,7 +70,7 @@ export function CheckoutHoldPage(): React.ReactElement {
       window.location.href = data.paymentUrl;
     },
     onError: (err: any) => {
-      setCheckoutError(err.message || 'Không thể khởi tạo thanh toán. Vui lòng thử lại.');
+      setCheckoutError(err.message || 'Không thể khởi tạo thanh toán. thử lại.');
     },
   });
 
@@ -81,7 +80,7 @@ export function CheckoutHoldPage(): React.ReactElement {
       queryClient.setQueryData(['active-booking-hold'], null);
       navigate('/venues');
     },
-    onError: (err: any) => setCheckoutError(err.message || 'Không thể hủy giữ chỗ. Vui lòng thử lại.'),
+    onError: (err: any) => setCheckoutError(err.message || 'Không thể hủy giữ chỗ. thử lại.'),
   });
 
   const addOnsMutation = useMutation({
@@ -97,31 +96,26 @@ export function CheckoutHoldPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8 space-y-6 max-w-6xl mx-auto">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-8 space-y-6 max-w-4xl mx-auto">
         <Skeleton className="h-20 w-full rounded-2xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-start">
-          <div className="lg:col-span-3 space-y-6">
-            <Skeleton className="h-48 w-full rounded-2xl" />
-            <Skeleton className="h-32 w-full rounded-2xl" />
-            <Skeleton className="h-44 w-full rounded-2xl" />
-          </div>
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-80 w-full rounded-2xl" />
-          </div>
-        </div>
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (isError || !hold) {
     return (
-      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-16 max-w-2xl mx-auto">
-        <EmptyState
-          title="Không tìm thấy phiên giữ chỗ"
-          description="Phiên giữ chỗ này có thể đã hết hạn hoặc đã được thanh toán hoàn tất. Vui lòng quay lại tìm và chọn khung giờ khác."
-          actionLabel="Tìm sân ngay"
-          onAction={() => navigate('/venues')}
-        />
+      <div className="w-full px-4 py-16 text-center space-y-4 max-w-md mx-auto">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+          <XCircle className="h-6 w-6" />
+        </div>
+        <h2 className="text-lg font-bold text-foreground">Không tìm thấy phiên giữ chỗ</h2>
+        <p className="text-xs text-muted-foreground">
+          Phiên giữ chỗ này có thể đã hết hạn hoặc đã được thanh toán hoàn tất.
+        </p>
+        <Link to="/venues">
+          <Button size="sm">Đặt lại sân</Button>
+        </Link>
       </div>
     );
   }
@@ -134,49 +128,35 @@ export function CheckoutHoldPage(): React.ReactElement {
   const amountToPay = paymentType === 'FULL' ? finalTotal : depositAmount;
 
   const venueId = hold.venueId || hold.court?.venue?.id || '';
-  const selectedAddOns = Array.isArray(hold?.addOns)
+  const selectedAddOns = hold.addOns && Array.isArray(hold.addOns)
     ? (hold.addOns as any[]).map((i: any) => ({
         serviceId: i.serviceId,
         quantity: i.quantity,
       }))
     : [];
-  const addOnsTotal = Array.isArray(hold?.addOns)
+  const addOnsTotal = (hold?.addOns && Array.isArray(hold.addOns))
     ? (hold.addOns as any[]).reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.quantity || 0), 0)
     : (hold?.addOnsTotal || 0);
   const courtSubtotal = hold?.courtSubtotal ?? (subtotal - addOnsTotal);
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8 space-y-6 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-start">
-        {/* Left column (60%): 3 of 5 columns */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Dải đếm ngược HoldTimer trên cùng */}
-          <HoldTimer
-            expiresAt={hold.expiresAt}
-            onExpire={() => {
-              refetch();
-            }}
-          />
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8 space-y-6 max-w-4xl mx-auto">
+      {/* 1. 10:00 Hold Countdown Timer */}
+      <HoldTimer
+        expiresAt={hold.expiresAt}
+        onExpire={() => {
+          refetch();
+        }}
+      />
 
-          {/* Card chi tiết suất sân đã giữ */}
-          <Card className="p-5 border border-border bg-card space-y-4 shadow-none">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Chi Tiết Đơn Đặt Sân</h3>
-                <p className="text-xs text-muted-foreground">Thông tin suất sân đang được giữ cho bạn</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={releaseMutation.isPending || hold.status !== 'ACTIVE'}
-                onClick={() => releaseMutation.mutate(hold.id)}
-                className="text-xs h-8 font-medium border-border hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive active:scale-[0.98] transition-all"
-              >
-                {releaseMutation.isPending ? 'Đang hủy...' : 'Hủy giữ chỗ'}
-              </Button>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        {/* Left 2 Columns: Order Details & Payment Method */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Booking Summary */}
+          <Card className="p-5 border border-border/80 bg-card space-y-4">
+            <h3 className="text-sm font-bold text-foreground">Chi Tiết Đơn Đặt Sân</h3>
 
-            <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-2.5 text-xs">
+            <div className="p-4 rounded-2xl bg-secondary/40 border border-border/50 space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Cụm sân:</span>
                 <span className="font-bold text-foreground">
@@ -190,27 +170,14 @@ export function CheckoutHoldPage(): React.ReactElement {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Môn thi đấu:</span>
-                <span className="font-medium text-foreground">
-                  {SPORT_LABELS[hold.court?.sportType as SportType] || hold.court?.sportType || 'Thể thao'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ngày:</span>
-                <span className="font-medium text-foreground">
-                  {new Date(hold.date).toLocaleDateString('vi-VN')}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Khung giờ:</span>
-                <span className="font-mono-num font-bold text-primary tabular-nums">
-                  {formatMinutesToTime(hold.startMinute)} - {formatMinutesToTime(hold.endMinute)}
+                <span className="text-muted-foreground">Thời gian:</span>
+                <span className="font-mono-num font-bold text-primary">
+                  {formatMinutesToTime(hold.startMinute)} - {formatMinutesToTime(hold.endMinute)} ({new Date(hold.date).toLocaleDateString('vi-VN')})
                 </span>
               </div>
             </div>
           </Card>
 
-          {/* Dịch vụ thêm */}
           {venueId && (
             <CheckoutAddOnsPicker
               venueId={venueId}
@@ -222,18 +189,6 @@ export function CheckoutHoldPage(): React.ReactElement {
             />
           )}
 
-          {/* Voucher */}
-          <CheckoutVoucherPicker
-            voucherCode={voucherCode}
-            onVoucherCodeChange={setVoucherCode}
-            isApplied={Boolean(hold.voucherId)}
-            isPending={voucherMutation.isPending}
-            voucherSuccess={voucherSuccess}
-            voucherError={voucherError}
-            onApplyVoucher={handleApplyVoucher}
-          />
-
-          {/* Phương thức thanh toán */}
           <CheckoutPaymentMethods
             paymentType={paymentType}
             onPaymentTypeChange={setPaymentType}
@@ -246,11 +201,21 @@ export function CheckoutHoldPage(): React.ReactElement {
               setCheckoutError(null);
             }}
           />
+
+          <CheckoutVoucherPicker
+            voucherCode={voucherCode}
+            onVoucherCodeChange={setVoucherCode}
+            isApplied={Boolean(hold.voucherId)}
+            isPending={voucherMutation.isPending}
+            voucherSuccess={voucherSuccess}
+            voucherError={voucherError}
+            onApplyVoucher={handleApplyVoucher}
+          />
         </div>
 
-        {/* Right column (40%): 2 of 5 columns (sticky) */}
-        <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-24">
-          <CheckoutOrderSummary
+        {/* Right 1 Column: Cost Breakdown & Checkout CTA */}
+        <div className="md:col-span-1 space-y-4">
+            <CheckoutOrderSummary
             subtotal={subtotal}
             courtSubtotal={courtSubtotal}
             addOnsTotal={addOnsTotal}
@@ -264,15 +229,21 @@ export function CheckoutHoldPage(): React.ReactElement {
             onCheckout={() => {
               setCheckoutError(null);
               if (paymentGateway === 'WALLET') {
-                setCheckoutError('Ví SanGo chưa hỗ trợ thanh toán đặt sân. Vui lòng chọn VNPAY.');
+                setCheckoutError('Ví SanGo chưa hỗ trợ thanh toán đặt sân. chọn VNPAY.');
                 return;
               }
               checkoutMutation.mutate({ holdId: hold.id, type: paymentType });
             }}
           />
-          {checkoutError && (
-            <p className="text-xs font-medium text-destructive px-1">{checkoutError}</p>
-          )}
+          {checkoutError && <p className="text-xs font-medium text-destructive">{checkoutError}</p>}
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={releaseMutation.isPending || hold.status !== 'ACTIVE'}
+            onClick={() => releaseMutation.mutate(hold.id)}
+          >
+            {releaseMutation.isPending ? 'Đang hủy giữ chỗ...' : 'Hủy giữ chỗ'}
+          </Button>
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Wallet,
-  ShieldCheck,
   Eye,
   EyeOff,
   ArrowDownLeft,
@@ -60,10 +59,6 @@ export function WalletCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>Đã Xác Thực KYC Level 2</span>
-        </div>
       </div>
 
       {/* Balance Display */}
@@ -86,9 +81,7 @@ export function WalletCard({
             {showBalance ? formatVND(balance) : '•••••••• đ'}
           </span>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Số dư tạm giữ cọc: <strong className="text-foreground font-mono-num">0 đ</strong> (Sẵn sàng thanh toán tức thì mọi sân bóng &amp; giải đấu)
-        </p>
+
       </div>
 
       {/* Quick Action Grid */}

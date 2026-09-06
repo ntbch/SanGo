@@ -22,14 +22,6 @@ export function VenueBookingSidebar({ venue }: VenueBookingSidebarProps): React.
   const bookingUrl = `/venues/${venue.slug || venue.id}/book`;
 
   const handleBookingClick = () => {
-    const bookingEl = document.getElementById('booking');
-    if (bookingEl) {
-      bookingEl.scrollIntoView?.({ behavior: 'smooth' });
-      if (!user) {
-        setShowAuthModal(true);
-      }
-      return;
-    }
     if (!user) {
       setShowAuthModal(true);
       return;

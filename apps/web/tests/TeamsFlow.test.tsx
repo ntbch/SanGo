@@ -178,6 +178,8 @@ describe('Teams Flow Integration', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByText(/Phòng điều hành đội/i)).toBeDefined();
+
     // Member count & captain name
     expect(screen.getByText(/2 Cầu thủ/i)).toBeDefined();
     expect(screen.getByText(/Trần Đức Người Chơi/i)).toBeDefined();

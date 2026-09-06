@@ -72,7 +72,7 @@ export function CheckoutAddOnsPicker({
 
   if (isLoading) {
     return (
-      <Card className="p-5 border border-border/80 bg-card space-y-3 shadow-none">
+      <Card className="p-5 border border-border/80 bg-card space-y-3 animate-pulse">
         <div className="h-4 w-40 bg-secondary rounded" />
         <div className="h-14 w-full bg-secondary/60 rounded-xl" />
       </Card>

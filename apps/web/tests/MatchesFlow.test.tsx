@@ -88,6 +88,9 @@ describe('Matches Flow Integration', () => {
         </MemoryRouter>,
       );
 
+      expect(screen.getByTestId('fixture-date-column')).toBeDefined();
+      expect(screen.getByTestId('fixture-main')).toBeDefined();
+
       // Horizontal row card class
       const card = screen.getByTestId('match-card-match-1');
       expect(card.className).toContain('sm:flex-row');

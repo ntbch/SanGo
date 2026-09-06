@@ -10,7 +10,7 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
-  const total = m.totalSlots ?? 10;
+  const total = m.totalSlots ?? 0;
   const filled = m.filledSlots ?? 0;
   const slotsLeft = Math.max(0, total - filled);
   const isFull = slotsLeft === 0;
@@ -32,18 +32,18 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
       className="group flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 sm:p-5 rounded-2xl border border-border bg-card hover:shadow-md transition-shadow gap-4"
     >
       {/* Date & Time Tabular Schedule */}
-      <div className="flex sm:flex-col items-center sm:items-start justify-between sm:justify-center gap-1 shrink-0 sm:min-w-[130px] sm:border-r sm:border-border/60 sm:pr-5">
+      <div data-testid="fixture-date-column" className="flex sm:flex-col items-center sm:items-start justify-between sm:justify-center gap-1 shrink-0 sm:min-w-[130px] sm:border-r sm:border-border/60 sm:pr-5">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
           <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span>{formattedDate}</span>
         </div>
         <div className="font-mono-num font-black text-base sm:text-lg text-foreground tabular-nums">
-          {m.startTime || '18:00'} - {m.endTime || '19:30'}
+          {m.startTime && m.endTime ? m.startTime + ' - ' + m.endTime : 'Chưa cập nhật'}
         </div>
       </div>
 
       {/* Match Details */}
-      <div className="flex-1 min-w-0 space-y-1.5">
+      <div data-testid="fixture-main" className="flex-1 min-w-0 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="px-2.5 py-0.5 rounded-md bg-secondary text-foreground text-[10px] font-mono-num font-bold uppercase tracking-wider border border-border">
             {m.sportType || 'THỂ THAO'}
@@ -93,7 +93,7 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
             </span>
           </div>
           <div className="font-mono-num font-extrabold text-base text-primary tabular-nums">
-            {formatVND(m.costPerPerson || 65000)}
+            {m.costPerPerson ? formatVND(m.costPerPerson) : 'Chưa cập nhật'}
             <span className="text-[11px] font-normal text-muted-foreground ml-1">/ người</span>
           </div>
         </div>

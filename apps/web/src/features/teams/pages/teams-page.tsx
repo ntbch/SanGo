@@ -66,12 +66,14 @@ export function TeamsPage(): React.ReactElement {
     <PageContainer>
       <TeamHeader onCreateTeam={() => setShowCreateModal(true)} />
 
-      <TeamFilterBar
+      <div className="border-b border-border pb-4" data-testid="teams-roster-section">
+        <TeamFilterBar
         sportFilter={sportFilter}
         onSportFilterChange={setSportFilter}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
-      />
+        />
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -107,7 +109,7 @@ export function TeamsPage(): React.ReactElement {
           />
         )
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-2" data-testid="teams-roster-list">
           {filteredMemberships.map((m) => (
             <TeamCard key={m.membershipId} membership={m} />
           ))}

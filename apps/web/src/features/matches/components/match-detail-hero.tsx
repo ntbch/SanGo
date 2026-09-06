@@ -10,7 +10,7 @@ interface MatchDetailHeroProps {
 }
 
 export function MatchDetailHero({ match, isHost }: MatchDetailHeroProps): React.ReactElement {
-  const hostName = match.hostUser?.fullName || 'Chủ kèo SanGo';
+  const hostName = match.hostUser?.fullName || 'Chưa cập nhật';
 
   return (
     <Card className="relative overflow-hidden border border-border bg-card p-6 sm:p-8 shadow-sm rounded-3xl">
@@ -21,7 +21,7 @@ export function MatchDetailHero({ match, isHost }: MatchDetailHeroProps): React.
               {match.sportType || 'THỂ THAO'}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-secondary text-muted-foreground text-[10px] font-bold">
-              {match.skillLevel || 'Giao lưu'}
+              {match.skillLevel || 'Chưa cập nhật'}
             </span>
             {isHost && (
               <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-500 border border-amber-500/30 text-[9px] font-black uppercase">
@@ -42,7 +42,7 @@ export function MatchDetailHero({ match, isHost }: MatchDetailHeroProps): React.
           <p className="font-mono-num font-black text-base text-foreground">
             {match.date ? new Date(match.date).toLocaleDateString('vi-VN') : 'Hôm nay'}
           </p>
-          <p className="font-mono-num text-xs text-primary font-bold">{match.startTime || '18:00'} - {match.endTime || '19:30'}</p>
+          <p className="font-mono-num text-xs text-primary font-bold">{match.startTime && match.endTime ? match.startTime + ' - ' + match.endTime : 'Chưa cập nhật'}</p>
         </div>
       </div>
 
@@ -51,19 +51,19 @@ export function MatchDetailHero({ match, isHost }: MatchDetailHeroProps): React.
         <div className="p-3 rounded-2xl bg-secondary/50 border border-border/50">
           <span className="text-[10px] uppercase font-bold text-muted-foreground block">Slot Đã Đăng Ký</span>
           <span className="font-mono-num font-black text-base text-foreground">
-            {match.filledSlots ?? 1} / {match.totalSlots ?? 10}
+            {match.filledSlots ?? '—'} / {match.totalSlots ?? '—'}
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-secondary/50 border border-border/50">
           <span className="text-[10px] uppercase font-bold text-muted-foreground block">Slot Còn Thiếu</span>
           <span className="font-mono-num font-black text-base text-primary">
-            {Math.max(0, (match.totalSlots ?? 10) - (match.filledSlots ?? 1))} Người
+            {match.totalSlots !== undefined && match.filledSlots !== undefined ? Math.max(0, match.totalSlots - match.filledSlots) : '—'} Người
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-secondary/50 border border-border/50">
           <span className="text-[10px] uppercase font-bold text-muted-foreground block">Chi Phí / Người</span>
           <span className="font-mono-num font-black text-base text-foreground">
-            {formatVND(match.costPerPerson || 65000)}
+            {match.costPerPerson ? formatVND(match.costPerPerson) : 'Chưa cập nhật'}
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-secondary/50 border border-border/50">

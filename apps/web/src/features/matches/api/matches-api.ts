@@ -52,7 +52,7 @@ export interface OpenMatch {
   district?: string;
   totalSlots: number;
   filledSlots: number;
-  costPerPerson: number;
+  costPerPerson?: number;
   description?: string;
   /** P5a O1: true = kèo cần duyệt (join trực tiếp 409 APPROVAL_REQUIRED); null/false = join trực tiếp. */
   requiresApproval?: boolean | null;
@@ -94,14 +94,14 @@ function minuteToTimeStr(minute?: number): string {
 
 function normalizeMatchItem(item: any): OpenMatch {
   const id = item.id || item.bookingId || '';
-  const hostName = item.host?.fullName || item.hostName || item.hostUser?.fullName || item.customer?.fullName || 'Chủ kèo';
+  const hostName = item.host?.fullName || item.hostName || item.hostUser?.fullName || item.customer?.fullName || 'Chưa cập nhật';
   const slotsNeeded = item.slotsNeeded ?? 2;
   const joinedCount = item.joinedCount ?? (item.participants ? item.participants.filter((p: any) => p.status === 'APPROVED').length : 1);
   const totalSlots = item.totalSlots ?? (slotsNeeded + joinedCount);
   const filledSlots = item.filledSlots ?? joinedCount;
   const cost =
     item.costPerPerson ??
-    (item.subtotal && totalSlots ? Math.round(item.subtotal / totalSlots) : 50000);
+    (item.subtotal && totalSlots ? Math.round(item.subtotal / totalSlots) : undefined);
 
   const dateStr = item.date
     ? typeof item.date === 'string'
@@ -134,7 +134,7 @@ function normalizeMatchItem(item: any): OpenMatch {
       id: item.hostUser?.id || item.customerId || '',
       fullName: hostName,
       avatarUrl: item.hostUser?.avatarUrl || item.customer?.avatarUrl || null,
-      reputationScore: item.hostUser?.reputationScore ?? 100,
+      reputationScore: item.hostUser?.reputationScore,
     },
     participants: item.participants || [],
     comments: item.comments || [],

@@ -12,7 +12,7 @@ export function WalletHeader({
   onOpenWithdraw,
 }: WalletHeaderProps): React.ReactElement {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5" data-testid="wallet-passbook-header">
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider">
           <Wallet className="h-4 w-4" />

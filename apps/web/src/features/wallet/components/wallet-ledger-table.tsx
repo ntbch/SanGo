@@ -61,7 +61,7 @@ export function WalletLedgerTable({
   onSelectReceipt,
 }: WalletLedgerTableProps): React.ReactElement {
   return (
-    <Card className="border border-border/80 bg-card overflow-hidden">
+    <Card className="border border-border/80 bg-card overflow-hidden" data-testid="wallet-ledger-primary">
       <CardHeader className="p-6 pb-4 border-b border-border/60 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

@@ -1,18 +1,16 @@
 import React from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getVenueDetailApi } from '../api/venues-api';
 import { VenueGallery } from '../components/venue-gallery';
 import { VenueCourtsList } from '../components/venue-courts-list';
 import { VenueTabsInfo } from '../components/venue-tabs-info';
 import { VenueBookingSidebar } from '../components/venue-booking-sidebar';
-import { VenueBookingSection } from '../components/venue-booking-section';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Button } from '../../../components/ui/button';
 
 export function VenueDetailPage(): React.ReactElement {
   const { slug } = useParams<{ slug: string }>();
-  const location = useLocation();
 
   const { data: venue, isLoading, isError } = useQuery({
     queryKey: ['venue-detail', slug],
@@ -35,15 +33,6 @@ export function VenueDetailPage(): React.ReactElement {
     );
   }
 
-  React.useEffect(() => {
-    if (location.hash === '#booking') {
-      const el = document.getElementById('booking');
-      if (el) {
-        el.scrollIntoView?.({ behavior: 'smooth' });
-      }
-    }
-  }, [location.hash, venue]);
-
   if (isError || !venue) {
     return (
       <div className="w-full px-4 py-16 text-center space-y-4 max-w-md mx-auto">
@@ -59,14 +48,14 @@ export function VenueDetailPage(): React.ReactElement {
   }
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-8 pb-32">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-8">
       {/* 1. Header & Multi-Image Interactive Gallery */}
       <VenueGallery venue={venue} />
 
       {/* 2. Main Content & Sticky Booking Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left 2 Columns: Courts Matrix & 4 Tabs Info & Interactive Slot Matrix */}
-        <div className="lg:col-span-2 space-y-10 min-w-0">
+        {/* Left 2 Columns: Courts Matrix & 4 Tabs Info */}
+        <div className="lg:col-span-2 space-y-8 min-w-0">
           {/* Danh sách sân con với bộ lọc môn */}
           <VenueCourtsList
             courts={venue.courts}
@@ -75,11 +64,6 @@ export function VenueDetailPage(): React.ReactElement {
 
           {/* 4 Tabs: Tổng quan, Tiện ích, Đánh giá API, Vị trí */}
           <VenueTabsInfo venue={venue} />
-
-          {/* Unified Interactive Booking Section */}
-          <section id="booking" className="scroll-mt-20 pt-6 border-t border-border/80">
-            <VenueBookingSection venue={venue} showHeader={true} />
-          </section>
         </div>
 
         {/* Right 1 Column: Sticky Booking & Deposit Sidebar */}

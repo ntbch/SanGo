@@ -92,7 +92,7 @@ export function CheckoutVoucherPicker({
       )}
 
       {voucherError && (
-        <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold flex items-center gap-2">
+        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-semibold flex items-center gap-2">
           <XCircle className="h-4 w-4 shrink-0" />
           <span>{voucherError}</span>
         </div>

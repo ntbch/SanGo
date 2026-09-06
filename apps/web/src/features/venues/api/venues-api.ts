@@ -106,6 +106,20 @@ export async function getVenuesListApi(params: VenueFilters = {}): Promise<Venue
 
     let items = Array.isArray(res?.items) ? res.items : [];
 
+    // Public list response may return courts without aggregate prices.
+    // Normalize the same source used by the map so every marker can show a price.
+    items = items.map((venue) => {
+      if (venue.priceFrom !== undefined && venue.priceFrom !== null) return venue;
+      const prices = (venue.courts ?? [])
+        .map((court) => court.defaultPricePerSlot)
+        .filter((price): price is number => typeof price === 'number');
+      return {
+        ...venue,
+        priceFrom: prices.length > 0 ? Math.min(...prices) : null,
+        priceTo: prices.length > 0 ? Math.max(...prices) : null,
+      };
+    });
+
     if (params.minPrice !== undefined) {
       items = items.filter((v) => (v.priceFrom ?? 0) >= (params.minPrice || 0));
     }

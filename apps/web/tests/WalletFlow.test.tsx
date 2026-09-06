@@ -76,6 +76,12 @@ describe('Wallet Flow Integration', () => {
     expect(container.innerHTML).not.toContain('backdrop-blur');
     expect(container.querySelector('.animate-pulse')).toBeNull();
 
+    expect(screen.getByTestId('wallet-passbook-header')).toBeDefined();
+    expect(screen.getByTestId('wallet-ledger-primary')).toBeDefined();
+
+    expect(screen.getByTestId('wallet-passbook-header')).toBeDefined();
+    expect(screen.getByTestId('wallet-ledger-primary')).toBeDefined();
+
     // Verify Quick action buttons
     expect(screen.getAllByRole('button', { name: /Nạp Tiền/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /Rút Tiền/i }).length).toBeGreaterThan(0);

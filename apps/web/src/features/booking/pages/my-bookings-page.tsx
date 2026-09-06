@@ -1,20 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMyBookingsApi, cancelBookingApi } from '../api/booking-api';
 import { TicketCard } from '../components/ticket-card';
 import { Button } from '../../../components/ui/button';
-import {
-  EmptyState,
-  ErrorState,
-  TicketPassSkeleton,
-} from '../../../components/feedback';
-import { Calendar } from 'lucide-react';
+import { Skeleton } from '../../../components/ui/skeleton';
+import { Ticket, Calendar } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 export function MyBookingsPage(): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<'UPCOMING' | 'COMPLETED' | 'CANCELLED'>('UPCOMING');
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -51,21 +46,19 @@ export function MyBookingsPage(): React.ReactElement {
           <h1 className="text-xl sm:text-3xl font-black text-foreground">
             Vé Đặt Sân Của Tôi
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground">
             Quản lý mã QR check-in tại quầy và lịch thi đấu của bạn.
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={() => navigate('/venues')}
-          className="font-bold gap-1.5 shadow-xs self-start sm:self-auto active:scale-[0.98] transition-transform"
-        >
-          <Calendar className="h-4 w-4" />
-          <span>Đặt Sân Mới</span>
-        </Button>
+        <Link to="/venues">
+          <Button size="sm" className="font-bold gap-1.5 shadow-xs self-start sm:self-auto">
+            <Calendar className="h-4 w-4" />
+            <span>Đặt Sân Mới</span>
+          </Button>
+        </Link>
       </div>
 
-      {/* Tabs Filter: Clean flat buttons using semantic tokens */}
+      {/* Tabs Filter */}
       <div className="flex items-center gap-2 border-b border-border/60 pb-2">
         {(
           [
@@ -79,7 +72,7 @@ export function MyBookingsPage(): React.ReactElement {
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold transition-colors active:scale-[0.98] cursor-pointer',
+              'px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer',
               activeTab === tab.id
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60',
@@ -90,26 +83,34 @@ export function MyBookingsPage(): React.ReactElement {
         ))}
       </div>
 
-      {/* Bookings List / Skeletons / States */}
+      {/* Bookings List */}
       {isLoading ? (
         <div className="space-y-4">
-          <TicketPassSkeleton />
-          <TicketPassSkeleton />
-          <TicketPassSkeleton />
+          <Skeleton className="h-44 w-full rounded-3xl" />
+          <Skeleton className="h-44 w-full rounded-3xl" />
         </div>
       ) : isError ? (
-        <ErrorState
-          title="Không thể tải danh sách vé"
-          message="Đã có lỗi xảy ra khi tải lịch đặt sân của bạn. Vui lòng thử lại."
-          onRetry={() => refetch()}
-        />
+        <div className="py-16 text-center space-y-3">
+          <p className="text-xs font-semibold text-destructive">Không thể tải danh sách vé.</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>
+            Thử lại
+          </Button>
+        </div>
       ) : !data?.items || data.items.length === 0 ? (
-        <EmptyState
-          title="Chưa có lượt đặt sân nào"
-          description="Bạn chưa có lịch thi đấu nào trong mục này. Hãy tìm kiếm sân thể thao gần bạn và giữ chỗ ngay."
-          actionLabel="Tìm Sân & Đặt Ngay"
-          onAction={() => navigate('/venues')}
-        />
+        <div className="py-16 text-center space-y-4 max-w-sm mx-auto">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-secondary text-muted-foreground">
+            <Ticket className="h-7 w-7" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Không có vé đặt sân nào</h3>
+          <p className="text-xs text-muted-foreground">
+            Bạn chưa có lượt đặt sân nào ở trạng thái này.
+          </p>
+          <Link to="/venues">
+            <Button size="sm" className="font-bold">
+              Tìm Sân &amp; Đặt Ngay
+            </Button>
+          </Link>
+        </div>
       ) : (
         <div className="space-y-4">
           {data.items.map((booking) => (

@@ -1,8 +1,9 @@
 import React from 'react';
 import { BookingTicketItem } from '../api/booking-api';
+import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { SPORT_LABELS } from '../../../lib/constants';
-import { formatMinutesToTime, formatVND, cn } from '../../../lib/utils';
+import { formatMinutesToTime, formatVND } from '../../../lib/utils';
 import {
   Calendar,
   Clock,
@@ -10,8 +11,8 @@ import {
   QrCode,
   X,
   AlertCircle,
-  Share2,
-  Check,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import {
   listBookingAddOnsApi,
@@ -23,35 +24,11 @@ export interface TicketCardProps {
   onCancel?: (bookingId: string, reason: string) => Promise<void>;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; dotClass: string; badgeClass: string }> = {
-  CONFIRMED: {
-    label: 'Đã xác nhận',
-    dotClass: 'bg-emerald-500',
-    badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20',
-  },
-  CHECKED_IN: {
-    label: 'Chờ check-in',
-    dotClass: 'bg-primary',
-    badgeClass: 'bg-primary/10 text-primary border border-primary/20',
-  },
-  COMPLETED: {
-    label: 'Đã hoàn thành',
-    dotClass: 'bg-muted-foreground',
-    badgeClass: 'bg-muted text-muted-foreground border border-border',
-  },
-  CANCELLED: {
-    label: 'Đã hủy',
-    dotClass: 'bg-destructive',
-    badgeClass: 'bg-destructive/10 text-destructive border border-destructive/20',
-  },
-};
-
 export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactElement {
   const [showQrModal, setShowQrModal] = React.useState(false);
   const [showCancelModal, setShowCancelModal] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState('');
   const [isCancelling, setIsCancelling] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
 
   // Hiển thị các dịch vụ đã chọn lúc đặt sân
   const [currentAddOns, setCurrentAddOns] = React.useState<BookingAddOnsSummary | null>(null);
@@ -59,6 +36,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
   const isConfirmed = ticket.status === 'CONFIRMED';
   const isCheckedIn = ticket.status === 'CHECKED_IN';
   const isCompleted = ticket.status === 'COMPLETED';
+  const isCancelled = ticket.status === 'CANCELLED';
 
   React.useEffect(() => {
     if (isConfirmed || isCheckedIn || isCompleted) {
@@ -85,174 +63,145 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
     }
   };
 
-  const handleShare = async () => {
-    const shareText = `Lịch thi đấu: ${ticket.court.venue.name} - ${ticket.court.name}\nNgày: ${new Date(ticket.date).toLocaleDateString('vi-VN')} (${formatMinutesToTime(ticket.startMinute)} - ${formatMinutesToTime(ticket.endMinute)})\nMã vé: ${ticket.code}`;
-    if (navigator?.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(shareText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        // Fallback silently if clipboard fails
-      }
-    }
-  };
-
   const remainingDue = Math.max(0, ticket.totalPrice - ticket.paidAmount);
-  const statusInfo = STATUS_CONFIG[ticket.status] || {
-    label: ticket.status,
-    dotClass: 'bg-muted-foreground',
-    badgeClass: 'bg-secondary text-secondary-foreground border border-border',
-  };
 
   return (
     <>
-      {/* Modern Athletic Passbook Card: 2 flat distinct surfaces */}
-      <div className="flex flex-col sm:flex-row rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
-        {/* Left Side: Match Details & Actions */}
-        <div className="sm:w-2/3 p-5 bg-card flex flex-col justify-between gap-4">
-          <div className="space-y-3">
-            {/* Header: Sport badge & status dot + badge */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="px-2.5 py-0.5 rounded-md bg-secondary text-secondary-foreground border border-border text-[11px] font-bold uppercase tracking-wider">
+      {/* Notch Sports Ticket Card */}
+      <Card className="relative overflow-hidden border border-border/80 bg-card p-0 shadow-md hover:shadow-lg transition-all">
+        {/* Top Header Strip */}
+        <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/30 border-b border-border/60">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono-num font-bold text-xs text-primary bg-primary/10 px-2.5 py-0.5 rounded-md">
+                {ticket.code}
+              </span>
+              <span className="text-[11px] font-bold text-muted-foreground uppercase">
                 {SPORT_LABELS[ticket.court.sportType] || ticket.court.sportType}
               </span>
-              <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold', statusInfo.badgeClass)}>
-                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', statusInfo.dotClass)} />
-                <span>{statusInfo.label}</span>
-              </span>
             </div>
-
-            {/* Venue & Court Name */}
-            <div>
-              <h3 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
-                {ticket.court.venue.name} · {ticket.court.name}
-              </h3>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span>{ticket.court.venue.address}, {ticket.court.venue.district}, {ticket.court.venue.city}</span>
-              </p>
-            </div>
-
-            {/* Big Date and Time match schedule */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2 px-3 rounded-xl bg-secondary/20 border border-border/50">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-mono-num font-extrabold text-base sm:text-lg text-foreground">
-                  {new Date(ticket.date).toLocaleDateString('vi-VN')}
-                </span>
-              </div>
-              <span className="text-border hidden sm:inline">|</span>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-mono-num font-extrabold text-base sm:text-lg text-foreground">
-                  {formatMinutesToTime(ticket.startMinute)} - {formatMinutesToTime(ticket.endMinute)}
-                </span>
-              </div>
-            </div>
-
-            {/* Add-ons list if any */}
-            {currentAddOns && currentAddOns.items.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-1">
-                <span className="text-muted-foreground font-semibold">Dịch vụ đi kèm:</span>
-                {currentAddOns.items.map((it) => (
-                  <span key={it.id} className="px-2 py-0.5 rounded-md bg-secondary text-foreground font-medium border border-border">
-                    {it.serviceName} x{it.quantity} (<span className="font-mono-num">{formatVND(it.totalPriceVnd)}</span>)
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Payment breakdown */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs pt-2 border-t border-border/60">
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">Đã cọc:</span>
-                <span className="font-mono-num font-bold text-foreground">
-                  {formatVND(ticket.paidAmount)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">Còn lại:</span>
-                <span className="font-mono-num font-bold text-foreground">
-                  {formatVND(remainingDue)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">Tổng:</span>
-                <span className="font-mono-num font-bold text-foreground">
-                  {formatVND(ticket.totalPrice)}
-                </span>
-              </div>
-            </div>
+            <h3 className="text-base sm:text-lg font-extrabold text-foreground">
+              {ticket.court.name} · {ticket.court.venue.name}
+            </h3>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{ticket.court.venue.address}, {ticket.court.venue.district}, {ticket.court.venue.city}</span>
+            </p>
           </div>
 
-          {/* Actions bar */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleShare}
-              className="text-xs font-semibold text-foreground border-border hover:bg-secondary/60 active:scale-[0.98] transition-transform gap-1.5"
-            >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
-              <span>{copied ? 'Đã sao chép' : 'Chia sẻ vé'}</span>
-            </Button>
+          {/* Status Badge */}
+          <div className="shrink-0">
+            {isConfirmed && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Đã xác nhận</span>
+              </span>
+            )}
+            {isCheckedIn && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Đã Check-in</span>
+              </span>
+            )}
+            {isCompleted && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-zinc-500/10 text-zinc-400 text-xs font-bold border border-zinc-500/20">
+                <span>Hoàn tất trận</span>
+              </span>
+            )}
+            {isCancelled && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold border border-rose-500/20">
+                <XCircle className="h-3.5 w-3.5" />
+                <span>Đã hủy</span>
+              </span>
+            )}
+          </div>
+        </div>
 
-            {isConfirmed && onCancel && (
+        {/* Middle Date & Financial Metrics */}
+        <div className="p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          <div className="space-y-1">
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5 text-primary" />
+              <span>Ngày đá / chơi</span>
+            </span>
+            <p className="font-mono-num font-bold text-sm text-foreground">
+              {new Date(ticket.date).toLocaleDateString('vi-VN')}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-primary" />
+              <span>Khung giờ slot</span>
+            </span>
+            <p className="font-mono-num font-bold text-sm text-foreground">
+              {formatMinutesToTime(ticket.startMinute)} - {formatMinutesToTime(ticket.endMinute)}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[11px] text-muted-foreground">Đã thanh toán (Cọc)</span>
+            <p className="font-mono-num font-bold text-sm text-emerald-600 dark:text-emerald-400">
+              {formatVND(ticket.paidAmount)}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[11px] text-muted-foreground">Còn lại trả tại sân</span>
+            <p className="font-mono-num font-bold text-sm text-primary">
+              {formatVND(remainingDue)}
+            </p>
+          </div>
+        </div>
+
+        {/* Booked Add-ons summary strip */}
+        {currentAddOns && currentAddOns.items.length > 0 && (
+          <div className="px-4 sm:px-5 pb-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="text-muted-foreground font-semibold">Dịch vụ đi kèm:</span>
+            {currentAddOns.items.map((it) => (
+              <span key={it.id} className="px-2 py-0.5 rounded-md bg-secondary text-foreground font-medium border border-border">
+                {it.serviceName} x{it.quantity} ({formatVND(it.totalPriceVnd)})
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Action Buttons Bar */}
+        <div className="p-4 sm:p-5 bg-card/60 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {(isConfirmed || isCheckedIn) && (
               <Button
-                type="button"
-                variant="outline"
                 size="sm"
-                onClick={() => setShowCancelModal(true)}
-                className="text-xs font-semibold text-destructive border-border hover:bg-destructive/10 active:scale-[0.98] transition-transform"
+                onClick={() => setShowQrModal(true)}
+                className="gap-1.5 font-bold text-xs shadow-xs cursor-pointer"
               >
-                Hủy đặt sân
+                <QrCode className="h-4 w-4" />
+                <span>Mã QR Check-in</span>
               </Button>
             )}
           </div>
-        </div>
 
-        {/* Right Side: QR Pass & Booking Code */}
-        <div className="sm:w-1/3 p-5 bg-secondary/30 border-t sm:border-t-0 sm:border-l border-border flex flex-col items-center justify-center gap-3">
-          <div className="flex h-32 w-32 items-center justify-center rounded-xl bg-white p-2 shadow-xs border border-border/80">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(ticket.code)}`}
-              alt={`QR Check-in ${ticket.code}`}
-              className="h-full w-full object-contain"
-            />
-          </div>
-          <div className="text-center space-y-0.5">
-            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
-              Mã vé
-            </span>
-            <span className="font-mono-num font-bold text-xs sm:text-sm text-foreground uppercase tracking-widest">
-              {ticket.code}
-            </span>
-          </div>
-          {(isConfirmed || isCheckedIn) && (
+          {isConfirmed && onCancel && (
             <Button
-              type="button"
               variant="outline"
               size="sm"
-              onClick={() => setShowQrModal(true)}
-              className="w-full max-w-[180px] text-xs font-semibold gap-1.5 active:scale-[0.98] transition-transform"
+              onClick={() => setShowCancelModal(true)}
+              className="text-xs font-semibold text-destructive hover:bg-destructive/10 cursor-pointer"
             >
-              <QrCode className="h-3.5 w-3.5" />
-              <span>Mã QR Check-in</span>
+              <span>Hủy đặt sân</span>
             </Button>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* QR Check-in Modal */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
-          <div className="relative w-full max-w-sm rounded-2xl bg-card border border-border p-6 shadow-xl space-y-5 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-5 text-center">
             <button
               type="button"
               onClick={() => setShowQrModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground active:scale-[0.98] cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-secondary text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -263,7 +212,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
             </div>
 
             {/* QR Code Container */}
-            <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-2xl bg-white p-3 border border-border/80 shadow-xs">
+            <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-2xl bg-white p-3 shadow-inner">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
                   ticket.code,
@@ -273,17 +222,17 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
               />
             </div>
 
-            <div className="p-3 rounded-xl bg-secondary/50 border border-border">
+            <div className="p-3 rounded-xl bg-secondary/50 border border-border/50">
               <span className="text-[10px] text-muted-foreground uppercase font-bold block">
                 Mã Đơn Vé
               </span>
-              <span className="font-mono-num font-black text-lg text-foreground tracking-widest">
+              <span className="font-mono-num font-black text-lg text-primary tracking-widest">
                 {ticket.code}
               </span>
             </div>
 
             <p className="text-[11px] text-muted-foreground">
-              Có mặt trước giờ bắt đầu 10-15 phút để chuẩn bị trang phục và nhận sân.
+              có mặt trước giờ bắt đầu 10-15 phút để chuẩn bị trang phục và nhận sân.
             </p>
           </div>
         </div>
@@ -291,17 +240,17 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
 
       {/* Cancel Booking Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
-          <div className="relative w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-4">
             <button
               type="button"
               onClick={() => setShowCancelModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground active:scale-[0.98] cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-secondary text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-3 text-destructive">
+            <div className="flex items-center gap-3 text-rose-500">
               <AlertCircle className="h-6 w-6 shrink-0" />
               <h4 className="text-base font-bold text-foreground">Xác nhận hủy đặt sân</h4>
             </div>
@@ -329,7 +278,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
                 size="sm"
                 disabled={isCancelling}
                 onClick={() => setShowCancelModal(false)}
-                className="text-xs active:scale-[0.98]"
+                className="text-xs"
               >
                 Giữ lại đơn
               </Button>
@@ -338,14 +287,16 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
                 size="sm"
                 disabled={!cancelReason.trim() || isCancelling}
                 onClick={handleCancelSubmit}
-                className="text-xs font-bold active:scale-[0.98]"
+                className="text-xs font-bold"
               >
                 {isCancelling ? 'Đang xử lý...' : 'Xác nhận hủy sân'}
               </Button>
-            </div>
+              </div>
           </div>
         </div>
       )}
+
+
     </>
   );
 }

@@ -192,7 +192,7 @@ export function VenueFilterSidebar({
         <div className="space-y-3 pt-3 border-t border-border/50">
           <label className="font-bold text-foreground flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
             <Coins className="h-3.5 w-3.5 text-primary" />
-            <span>Khoảng Giá (Thanh kéo 2 đầu)</span>
+            <span>Khoảng Giá</span>
           </label>
 
           {/* Dual Range Slider Component */}
