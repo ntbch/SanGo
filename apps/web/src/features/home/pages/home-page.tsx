@@ -17,7 +17,7 @@ export function HomePage(): React.ReactElement {
       </section>
 
       {/* 2. Cụm Sân Tiêu Biểu */}
-      <section className="w-full bg-secondary/40 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-12 sm:py-16 border-b border-border/40">
+      <section className="w-full bg-secondary/40 dark:bg-secondary/60 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-12 sm:py-16 border-b border-border/40">
         <HomeFeaturedVenues />
       </section>
 
@@ -27,7 +27,7 @@ export function HomePage(): React.ReactElement {
       </section>
 
       {/* 4. Quy Trình & Công Nghệ Vận Hành SanGo */}
-      <section className="w-full bg-secondary/40 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-12 sm:py-16 border-b border-border/40">
+      <section className="w-full bg-secondary/40 dark:bg-secondary/60 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-12 sm:py-16 border-b border-border/40">
         <HomeTechPillars />
       </section>
 

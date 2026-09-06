@@ -50,7 +50,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
           onError={(e) => {
             e.currentTarget.src = getFallbackImage();
           }}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover"
         />
       </div>
 
@@ -59,7 +59,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
         <div className="space-y-2">
           {/* Title & Rating Row */}
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-base sm:text-lg font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+            <h3 className="text-base sm:text-lg font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
               {venue.name}
             </h3>
             <div className="flex items-center gap-1 font-mono-num font-semibold text-xs text-foreground shrink-0 pt-0.5">
@@ -71,12 +71,21 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
             </div>
           </div>
 
-          {/* Address */}
+          {/* Address (formatted without duplicate district/city) */}
           <p className="text-xs text-muted-foreground line-clamp-1 flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <span>
-              {venue.address ? `${venue.address}, ` : ''}
-              {venue.district}, {venue.city}
+              {(() => {
+                const addr = venue.address || '';
+                const parts: string[] = addr ? [addr] : [];
+                if (venue.district && !addr.toLowerCase().includes(venue.district.toLowerCase())) {
+                  parts.push(venue.district);
+                }
+                if (venue.city && !addr.toLowerCase().includes(venue.city.toLowerCase())) {
+                  parts.push(venue.city);
+                }
+                return parts.join(', ');
+              })()}
             </span>
           </p>
 

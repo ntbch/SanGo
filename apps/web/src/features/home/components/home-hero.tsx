@@ -78,8 +78,8 @@ export function HomeHero(): React.ReactElement {
       {/* Left: headline + unified command bar (7/12) */}
       <div className="lg:col-span-7 space-y-6">
         <div className="space-y-3.5">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.15] max-w-xl">
-            Đặt Sân Thể Thao &amp; Ghép Kèo Nhanh
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.15] max-w-2xl">
+            Đặt Sân Thể Thao<br className="hidden sm:inline" /> &amp; Ghép Kèo Nhanh
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
             250+ Cụm sân hoạt động trực tuyến tại Hà Nội và TP. Hồ Chí Minh, khóa chỗ 10 phút chống trùng ca và nhận mã QR check-in ngay tại quầy.
@@ -112,8 +112,8 @@ export function HomeHero(): React.ReactElement {
             })}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="space-y-1 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div className="sm:col-span-12 md:col-span-4 lg:col-span-4 space-y-1 text-left">
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 Tên sân / Khu vực
               </label>
@@ -126,7 +126,7 @@ export function HomeHero(): React.ReactElement {
               />
             </div>
 
-            <div className="space-y-1 text-left">
+            <div className="sm:col-span-6 md:col-span-3 lg:col-span-3 space-y-1 text-left">
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 Khu vực
               </label>
@@ -135,12 +135,12 @@ export function HomeHero(): React.ReactElement {
                 onChange={(e) => setCity(e.target.value)}
                 className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
               >
-                <option value="Hà Nội">Hà Nội (140+ cụm sân)</option>
-                <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh (110+ cụm sân)</option>
+                <option value="Hà Nội">Hà Nội (140+ sân)</option>
+                <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh (110+ sân)</option>
               </select>
             </div>
 
-            <div className="space-y-1 text-left">
+            <div className="sm:col-span-6 md:col-span-3 lg:col-span-3 space-y-1 text-left">
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 Khung giờ &amp; Ngày
               </label>
@@ -148,13 +148,13 @@ export function HomeHero(): React.ReactElement {
                 defaultValue="today"
                 className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
               >
-                <option value="today">Hôm nay (Tìm slot trống)</option>
+                <option value="today">Hôm nay (Tìm slot)</option>
                 <option value="tomorrow">Ngày mai</option>
                 <option value="weekend">Cuối tuần này</option>
               </select>
             </div>
 
-            <div className="flex items-end">
+            <div className="sm:col-span-12 md:col-span-2 lg:col-span-2 flex items-end">
               <Button
                 type="submit"
                 size="default"
@@ -184,7 +184,7 @@ export function HomeHero(): React.ReactElement {
       </div>
 
       {/* Right: live open matches panel (5/12) — athletic command ticker */}
-      <aside className="lg:col-span-5 rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col justify-between">
+      <aside className="lg:col-span-5 rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col justify-between self-start space-y-4">
         <div>
           <div className="flex items-center justify-between pb-3 border-b border-border/60">
             <div className="space-y-0.5">
@@ -198,7 +198,7 @@ export function HomeHero(): React.ReactElement {
             </div>
           </div>
 
-          <div className="pt-1">
+          <div className="pt-2">
             {isLoading ? (
               <ul className="divide-y divide-border/40">
                 {[0, 1, 2].map((i) => (
@@ -210,13 +210,22 @@ export function HomeHero(): React.ReactElement {
                 ))}
               </ul>
             ) : openMatches.length === 0 ? (
-              <div className="py-6 text-center space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  Chưa có kèo nào đang tìm đối thủ.
+              <div className="py-6 px-4 text-center space-y-3 bg-secondary/30 rounded-xl border border-dashed border-border/80 my-1">
+                <p className="text-xs font-bold text-foreground">
+                  Chưa có kèo nào đang tìm đối thủ hôm nay
                 </p>
-                <Link to="/matches" className="inline-block text-xs font-bold text-primary hover:underline">
-                  Mở trung tâm ghép trận
-                </Link>
+                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                  Bạn có thể mở một kèo mới hoặc tìm kiếm lịch thi đấu trong tuần tại trung tâm ghép trận.
+                </p>
+                <div className="pt-1">
+                  <Link
+                    to="/matches"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors active:scale-[0.98]"
+                  >
+                    <span>Mở trung tâm ghép trận</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
               </div>
             ) : (
               <ul>
