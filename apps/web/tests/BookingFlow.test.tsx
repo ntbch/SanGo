@@ -9,6 +9,7 @@ import {
   MyBookingsPage,
 } from '../src/features/booking/pages';
 import { BookingStatus, SportType } from '../src/lib/constants';
+import { formatLocalDateToYMD } from '../src/lib/utils';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,7 +42,8 @@ const now = new Date();
 const dayOfWeek = now.getDay();
 const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
 const mondayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
-const mondayStr = mondayDate.toISOString().slice(0, 10);
+const mondayStr = formatLocalDateToYMD(mondayDate);
+const todayDateStr = formatLocalDateToYMD(now);
 
 const mockSlots = {
   courtId: 'court-test-1',
@@ -51,7 +53,7 @@ const mockSlots = {
   days: 7,
   byDate: [
     {
-      date: new Date().toISOString().slice(0, 10),
+      date: todayDateStr,
       slots: [
         { startMinute: 360, endMinute: 420, state: 'AVAILABLE' as const },
         { startMinute: 420, endMinute: 480, state: 'AVAILABLE' as const },

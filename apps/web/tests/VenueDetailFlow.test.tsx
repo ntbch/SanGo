@@ -1,9 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { VenueDetailPage } from '../src/features/venues/pages';
 import { SportType } from '../src/lib/constants';
+import { formatLocalDateToYMD } from '../src/lib/utils';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -12,6 +13,31 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const now = new Date();
+const dayOfWeek = now.getDay();
+const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+const mondayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+const mondayStr = formatLocalDateToYMD(mondayDate);
+const todayDateStr = formatLocalDateToYMD(now);
+
+const mockSlots = {
+  courtId: 'c-1',
+  courtStatus: 'ACTIVE',
+  slotMinutes: 60,
+  from: mondayStr,
+  days: 7,
+  byDate: [
+    {
+      date: todayDateStr,
+      slots: [
+        { startMinute: 360, endMinute: 420, state: 'AVAILABLE' as const },
+        { startMinute: 420, endMinute: 480, state: 'AVAILABLE' as const },
+        { startMinute: 1020, endMinute: 1080, state: 'BOOKED' as const },
+      ],
+    },
+  ],
+};
 
 const mockVenue = {
   id: 'v-test-1',
@@ -53,24 +79,18 @@ const mockVenue = {
 };
 
 describe('Venue Detail Flow & Tabs', () => {
-  it('renders venue detail components and switches tabs', async () => {
-    // Seed query data in cache
+  const scrollIntoViewMock = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
     queryClient.setQueryData(['venue-detail', 'san-ngoc-khanh'], mockVenue);
+    queryClient.setQueryData(['court-slots', 'c-1', mondayStr], mockSlots);
+  });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/venues/:slug" element={<VenueDetailPage />} />
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>,
-    );
-
-    // Push initial history entry
+  it('renders venue detail components and switches tabs', async () => {
     window.history.pushState({}, '', '/venues/san-ngoc-khanh');
 
-    // Re-render to pick up route
     render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
@@ -86,8 +106,8 @@ describe('Venue Detail Flow & Tabs', () => {
 
     // Verify Courts List
     expect(screen.getByRole('heading', { name: /Danh Sách Sân Con/i })).toBeDefined();
-    expect(screen.getByText(/Sân Bóng Đá 5A/i)).toBeDefined();
-    expect(screen.getByText(/Sân Pickleball 1/i)).toBeDefined();
+    expect(screen.getAllByText(/Sân Bóng Đá 5A/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Sân Pickleball 1/i).length).toBeGreaterThan(0);
 
     // Verify Tabs Navigation
     const amenitiesTab = screen.getByRole('button', { name: /Tiện ích cụm sân/i });
@@ -97,5 +117,66 @@ describe('Venue Detail Flow & Tabs', () => {
     // Verify Sticky Booking Sidebar
     expect(screen.getByText(/Bảng Giá Thuê Sân/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Xem Lịch & Đặt Sân Ngay/i })).toBeDefined();
+  });
+
+  it('embeds unified interactive booking section (#booking) with slot selection', async () => {
+    window.history.pushState({}, '', '/venues/san-ngoc-khanh');
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/venues/:slug" element={<VenueDetailPage />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    // Verify embedded booking matrix section
+    expect(screen.getAllByText(/Ma Trận Đặt Sân Thời Gian Thực/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Tuần:/i).length).toBeGreaterThan(0);
+
+    // Verify slot in matrix is clickable
+    const slot06 = screen.getAllByText(/06:00 - 07:00/i)[0];
+    expect(slot06).toBeDefined();
+    fireEvent.click(slot06);
+
+    // Check that floating BookingSummaryBar appeared with slot details
+    expect(screen.getAllByText(/Giữ Chỗ 10 Phút & Thanh Toán/i).length).toBeGreaterThan(0);
+  });
+
+  it('smoothly scrolls to #booking when clicking CTA in sticky sidebar', async () => {
+    window.history.pushState({}, '', '/venues/san-ngoc-khanh');
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/venues/:slug" element={<VenueDetailPage />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    const ctaButton = screen.getByRole('button', { name: /Xem Lịch & Đặt Sân Ngay/i });
+    fireEvent.click(ctaButton);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+  });
+
+  it('automatically scrolls to #booking when landing with hash', async () => {
+    window.history.pushState({}, '', '/venues/san-ngoc-khanh#booking');
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/venues/:slug" element={<VenueDetailPage />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
   });
 });
