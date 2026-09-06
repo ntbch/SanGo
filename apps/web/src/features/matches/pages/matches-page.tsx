@@ -1,10 +1,10 @@
 import React from 'react';
-import { Card } from '../../../components/ui/card';
 import { listOpenMatchesApi, type OpenMatch } from '../api/matches-api';
 import { MatchHeader } from '../components/match-header';
 import { MatchFilterBar } from '../components/match-filter-bar';
 import { MatchCard } from '../components/match-card';
 import { PageContainer } from '../../../components/layout/page-container';
+import { EmptyState } from '../../../components/feedback';
 
 export function MatchesPage(): React.ReactElement {
   const [matches, setMatches] = React.useState<OpenMatch[]>([]);
@@ -33,6 +33,12 @@ export function MatchesPage(): React.ReactElement {
     fetchMatches();
   }, [fetchMatches]);
 
+  const handleResetFilters = () => {
+    setSportFilter('ALL');
+    setSearchCity('ALL');
+    setSearchDistrict('ALL');
+  };
+
   return (
     <PageContainer>
       <MatchHeader />
@@ -47,22 +53,48 @@ export function MatchesPage(): React.ReactElement {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="p-6 space-y-4 animate-pulse">
-              <div className="h-6 w-1/3 bg-muted rounded" />
-              <div className="h-4 w-3/4 bg-muted rounded" />
-              <div className="h-10 bg-muted rounded-xl" />
-            </Card>
+        <div
+          data-testid="matches-skeleton-list"
+          className="flex flex-col gap-3"
+          aria-busy="true"
+          aria-label="Đang tải danh sách kèo"
+        >
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 rounded-2xl border border-border bg-card gap-4"
+            >
+              <div className="space-y-2 min-w-[130px]">
+                <div className="h-4 w-20 bg-muted rounded" />
+                <div className="h-6 w-28 bg-muted rounded" />
+              </div>
+              <div className="flex-1 space-y-2 w-full">
+                <div className="flex gap-2">
+                  <div className="h-5 w-16 bg-muted rounded-md" />
+                  <div className="h-5 w-20 bg-muted rounded-md" />
+                </div>
+                <div className="h-5 w-3/4 max-w-md bg-muted rounded" />
+                <div className="h-4 w-1/2 max-w-sm bg-muted rounded" />
+              </div>
+              <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="space-y-1">
+                  <div className="h-5 w-20 bg-muted rounded" />
+                  <div className="h-6 w-24 bg-muted rounded" />
+                </div>
+                <div className="h-9 w-24 bg-muted rounded-xl" />
+              </div>
+            </div>
           ))}
         </div>
       ) : matches.length === 0 ? (
-        <Card className="p-12 text-center border-dashed border-2 border-border/80 space-y-3">
-          <p className="text-sm font-bold text-foreground">Không tìm thấy kèo thi đấu phù hợp</p>
-          <p className="text-xs text-muted-foreground">Thử đổi môn hoặc khu vực.</p>
-        </Card>
+        <EmptyState
+          title="Không tìm thấy kèo thi đấu phù hợp"
+          description="Thử đổi môn thể thao, khu vực tìm kiếm hoặc tạo một kèo giao lưu mới."
+          actionLabel="Đặt lại bộ lọc"
+          onAction={handleResetFilters}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-3" data-testid="matches-list">
           {matches.map((m) => (
             <MatchCard key={m.id} match={m} />
           ))}
