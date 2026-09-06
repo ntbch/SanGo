@@ -23,6 +23,11 @@ export function RankingPage(): React.ReactElement {
   const [athleteRankings, setAthleteRankings] = React.useState<AthleteRankingItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
+  const handleResetFilters = React.useCallback(() => {
+    setSportFilter('ALL');
+    setCityFilter('ALL');
+  }, []);
+
   const fetchRankings = React.useCallback(async () => {
     setIsLoading(true);
     try {
@@ -67,6 +72,7 @@ export function RankingPage(): React.ReactElement {
             type={activeTab}
             clubRankings={clubRankings}
             athleteRankings={athleteRankings}
+            onResetFilters={handleResetFilters}
           />
         </div>
       )}

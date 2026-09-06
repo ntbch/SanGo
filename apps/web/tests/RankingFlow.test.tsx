@@ -84,7 +84,7 @@ describe('Ranking Flow Integration', () => {
   });
 
   it('renders RankingPage with Podium and switches between Clubs and Athletes', async () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/ranking']}>
         <Routes>
           <Route path="/ranking" element={<RankingPage />} />
@@ -104,6 +104,36 @@ describe('Ranking Flow Integration', () => {
     });
     expect(screen.getByRole('heading', { name: /Bảng Tổng Sắp Câu Lạc Bộ/i })).toBeDefined();
 
+    // Verify athletic podium displays rank 1 with bold mono numbers and tabular-nums ELO score
+    const rankBadges = screen.getAllByText('1');
+    expect(rankBadges.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Hạng 1 Toàn Bảng/i)).toBeDefined();
+
+    const eloElements = screen.getAllByText('1240');
+    expect(eloElements.length).toBeGreaterThanOrEqual(1);
+    // At least one elo display has font-mono-num and tabular-nums
+    expect(eloElements.some((el) => el.className.includes('font-mono-num') && el.className.includes('tabular-nums'))).toBe(true);
+
+    // Verify leaderboard table shows formatted rank #01 with tabular-nums
+    const rankTableText = screen.getByText('#01');
+    expect(rankTableText).toBeDefined();
+    expect(rankTableText.className).toContain('tabular-nums');
+    expect(rankTableText.className).toContain('font-mono-num');
+
+    // Verify match stats and win rate with tabular-nums
+    const matchStats = screen.getByText('12 - 3 - 3');
+    expect(matchStats.className).toContain('tabular-nums');
+    expect(matchStats.className).toContain('font-mono-num');
+
+    const winRate = screen.getByText('66.7%');
+    expect(winRate.className).toContain('tabular-nums');
+    expect(winRate.className).toContain('font-mono-num');
+
+    // Cliché check: no animate-pulse, no gradients, no backdrop-blur
+    expect(container.querySelector('.animate-pulse')).toBeNull();
+    expect(container.innerHTML).not.toContain('bg-gradient');
+    expect(container.innerHTML).not.toContain('backdrop-blur');
+
     // Switch to Athletes ranking tab
     const athletesTabBtn = screen.getByRole('tab', { name: /Bảng Vàng Vận Động Viên/i });
     expect(athletesTabBtn).toBeDefined();
@@ -122,8 +152,41 @@ describe('Ranking Flow Integration', () => {
       expect(screen.getAllByText(/Ngô Thuỳ Linh/i).length).toBeGreaterThan(0);
     });
 
-    // When 1 person in the list, their rank badge must be 1, not 3
-    const rankBadges = screen.getAllByText('1');
-    expect(rankBadges.length).toBeGreaterThanOrEqual(1);
+    // When 1 person in the list, their rank badge on podium is 1 and table rank is #01
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('#01')).toBeDefined();
+  });
+
+  it('renders EmptyState when filter yields no results and allows resetting filters', async () => {
+    render(
+      <MemoryRouter initialEntries={['/ranking']}>
+        <Routes>
+          <Route path="/ranking" element={<RankingPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/SanGo Warriors FC/i).length).toBeGreaterThan(0);
+    });
+
+    // Filter by Tennis where there are no clubs
+    const tennisBtn = screen.getByRole('button', { name: /Tennis/i });
+    fireEvent.click(tennisBtn);
+
+    // Wait for EmptyState
+    await waitFor(() => {
+      expect(screen.getByText('Chưa có dữ liệu bảng xếp hạng')).toBeDefined();
+    });
+
+    const resetBtn = screen.getByRole('button', { name: /Đặt lại bộ lọc/i });
+    expect(resetBtn).toBeDefined();
+
+    // Click reset filters
+    fireEvent.click(resetBtn);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/SanGo Warriors FC/i).length).toBeGreaterThan(0);
+    });
   });
 });
