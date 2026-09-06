@@ -11,6 +11,8 @@ import { HoldTimer } from '../components/hold-timer';
 import { CheckoutVoucherPicker } from '../components/checkout-voucher-picker';
 import { CheckoutPaymentMethods } from '../components/checkout-payment-methods';
 import { CheckoutOrderSummary } from '../components/checkout-order-summary';
+import { CheckoutAddOnsPicker } from '../components/checkout-addons-picker';
+import { updateHoldAddOnsApi } from '../../venues/api/venue-services-api';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Skeleton } from '../../../components/ui/skeleton';
@@ -81,6 +83,17 @@ export function CheckoutHoldPage(): React.ReactElement {
     onError: (err: any) => setCheckoutError(err.message || 'Không thể hủy giữ chỗ. thử lại.'),
   });
 
+  const addOnsMutation = useMutation({
+    mutationFn: (items: { serviceId: string; quantity: number }[]) =>
+      updateHoldAddOnsApi(holdId || '', items),
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (err: any) => {
+      setCheckoutError(err?.message || 'Không thể cập nhật dịch vụ đi kèm');
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-8 space-y-6 max-w-4xl mx-auto">
@@ -113,6 +126,19 @@ export function CheckoutHoldPage(): React.ReactElement {
   const depositPercent = hold.depositPercent ?? hold.court?.venue?.depositPercent ?? 30;
   const depositAmount = Math.round((finalTotal * depositPercent) / 100);
   const amountToPay = paymentType === 'FULL' ? finalTotal : depositAmount;
+
+  const venueId = hold.venueId || hold.court?.venue?.id || '';
+  const selectedAddOns = React.useMemo(() => {
+    if (!hold?.addOns || !Array.isArray(hold.addOns)) return [];
+    return (hold.addOns as any[]).map((i: any) => ({
+      serviceId: i.serviceId,
+      quantity: i.quantity,
+    }));
+  }, [hold?.addOns]);
+  const addOnsTotal = (hold?.addOns && Array.isArray(hold.addOns))
+    ? (hold.addOns as any[]).reduce((sum: number, item: any) => sum + (item.unitPrice || 0) * (item.quantity || 0), 0)
+    : (hold?.addOnsTotal || 0);
+  const courtSubtotal = hold?.courtSubtotal ?? (subtotal - addOnsTotal);
 
   return (
     <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8 space-y-6 max-w-4xl mx-auto">
@@ -153,6 +179,17 @@ export function CheckoutHoldPage(): React.ReactElement {
             </div>
           </Card>
 
+          {venueId && (
+            <CheckoutAddOnsPicker
+              venueId={venueId}
+              selectedItems={selectedAddOns}
+              onChange={(items) => {
+                addOnsMutation.mutate(items);
+              }}
+              disabled={addOnsMutation.isPending || hold.status !== 'ACTIVE'}
+            />
+          )}
+
           <CheckoutPaymentMethods
             paymentType={paymentType}
             onPaymentTypeChange={setPaymentType}
@@ -181,6 +218,8 @@ export function CheckoutHoldPage(): React.ReactElement {
         <div className="md:col-span-1 space-y-4">
             <CheckoutOrderSummary
             subtotal={subtotal}
+            courtSubtotal={courtSubtotal}
+            addOnsTotal={addOnsTotal}
             discount={discount}
             finalTotal={finalTotal}
             depositPercent={depositPercent}

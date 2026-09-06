@@ -13,6 +13,23 @@ export type SlotsQueryDto = z.infer<typeof SlotsQuerySchema>;
  * POST /bookings/holds — spec §6.1: {courtId, date, slots[]}.
  * slots = mảng phút BẮT ĐẦU các slot liền kề (vd [1020,1110] cho 2 slot 90').
  */
+export const HoldAddOnItemSchema = z.object({
+  serviceId: z.string().uuid('serviceId phải là UUID'),
+  quantity: z.number().int().min(1, 'Số lượng tối thiểu 1').max(50, 'Số lượng tối đa 50'),
+});
+export type HoldAddOnItemDto = z.infer<typeof HoldAddOnItemSchema>;
+
+export const UpdateHoldAddOnsSchema = z.object({
+  items: z
+    .array(HoldAddOnItemSchema)
+    .max(20)
+    .refine(
+      (items) => new Set(items.map((i) => i.serviceId)).size === items.length,
+      { message: 'Danh sách dịch vụ không được chứa mã dịch vụ trùng lặp' },
+    ),
+});
+export type UpdateHoldAddOnsDto = z.infer<typeof UpdateHoldAddOnsSchema>;
+
 export const CreateHoldSchema = z
   .object({
     courtId: z.string().uuid('courtId phải là UUID'),
@@ -21,6 +38,15 @@ export const CreateHoldSchema = z
       .array(z.number().int().min(0).max(1439))
       .min(1, 'Chọn ít nhất một slot')
       .max(8, 'Tối đa 8 slot liền kề mỗi lần giữ'),
+    /// Dịch vụ đi kèm chọn lúc đặt sân
+    addOns: z
+      .array(HoldAddOnItemSchema)
+      .max(20)
+      .refine(
+        (items) => !items || new Set(items.map((i) => i.serviceId)).size === items.length,
+        { message: 'Danh sách dịch vụ không được chứa mã dịch vụ trùng lặp' },
+      )
+      .optional(),
     /// S2-F1: Đặt sân với tư cách đội thể thao.
     teamId: z.string().uuid('teamId phải là UUID').optional(),
     /// Ghép trận mở (§3.11 & P6): chủ đơn chọn công khai "cần ghép X người".

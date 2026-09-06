@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -20,7 +20,9 @@ import {
   BulkCancelSchema,
   OwnerBookingsQuerySchema,
   SlotsQuerySchema,
+  UpdateHoldAddOnsSchema,
   type BulkCancelDto,
+  type UpdateHoldAddOnsDto,
   type CancelBookingDto,
   type CheckInDto,
   type CreateReviewDto,
@@ -170,6 +172,16 @@ export class BookingsController {
     @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
   ) {
     return this.bookingsService.releaseHold(id, user);
+  }
+
+  @Put('holds/:id/addons')
+  @ApiOperation({ summary: 'Cập nhật dịch vụ đi kèm cho lượt giữ chỗ trước khi thanh toán' })
+  updateHoldAddOns(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(UuidParamSchema)) id: string,
+    @Body(new ZodValidationPipe(UpdateHoldAddOnsSchema)) dto: UpdateHoldAddOnsDto,
+  ) {
+    return this.bookingsService.updateHoldAddOns(id, user, dto);
   }
 
   @Get(':id/refund-preview')

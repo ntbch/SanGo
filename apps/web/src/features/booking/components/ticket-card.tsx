@@ -13,15 +13,9 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  Coffee,
-  Plus,
-  Minus,
 } from 'lucide-react';
 import {
-  listPublicVenueServicesApi,
   listBookingAddOnsApi,
-  addBookingAddOnsApi,
-  type VenueServiceItem,
   type BookingAddOnsSummary,
 } from '../../venues/api/venue-services-api';
 
@@ -33,22 +27,28 @@ export interface TicketCardProps {
 export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactElement {
   const [showQrModal, setShowQrModal] = React.useState(false);
   const [showCancelModal, setShowCancelModal] = React.useState(false);
-  const [showAddonsModal, setShowAddonsModal] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState('');
   const [isCancelling, setIsCancelling] = React.useState(false);
 
-  // Add-ons State
-  const [availableServices, setAvailableServices] = React.useState<VenueServiceItem[]>([]);
+  // Hiển thị các dịch vụ đã chọn lúc đặt sân
   const [currentAddOns, setCurrentAddOns] = React.useState<BookingAddOnsSummary | null>(null);
-  const [selectedQuantities, setSelectedQuantities] = React.useState<Record<string, number>>({});
-  const [isLoadingAddons, setIsLoadingAddons] = React.useState(false);
-  const [isSubmittingAddons, setIsSubmittingAddons] = React.useState(false);
-  const [addonSuccessMsg, setAddonSuccessMsg] = React.useState<string | null>(null);
 
   const isConfirmed = ticket.status === 'CONFIRMED';
   const isCheckedIn = ticket.status === 'CHECKED_IN';
   const isCompleted = ticket.status === 'COMPLETED';
   const isCancelled = ticket.status === 'CANCELLED';
+
+  React.useEffect(() => {
+    if (isConfirmed || isCheckedIn || isCompleted) {
+      listBookingAddOnsApi(ticket.id)
+        .then((summary) => {
+          if (summary && summary.items && summary.items.length > 0) {
+            setCurrentAddOns(summary);
+          }
+        })
+        .catch(() => undefined);
+    }
+  }, [ticket.id, isConfirmed, isCheckedIn, isCompleted]);
 
   const handleCancelSubmit = async () => {
     if (!cancelReason.trim()) return;
@@ -60,51 +60,6 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
       console.error(err);
     } finally {
       setIsCancelling(false);
-    }
-  };
-
-  const handleOpenAddons = async () => {
-    setShowAddonsModal(true);
-    setIsLoadingAddons(true);
-    try {
-      const [services, addOnsSummary] = await Promise.all([
-        listPublicVenueServicesApi(ticket.court.venue.id),
-        listBookingAddOnsApi(ticket.id),
-      ]);
-      setAvailableServices(services.filter((s) => s.isActive));
-      setCurrentAddOns(addOnsSummary);
-      const initialQty: Record<string, number> = {};
-      services.forEach((s) => {
-        const found = addOnsSummary.items.find((i) => i.serviceId === s.id);
-        initialQty[s.id] = found ? found.quantity : 0;
-      });
-      setSelectedQuantities(initialQty);
-    } finally {
-      setIsLoadingAddons(false);
-    }
-  };
-
-  const handleSaveAddons = async () => {
-    const itemsToSave = Object.entries(selectedQuantities)
-      .filter(([_, qty]) => qty > 0)
-      .map(([serviceId, quantity]) => ({ serviceId, quantity }));
-
-    setIsSubmittingAddons(true);
-    setAddonSuccessMsg(null);
-    try {
-      await addBookingAddOnsApi(ticket.id, itemsToSave);
-      setAddonSuccessMsg('Đã lưu dịch vụ đi kèm.');
-      const updated = await listBookingAddOnsApi(ticket.id);
-      setCurrentAddOns(updated);
-      setTimeout(() => {
-        setAddonSuccessMsg(null);
-        setShowAddonsModal(false);
-      }, 1200);
-    } catch (err: any) {
-      setAddonSuccessMsg(null);
-      alert(err?.message || 'Không thể lưu dịch vụ. thử lại.');
-    } finally {
-      setIsSubmittingAddons(false);
     }
   };
 
@@ -224,18 +179,6 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
                 <span>Mã QR Check-in</span>
               </Button>
             )}
-
-            {isConfirmed && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOpenAddons}
-                className="gap-1.5 font-bold text-xs border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
-              >
-                <Coffee className="h-4 w-4" />
-                <span>Đặt Thêm Dịch Vụ / Nước Uống</span>
-              </Button>
-            )}
           </div>
 
           {isConfirmed && onCancel && (
@@ -353,141 +296,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
         </div>
       )}
 
-      {/* Add-ons & Extra Services Modal */}
-      {showAddonsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col justify-between">
-            <button
-              type="button"
-              onClick={() => setShowAddonsModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-secondary text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                <Coffee className="h-4 w-4" />
-                <span>Tiện Ích Sân Bóng</span>
-              </div>
-              <h4 className="text-lg font-black text-foreground">
-                Đặt Dịch Vụ &amp; Nước Uống Cho Đơn {ticket.code}
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                Dịch vụ được chuẩn bị sẵn tại sân trước giờ thi đấu. Thanh toán bằng Ví SanGo hoặc tại quầy.
-              </p>
-            </div>
-
-            {/* List of Services */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-              {isLoadingAddons ? (
-                <div className="py-12 text-center text-xs text-muted-foreground">
-                  Đang tải menu dịch vụ của sân...
-                </div>
-              ) : availableServices.length === 0 ? (
-                <div className="py-12 text-center text-xs text-muted-foreground">
-                  Sân này hiện chưa kích hoạt dịch vụ đặt trước.
-                </div>
-              ) : (
-                availableServices.map((service) => {
-                  const qty = selectedQuantities[service.id] || 0;
-                  return (
-                    <div
-                      key={service.id}
-                      className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 flex items-center justify-between gap-3 hover:border-primary/40 transition-colors"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <span className="text-xs font-bold text-foreground block truncate">
-                          {service.name}
-                        </span>
-                        <div className="flex items-center gap-2 text-[11px]">
-                          <span className="font-mono-num font-bold text-primary">
-                            {formatVND(service.unitPriceVnd)}
-                          </span>
-                          <span className="text-muted-foreground">/ {service.unit}</span>
-                        </div>
-                      </div>
-
-                      {/* Quantity Stepper */}
-                      <div className="flex items-center gap-2 bg-background border border-border p-1 rounded-xl shrink-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSelectedQuantities((prev) => ({
-                              ...prev,
-                              [service.id]: Math.max(0, (prev[service.id] || 0) - 1),
-                            }))
-                          }
-                          disabled={qty <= 0}
-                          className="h-6 w-6 rounded-lg bg-secondary flex items-center justify-center text-foreground hover:bg-primary/20 hover:text-primary transition-colors disabled:opacity-30 cursor-pointer"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className="font-mono-num font-black text-xs w-6 text-center text-foreground">
-                          {qty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSelectedQuantities((prev) => ({
-                              ...prev,
-                              [service.id]: (prev[service.id] || 0) + 1,
-                            }))
-                          }
-                          className="h-6 w-6 rounded-lg bg-secondary flex items-center justify-center text-foreground hover:bg-primary/20 hover:text-primary transition-colors cursor-pointer"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {addonSuccessMsg && (
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>{addonSuccessMsg}</span>
-              </div>
-            )}
-
-            {/* Modal Footer */}
-            <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-[10px] text-muted-foreground block font-semibold">Tạm tính dịch vụ:</span>
-                <span className="font-mono-num font-black text-base text-primary">
-                  {formatVND(
-                    availableServices.reduce(
-                      (sum, s) => sum + s.unitPriceVnd * (selectedQuantities[s.id] || 0),
-                      0,
-                    ),
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddonsModal(false)}
-                  className="text-xs"
-                >
-                  Đóng
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={isSubmittingAddons}
-                  onClick={handleSaveAddons}
-                  className="text-xs font-bold shadow-md"
-                >
-                  {isSubmittingAddons ? 'Đang lưu...' : 'Xác Nhận Đặt'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

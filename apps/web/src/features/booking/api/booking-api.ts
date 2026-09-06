@@ -55,8 +55,12 @@ export interface BookingHoldResponse {
   expiresAt: string;
   courtName?: string;
   venueName?: string;
+  venueId?: string;
   depositPercent?: number;
   slots?: Array<{ startMinute: number; endMinute: number }>;
+  addOns?: Array<{ serviceId: string; name: string; quantity: number; unitPrice: number }>;
+  courtSubtotal?: number;
+  addOnsTotal?: number;
   court?: {
     id: string;
     name: string;

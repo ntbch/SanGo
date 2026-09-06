@@ -6,6 +6,8 @@ import { formatVND } from '../../../lib/utils';
 
 interface CheckoutOrderSummaryProps {
   subtotal: number;
+  courtSubtotal?: number;
+  addOnsTotal?: number;
   discount: number;
   finalTotal: number;
   depositPercent: number;
@@ -18,6 +20,8 @@ interface CheckoutOrderSummaryProps {
 
 export function CheckoutOrderSummary({
   subtotal,
+  courtSubtotal,
+  addOnsTotal = 0,
   discount,
   finalTotal,
   depositPercent,
@@ -27,6 +31,8 @@ export function CheckoutOrderSummary({
   isActive,
   onCheckout,
 }: CheckoutOrderSummaryProps): React.ReactElement {
+  const calculatedCourtFee = courtSubtotal ?? (subtotal - addOnsTotal);
+
   return (
     <Card className="p-5 border border-border/80 bg-card space-y-4 shadow-md">
       <h3 className="text-sm font-bold text-foreground pb-2 border-b border-border/60">
@@ -35,9 +41,16 @@ export function CheckoutOrderSummary({
 
       <div className="space-y-2 text-xs">
         <div className="flex items-center justify-between text-muted-foreground">
-          <span>Tiền sân niêm yết</span>
-          <span className="font-mono-num font-semibold text-foreground">{formatVND(subtotal)}</span>
+          <span>Tiền sân</span>
+          <span className="font-mono-num font-semibold text-foreground">{formatVND(calculatedCourtFee)}</span>
         </div>
+
+        {addOnsTotal > 0 && (
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>Dịch vụ đi kèm</span>
+            <span className="font-mono-num font-semibold text-primary">+{formatVND(addOnsTotal)}</span>
+          </div>
+        )}
 
         {discount > 0 && (
           <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-semibold">

@@ -13,8 +13,6 @@
 import { Test } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import {
-  PaymentStatus,
-  PaymentType,
   PrismaClient,
   SportType,
   VenueServiceType,
@@ -26,7 +24,6 @@ import { BookingsModule } from '../../src/bookings/bookings.module';
 import { BookingsService } from '../../src/bookings/bookings.service';
 import { NotificationsModule } from '../../src/notifications/notifications.module';
 import { PaymentsModule } from '../../src/payments/payments.module';
-import { PaymentsService } from '../../src/payments/payments.service';
 import { PrismaModule } from '../../src/prisma/prisma.module';
 import { VenueServicesModule } from '../../src/venue-services/venue-services.module';
 import { VenueServicesService } from '../../src/venue-services/venue-services.service';
@@ -36,7 +33,6 @@ const SUFFIX = Date.now().toString(36);
 describe('VenueServices and ADD_ON Payments (integration)', () => {
   let prisma: PrismaClient;
   let bookings: BookingsService;
-  let payments: PaymentsService;
   let venueServices: VenueServicesService;
   let dbUp = false;
 
@@ -84,7 +80,6 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
     }).compile();
 
     bookings = moduleRef.get(BookingsService);
-    payments = moduleRef.get(PaymentsService);
     venueServices = moduleRef.get(VenueServicesService);
 
     const venueA = await prisma.venue.create({
@@ -212,8 +207,7 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
     const delRes = await venueServices.deleteService(ownerA, venueAId, racket.id);
     expect(delRes.deleted).toBe(true);
   });
-
-  it('Booking Add-ons & Checkout flow: thêm dịch vụ, checkout ADD_ON, callback thành công', async () => {
+  it('Happy-path: khách chọn addon khi đặt sân, xác nhận đơn kèm addon, chặn thêm sau khi đã đặt', async () => {
     if (!dbUp) return;
 
     // 1. Tạo 2 dịch vụ mới
@@ -231,102 +225,59 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
       isAvailable: true,
     });
 
-    // 2. Khách tạo booking CONFIRMED
+    // 2. Khách tạo hold kèm 2 nước + 1 bóng (70k)
     const playDate = dateIn(2);
     const hold = (await bookings.createHold(
       { id: cust1.id },
-      { courtId: courtAId, date: playDate, slots: [600] },
-    )) as { holdId: string; subtotal: number };
+      {
+        courtId: courtAId,
+        date: playDate,
+        slots: [600],
+        addOns: [
+          { serviceId: water.id, quantity: 2 },
+          { serviceId: ball.id, quantity: 1 },
+        ],
+      },
+    )) as { holdId: string; subtotal: number; addOnsTotal?: number };
 
-    const confirmedBooking = await bookings.confirmFromHold(hold.holdId, {
-      txnRef: `itsvc-hold-${hold.holdId}`,
-      amountPaid: 100_000,
-      paidInFull: false,
-    });
-    expect(confirmedBooking.status).toBe('CONFIRMED');
+    expect(hold.addOnsTotal).toBe(70_000);
 
-    // 3. Khách chọn mua 2 chai nước + 1 quả bóng
-    const addOnRes = await venueServices.addBookingAddOns(cust1, confirmedBooking.id, {
+    // 3. Khách cập nhật lại dịch vụ khi đang giữ chỗ (thêm 1 chai nước -> 3 nước 45k + 1 bóng 40k = 85k)
+    const updatedHold = await bookings.updateHoldAddOns(hold.holdId, cust1, {
       items: [
-        { serviceId: water.id, quantity: 2 },
+        { serviceId: water.id, quantity: 3 },
         { serviceId: ball.id, quantity: 1 },
       ],
     });
-    // 2*15k + 1*40k = 70k
-    expect(addOnRes.totalCost).toBe(70_000);
-    expect(addOnRes.paidAmount).toBe(0);
-    expect(addOnRes.unpaidAmount).toBe(70_000);
+    expect(updatedHold.addOnsTotal).toBe(85_000);
 
-    // 4. Khách thêm tiếp 1 chai nước -> upsert tăng quantity thành 3
-    const updatedAddOns = await venueServices.addBookingAddOns(cust1, confirmedBooking.id, {
-      items: [{ serviceId: water.id, quantity: 1 }],
+    // 4. Xác nhận đơn
+    const confirmedBooking = await bookings.confirmFromHold(hold.holdId, {
+      txnRef: `itsvc-hold-${hold.holdId}`,
+      amountPaid: 185_000,
+      paidInFull: true,
     });
-    // 3*15k + 1*40k = 85k
-    expect(updatedAddOns.totalCost).toBe(85_000);
-    expect(updatedAddOns.unpaidAmount).toBe(85_000);
+    expect(confirmedBooking.status).toBe('CONFIRMED');
 
-    // 5. Checkout ADD_ON
-    const co = await venueServices.createAddonCheckout(cust1, confirmedBooking.id);
-    expect(co.type).toBe('ADD_ON');
-    expect(co.amount).toBe(85_000);
-    expect(co.txnRef).toContain(confirmedBooking.id);
-    expect(co.txnRef).toContain('.ADD_ON.');
+    // 5. Kiểm tra BookingAddOn được tạo tự động cùng đơn
+    const checkBookedAddOns = await venueServices.listBookingAddOns(cust1, confirmedBooking.id);
+    expect(checkBookedAddOns.totalCost).toBe(85_000);
+    expect(checkBookedAddOns.items).toHaveLength(2);
 
-    // 6. Callback mock thanh toán thành công
-    const cbRes = await payments.handleMockCallback({
-      txnRef: co.txnRef,
-      amount: String(co.amount),
-    });
-    expect(cbRes.redirectUrl).toContain('status=SUCCESS');
-    // PA(chốt A): redirect phải mang type để FE trang kết quả phân biệt ADD_ON.
-    expect(cbRes.redirectUrl).toContain('type=ADD_ON');
+    // 6. Sau khi đã đặt sân, gọi addBookingAddOns bị chặn hoàn toàn
+    await expect(
+      venueServices.addBookingAddOns(cust1, confirmedBooking.id, {
+        items: [{ serviceId: water.id, quantity: 1 }],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'ADDON_AFTER_BOOKING_DISABLED' } });
 
-    // 7. Kiểm tra Payment record được tạo
-    const payment = await prisma.payment.findUniqueOrThrow({
-      where: { txnRef: co.txnRef },
-    });
-    expect(payment.type).toBe(PaymentType.ADD_ON);
-    expect(payment.amount).toBe(85_000);
-    expect(payment.status).toBe(PaymentStatus.PAID);
-    expect(payment.bookingId).toBe(confirmedBooking.id);
-
-    // 8. Sau khi trả, unpaidAmount về 0; checkout tiếp -> NO_UNPAID_ADDONS
-    const checkAfterPaid = await venueServices.listBookingAddOns(cust1, confirmedBooking.id);
-    expect(checkAfterPaid.paidAmount).toBe(85_000);
-    expect(checkAfterPaid.unpaidAmount).toBe(0);
-
+    // 7. Gọi createAddonCheckout sau khi đã đặt sân cũng bị chặn
     await expect(
       venueServices.createAddonCheckout(cust1, confirmedBooking.id),
-    ).rejects.toMatchObject({ response: { code: 'NO_UNPAID_ADDONS' } });
-
-    // 9. Callback gọi lại với cùng txnRef -> idempotent không tạo duplicate
-    const cbRetry = await payments.handleMockCallback({
-      txnRef: co.txnRef,
-      amount: String(co.amount),
-    });
-    expect(cbRetry.redirectUrl).toContain('status=SUCCESS');
-    expect(cbRetry.redirectUrl).toContain('type=ADD_ON'); // nhánh replay vẫn giữ type
-    const paymentCount = await prisma.payment.count({ where: { txnRef: co.txnRef } });
-    expect(paymentCount).toBe(1);
-
-    // 10. Khách gọi thêm 1 quả bóng nữa (40k) -> unpaidAmount thành 40k, checkout tiếp được
-    const moreAddon = await venueServices.addBookingAddOns(cust1, confirmedBooking.id, {
-      items: [{ serviceId: ball.id, quantity: 1 }],
-    });
-    expect(moreAddon.totalCost).toBe(125_000);
-    expect(moreAddon.paidAmount).toBe(85_000);
-    expect(moreAddon.unpaidAmount).toBe(40_000);
-
-    const co2 = await venueServices.createAddonCheckout(cust1, confirmedBooking.id);
-    expect(co2.amount).toBe(40_000);
-
-    // Sai số tiền callback bị chặn
-    await expect(
-      payments.handleMockCallback({ txnRef: co2.txnRef, amount: '1000' }),
-    ).rejects.toMatchObject({ response: { code: 'PAYMENT_AMOUNT_MISMATCH' } });
+    ).rejects.toMatchObject({ response: { code: 'ADDON_AFTER_BOOKING_DISABLED' } });
   });
 
-  it('Ràng buộc bảo mật: không thêm dịch vụ của sân khác hoặc dịch vụ đã tắt', async () => {
+  it('Ràng buộc bảo mật: không thêm dịch vụ của sân khác hoặc dịch vụ đã tắt vào hold', async () => {
     if (!dbUp) return;
 
     // Dịch vụ của sân B
@@ -345,7 +296,33 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
       isAvailable: false,
     });
 
-    // Booking trên sân A của cust2
+    // 1. Chọn dịch vụ của sân B khi đặt sân A -> bị chặn SERVICE_NOT_FOUND
+    await expect(
+      bookings.createHold(
+        { id: cust2.id },
+        {
+          courtId: courtAId,
+          date: dateIn(3),
+          slots: [720],
+          addOns: [{ serviceId: svcB.id, quantity: 1 }],
+        },
+      ),
+    ).rejects.toMatchObject({ response: { code: 'SERVICE_NOT_FOUND' } });
+
+    // 2. Chọn dịch vụ đã tắt khi đặt sân A -> bị chặn SERVICE_UNAVAILABLE
+    await expect(
+      bookings.createHold(
+        { id: cust2.id },
+        {
+          courtId: courtAId,
+          date: dateIn(3),
+          slots: [720],
+          addOns: [{ serviceId: svcAOff.id, quantity: 1 }],
+        },
+      ),
+    ).rejects.toMatchObject({ response: { code: 'SERVICE_UNAVAILABLE' } });
+
+    // 3. Tạo booking hợp lệ trên sân A của cust2
     const hold = (await bookings.createHold(
       { id: cust2.id },
       { courtId: courtAId, date: dateIn(3), slots: [720] },
@@ -356,104 +333,16 @@ describe('VenueServices and ADD_ON Payments (integration)', () => {
       amountPaid: 100_000,
     });
 
-    // 1. Thêm dịch vụ của sân B vào booking sân A -> bị chặn
-    await expect(
-      venueServices.addBookingAddOns(cust2, booking.id, {
-        items: [{ serviceId: svcB.id, quantity: 1 }],
-      }),
-    ).rejects.toMatchObject({ response: { code: 'SERVICE_NOT_FOUND' } });
-
-    // 2. Thêm dịch vụ đã tắt -> bị chặn
-    await expect(
-      venueServices.addBookingAddOns(cust2, booking.id, {
-        items: [{ serviceId: svcAOff.id, quantity: 1 }],
-      }),
-    ).rejects.toMatchObject({ response: { code: 'SERVICE_UNAVAILABLE' } });
-
-    // 3. User khác (cust1) không thể xem hoặc thêm addon vào booking của cust2
+    // 4. User khác (cust1) không thể xem addon của cust2
     await expect(venueServices.listBookingAddOns(cust1, booking.id)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
 
-    await expect(venueServices.createAddonCheckout(cust1, booking.id)).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
-  });
-
-  it('MAJOR-B: 2 callback song song khác txnRef cùng booking -> tổng PAID đúng unpaidAmount', async () => {
-    if (!dbUp) return;
-
-    // Booking CONFIRMED mới của cust1 + addon 55k (1 nước 15k + 1 bóng 40k)
-    const waterRace = await venueServices.createService(ownerA, venueAId, {
-      name: 'Nước race',
-      price: 15_000,
-      type: VenueServiceType.BEVERAGE,
-      isAvailable: true,
-    });
-    const ballRace = await venueServices.createService(ownerA, venueAId, {
-      name: 'Bóng race',
-      price: 40_000,
-      type: VenueServiceType.EQUIPMENT,
-      isAvailable: true,
-    });
-
-    const hold = (await bookings.createHold(
-      { id: cust1.id },
-      { courtId: courtAId, date: dateIn(5), slots: [840] },
-    )) as { holdId: string };
-    const raceBooking = await bookings.confirmFromHold(hold.holdId, {
-      txnRef: `itsvc-race-${hold.holdId}`,
-      amountPaid: 100_000,
-      paidInFull: false,
-    });
-    expect(raceBooking.status).toBe('CONFIRMED');
-
-    await venueServices.addBookingAddOns(cust1, raceBooking.id, {
-      items: [
-        { serviceId: waterRace.id, quantity: 1 },
-        { serviceId: ballRace.id, quantity: 1 },
-      ],
-    }); // 15k + 40k = 55k
-
-    // Hai checkout SONG SONG trước khi trả -> 2 txnRef khác nhau, cùng amount 55k
-    const [coA, coB] = await Promise.all([
-      venueServices.createAddonCheckout(cust1, raceBooking.id),
-      venueServices.createAddonCheckout(cust1, raceBooking.id),
-    ]);
-    expect(coA.amount).toBe(55_000);
-    expect(coB.amount).toBe(55_000);
-    expect(coA.txnRef).not.toBe(coB.txnRef);
-
-    // Hai callback về gần như đồng thời (khác txnRef nên không dính idempotency UNIQUE)
-    const results = await Promise.allSettled([
-      payments.handleMockCallback({ txnRef: coA.txnRef, amount: String(coA.amount) }),
-      payments.handleMockCallback({ txnRef: coB.txnRef, amount: String(coB.amount) }),
-    ]);
-
-    // Đúng 1 giao dịch được ghi; giao dịch thừa bị từ chối an toàn PAYMENT_ADDON_OVERPAID
-    const fulfilled = results.filter((r) => r.status === 'fulfilled');
-    const rejected = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
-    expect(fulfilled).toHaveLength(1);
-    for (const r of fulfilled) {
-      expect((r as PromiseFulfilledResult<{ redirectUrl: string }>).value.redirectUrl).toContain(
-        'status=SUCCESS',
-      );
-    }
-    expect(rejected).toHaveLength(1);
-    expect((rejected[0].reason as { response?: { code?: string } }).response?.code).toBe(
-      'PAYMENT_ADDON_OVERPAID',
-    );
-
-    // Tổng PAID trong DB đúng bằng unpaidAmount, KHÔNG vượt tổng tiền dịch vụ
-    const paidRows = await prisma.payment.findMany({
-      where: { bookingId: raceBooking.id, type: PaymentType.ADD_ON, status: PaymentStatus.PAID },
-      select: { amount: true },
-    });
-    expect(paidRows.reduce((sum, p) => sum + p.amount, 0)).toBe(55_000);
-
-    // unpaidAmount về 0 sau khi guard chặn giao dịch thừa
-    const after = await venueServices.listBookingAddOns(cust1, raceBooking.id);
-    expect(after.paidAmount).toBe(55_000);
-    expect(after.unpaidAmount).toBe(0);
+    // 5. Cố thêm dịch vụ sau khi booking đã xác nhận bị chặn với ADDON_AFTER_BOOKING_DISABLED
+    await expect(
+      venueServices.addBookingAddOns(cust2, booking.id, {
+        items: [{ serviceId: svcB.id, quantity: 1 }],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'ADDON_AFTER_BOOKING_DISABLED' } });
   });
 });

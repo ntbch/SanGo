@@ -1,12 +1,10 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentsService } from '../payments/payments.service';
 import type {
   AddBookingAddOnsDto,
   CreateVenueServiceDto,
@@ -17,7 +15,6 @@ import type {
 export class VenueServicesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly paymentsService: PaymentsService,
   ) {}
 
   private async verifyVenueOwner(user: { id: string; role?: string }, venueId: string) {
@@ -185,84 +182,23 @@ export class VenueServicesService {
     };
   }
 
-  /** Thêm dịch vụ đi kèm cho một booking CONFIRMED/CHECKED_IN */
+  /** Thêm dịch vụ đi kèm cho một booking — ĐÃ VÔ HIỆU HÓA: dịch vụ chỉ được chọn khi đang đặt sân */
   async addBookingAddOns(
-    user: { id: string; role?: string },
-    bookingId: string,
-    dto: AddBookingAddOnsDto,
-  ) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: {
-        court: { include: { venue: { select: { id: true, ownerId: true } } } },
-      },
+    _user: { id: string; role?: string },
+    _bookingId: string,
+    _dto: AddBookingAddOnsDto,
+  ): Promise<never> {
+    throw new BadRequestException({
+      message: 'Không thể thêm dịch vụ sau khi đã đặt sân. Dịch vụ chỉ được chọn cùng lúc khi đặt sân.',
+      code: 'ADDON_AFTER_BOOKING_DISABLED',
     });
-    if (!booking) {
-      throw new NotFoundException({
-        message: 'Không tìm thấy đơn đặt sân',
-        code: 'BOOKING_NOT_FOUND',
-      });
-    }
-    const isOwner = user.role !== 'CUSTOMER' && booking.court.venue.ownerId === user.id;
-    if (booking.customerId !== user.id && user.role !== 'ADMIN' && !isOwner) {
-      throw new ForbiddenException({
-        message: 'Không phải đơn đặt sân của bạn',
-        code: 'BOOKING_FORBIDDEN',
-      });
-    }
-    if (booking.status !== 'CONFIRMED' && booking.status !== 'CHECKED_IN') {
-      throw new ConflictException({
-        message: 'Chỉ có thể thêm dịch vụ cho đơn đã xác nhận hoặc đã check-in',
-        code: 'BOOKING_NOT_CONFIRMED',
-      });
-    }
-
-    const venueId = booking.court.venue.id;
-
-    // Validate tất cả services
-    for (const item of dto.items) {
-      const service = await this.prisma.venueService.findUnique({
-        where: { id: item.serviceId },
-      });
-      if (!service || service.venueId !== venueId) {
-        throw new BadRequestException({
-          message: 'Dịch vụ không tồn tại hoặc không thuộc cụm sân này',
-          code: 'SERVICE_NOT_FOUND',
-        });
-      }
-      if (!service.isAvailable) {
-        throw new BadRequestException({
-          message: `Dịch vụ ${service.name} hiện không khả dụng`,
-          code: 'SERVICE_UNAVAILABLE',
-        });
-      }
-
-      // Upsert: nếu đã có thì cộng thêm số lượng, snapshot giá hiện tại
-      await this.prisma.bookingAddOn.upsert({
-        where: {
-          bookingId_serviceId: {
-            bookingId,
-            serviceId: item.serviceId,
-          },
-        },
-        create: {
-          bookingId,
-          serviceId: item.serviceId,
-          quantity: item.quantity,
-          unitPrice: service.price,
-        },
-        update: {
-          quantity: { increment: item.quantity },
-          unitPrice: service.price,
-        },
-      });
-    }
-
-    return this.listBookingAddOns(user, bookingId);
   }
 
-  /** Tạo lệnh thanh toán cho addon chưa trả của booking */
-  createAddonCheckout(user: { id: string; role?: string }, bookingId: string) {
-    return this.paymentsService.createAddonCheckout(user, bookingId);
+  /** Tạo lệnh thanh toán cho addon riêng lẻ — ĐÃ VÔ HIỆU HÓA: dịch vụ thanh toán cùng lúc khi đặt sân */
+  createAddonCheckout(_user: { id: string; role?: string }, _bookingId: string): never {
+    throw new BadRequestException({
+      message: 'Không thể thanh toán dịch vụ riêng lẻ sau khi đã đặt sân. Dịch vụ được thanh toán cùng lúc khi đặt sân.',
+      code: 'ADDON_AFTER_BOOKING_DISABLED',
+    });
   }
 }

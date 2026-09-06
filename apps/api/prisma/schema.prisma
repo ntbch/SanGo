@@ -362,6 +362,8 @@ model BookingHold {
   /// copy sang Booking. NULL/false = join trực tiếp (DIRECT — kèo cũ không phá);
   /// true = POST /bookings/:id/join -> 409 APPROVAL_REQUIRED (qua /matches/:id/requests).
   requiresApproval Boolean?
+  /// Dịch vụ đi kèm chọn lúc đặt sân: [{ serviceId, name, quantity, unitPrice }]
+  addOns      Json?
   createdAt   DateTime          @default(now())
 
   user  User  @relation(fields: [userId], references: [id])

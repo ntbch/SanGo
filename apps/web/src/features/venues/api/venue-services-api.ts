@@ -84,19 +84,26 @@ export async function listBookingAddOnsApi(bookingId: string): Promise<BookingAd
   }
 }
 
-// 3. Đặt thêm dịch vụ đi kèm
+// 3. Cập nhật dịch vụ đi kèm khi đang giữ chỗ đặt sân
+export async function updateHoldAddOnsApi(
+  holdId: string,
+  items: { serviceId: string; quantity: number }[],
+): Promise<any> {
+  return apiClient('/bookings/holds/' + holdId + '/addons', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  });
+}
+
+// Giữ lại alias tương thích cũ
 export async function addBookingAddOnsApi(
   bookingId: string,
   items: { serviceId: string; quantity: number }[],
 ): Promise<{ success: boolean; totalVnd: number }> {
-  try {
-    return await apiClient<{ success: boolean; totalVnd: number }>(`/bookings/${bookingId}/addons`, {
-      method: 'POST',
-      body: JSON.stringify({ items }),
-    });
-  } catch (err) {
-    throw err;
-  }
+  return apiClient<{ success: boolean; totalVnd: number }>('/bookings/' + bookingId + '/addons', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  });
 }
 
 // 4. Thanh toán dịch vụ phát sinh

@@ -21,6 +21,7 @@ import {
   CreateReviewDto,
   MyBookingsQueryDto,
   OwnerBookingsQueryDto,
+  UpdateHoldAddOnsDto,
 } from './dto/booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import {
@@ -58,7 +59,7 @@ export class BookingsService {
     const court = await this.prisma.court.findUnique({
       where: { id: dto.courtId },
       include: {
-        venue: { select: { openMinute: true, closeMinute: true, depositPercent: true, status: true } },
+        venue: { select: { id: true, openMinute: true, closeMinute: true, depositPercent: true, status: true } },
       },
     });
     if (!court)
@@ -140,8 +141,43 @@ export class BookingsService {
     }
 
     const rules = await this.prisma.pricingRule.findMany({ where: { courtId: court.id } });
-    let subtotal = 0;
-    for (const s of starts) subtotal += priceForSlot(court, rules, date, s, s + step);
+    let courtSubtotal = 0;
+    for (const s of starts) courtSubtotal += priceForSlot(court, rules, date, s, s + step);
+
+    // Dịch vụ đi kèm chọn lúc đặt sân
+    let addOnsData: Array<{ serviceId: string; name: string; quantity: number; unitPrice: number }> | null = null;
+    let addOnsTotal = 0;
+    if (dto.addOns && dto.addOns.length > 0) {
+      const serviceIds = dto.addOns.map((i) => i.serviceId);
+      const services = await this.prisma.venueService.findMany({
+        where: { id: { in: serviceIds }, venueId: court.venue.id },
+      });
+      const serviceMap = new Map(services.map((s) => [s.id, s]));
+      addOnsData = [];
+      for (const item of dto.addOns) {
+        const s = serviceMap.get(item.serviceId);
+        if (!s) {
+          throw new NotFoundException({
+            message: 'Dịch vụ không tồn tại hoặc không thuộc cụm sân này',
+            code: 'SERVICE_NOT_FOUND',
+          });
+        }
+        if (!s.isAvailable) {
+          throw new ConflictException({
+            message: `Dịch vụ ${s.name} hiện không khả dụng`,
+            code: 'SERVICE_UNAVAILABLE',
+          });
+        }
+        addOnsTotal += s.price * item.quantity;
+        addOnsData.push({
+          serviceId: s.id,
+          name: s.name,
+          quantity: item.quantity,
+          unitPrice: s.price,
+        });
+      }
+    }
+    const subtotal = courtSubtotal + addOnsTotal;
 
     return this.prisma.$transaction(async (tx) => {
       // M5 fix: khoá dòng user + đếm lại hold ACTIVE trong tx — hai createHold
@@ -206,6 +242,7 @@ export class BookingsService {
           requiresApproval: dto.requiresApproval ?? null,
           // S2-F1: giữ teamId trên hold để confirmFromHold copy sang Booking.
           ...(dto.teamId ? { teamId: dto.teamId } : {}),
+          ...(addOnsData && addOnsData.length > 0 ? { addOns: addOnsData } : {}),
         },
       });
       return {
@@ -218,6 +255,10 @@ export class BookingsService {
         startMinute,
         endMinute,
         subtotal,
+        courtSubtotal,
+        addOnsTotal,
+        addOns: hold.addOns,
+        venueId: court.venue.id,
         expiresAt: hold.expiresAt,
         depositPercent: court.venue.depositPercent,
         // P5b O1 (HOLD-FIX): echo giá trị requiresApproval đã lưu trên hold —
@@ -232,7 +273,7 @@ export class BookingsService {
       where: { id: holdId },
       include: {
         court: {
-          select: { name: true, slotMinutes: true, venue: { select: { name: true, depositPercent: true } } },
+          select: { name: true, slotMinutes: true, venue: { select: { id: true, name: true, depositPercent: true } } },
         },
       },
     });
@@ -259,6 +300,7 @@ export class BookingsService {
       ...holdData,
       courtName: court.name,
       venueName: court.venue.name,
+      venueId: court.venue.id,
       depositPercent: court.venue.depositPercent,
       slots,
     };
@@ -271,7 +313,7 @@ export class BookingsService {
       orderBy: { expiresAt: 'asc' },
       include: {
         court: {
-          select: { name: true, slotMinutes: true, venue: { select: { name: true, depositPercent: true } } },
+          select: { name: true, slotMinutes: true, venue: { select: { id: true, name: true, depositPercent: true } } },
         },
       },
     });
@@ -287,6 +329,7 @@ export class BookingsService {
       ...holdData,
       courtName: court.name,
       venueName: court.venue.name,
+      venueId: court.venue.id,
       depositPercent: court.venue.depositPercent,
       slots,
     };
@@ -299,6 +342,129 @@ export class BookingsService {
       await this.prisma.bookingHold.update({ where: { id: hold.id }, data: { status: 'EXPIRED' } });
     }
     return { released: true };
+  }
+
+  /**
+   * Cập nhật danh sách dịch vụ đi kèm trên hold trước khi thanh toán.
+   * Dịch vụ chỉ được chọn/sửa trong lúc giữ chỗ đặt sân — sau khi đơn CONFIRMED không cho thêm.
+   */
+  async updateHoldAddOns(holdId: string, user: { id: string }, dto: UpdateHoldAddOnsDto) {
+    const hold = await this.prisma.bookingHold.findUnique({
+      where: { id: holdId },
+      include: {
+        court: {
+          include: {
+            pricingRules: true,
+            venue: { select: { id: true, name: true, depositPercent: true } },
+          },
+        },
+      },
+    });
+    if (!hold) {
+      throw new NotFoundException({ message: 'Không tìm thấy lượt giữ chỗ', code: 'HOLD_NOT_FOUND' });
+    }
+    if (hold.userId !== user.id) {
+      throw new ForbiddenException({ message: 'Không phải lượt giữ chỗ của bạn', code: 'HOLD_FORBIDDEN' });
+    }
+    if (hold.status !== 'ACTIVE' || hold.expiresAt.getTime() <= Date.now()) {
+      throw new ConflictException({ message: 'Lượt giữ chỗ đã hết hạn', code: 'HOLD_EXPIRED' });
+    }
+
+    // Tính lại tiền sân cơ bản
+    const step = hold.court.slotMinutes;
+    const starts: number[] = [];
+    for (let m = hold.startMinute; m < hold.endMinute; m += step) {
+      starts.push(m);
+    }
+    let courtSubtotal = 0;
+    for (const s of starts) {
+      courtSubtotal += priceForSlot(hold.court, hold.court.pricingRules, hold.date, s, s + step);
+    }
+
+    // Validate add-ons mới
+    let addOnsTotal = 0;
+    const addOnsData: Array<{ serviceId: string; name: string; quantity: number; unitPrice: number }> = [];
+    if (dto.items && dto.items.length > 0) {
+      const serviceIds = dto.items.map((i) => i.serviceId);
+      const services = await this.prisma.venueService.findMany({
+        where: { id: { in: serviceIds }, venueId: hold.court.venue.id },
+      });
+      const serviceMap = new Map(services.map((s) => [s.id, s]));
+      for (const item of dto.items) {
+        const s = serviceMap.get(item.serviceId);
+        if (!s) {
+          throw new NotFoundException({
+            message: 'Dịch vụ không tồn tại hoặc không thuộc cụm sân này',
+            code: 'SERVICE_NOT_FOUND',
+          });
+        }
+        if (!s.isAvailable) {
+          throw new ConflictException({
+            message: `Dịch vụ ${s.name} hiện không khả dụng`,
+            code: 'SERVICE_UNAVAILABLE',
+          });
+        }
+        addOnsTotal += s.price * item.quantity;
+        addOnsData.push({
+          serviceId: s.id,
+          name: s.name,
+          quantity: item.quantity,
+          unitPrice: s.price,
+        });
+      }
+    }
+
+    const subtotal = courtSubtotal + addOnsTotal;
+    let discountAmount = hold.discountAmount;
+    let finalAmount: number | null = null;
+    if (hold.voucherId) {
+      const voucher = await this.prisma.voucher.findUnique({ where: { id: hold.voucherId } });
+      if (voucher && voucher.active) {
+        discountAmount = Math.min(roundVnd((courtSubtotal * voucher.percentOff) / 100), courtSubtotal);
+        finalAmount = subtotal - discountAmount;
+      } else {
+        discountAmount = null;
+        finalAmount = subtotal;
+      }
+    } else if (discountAmount !== null) {
+      finalAmount = Math.max(0, subtotal - discountAmount);
+    }
+
+    const updateRes = await this.prisma.bookingHold.updateMany({
+      where: { id: holdId, userId: user.id, status: 'ACTIVE', expiresAt: { gt: new Date() } },
+      data: {
+        subtotal,
+        discountAmount,
+        finalAmount,
+        addOns: addOnsData.length > 0 ? addOnsData : Prisma.DbNull,
+      },
+    });
+    if (updateRes.count === 0) {
+      throw new ConflictException({
+        message: 'Lượt giữ chỗ đã hết hạn hoặc đã hoàn tất thanh toán',
+        code: 'HOLD_NOT_ACTIVE',
+      });
+    }
+
+    return {
+      id: hold.id,
+      courtId: hold.courtId,
+      date: hold.date,
+      startMinute: hold.startMinute,
+      endMinute: hold.endMinute,
+      status: hold.status,
+      expiresAt: hold.expiresAt,
+      courtName: hold.court.name,
+      venueName: hold.court.venue.name,
+      venueId: hold.court.venue.id,
+      depositPercent: hold.court.venue.depositPercent,
+      subtotal,
+      discountAmount,
+      finalAmount,
+      courtSubtotal,
+      addOnsTotal,
+      addOns: addOnsData,
+    };
   }
 
   /**
@@ -483,6 +649,25 @@ export class BookingsService {
             }
             throw e;
           }
+        }
+      }
+
+      // Dịch vụ đi kèm chọn lúc đặt sân: tạo BookingAddOn trong cùng transaction
+      if (hold.addOns && Array.isArray(hold.addOns)) {
+        const holdAddOns = hold.addOns as Array<{
+          serviceId: string;
+          quantity: number;
+          unitPrice: number;
+        }>;
+        for (const item of holdAddOns) {
+          await tx.bookingAddOn.create({
+            data: {
+              bookingId: booking.id,
+              serviceId: item.serviceId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+            },
+          });
         }
       }
 
