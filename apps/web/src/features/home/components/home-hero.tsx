@@ -86,21 +86,6 @@ export function HomeHero(): React.ReactElement {
           })}
         </div>
       </div>
-
-      {/* 4. Trust Metric Strip */}
-      <div className="pt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-        <span>
-          <strong className="font-mono-num font-bold text-foreground">250+</strong> cụm sân trực tuyến
-        </span>
-        <span aria-hidden className="text-border select-none">·</span>
-        <span>
-          <strong className="font-mono-num font-bold text-foreground">10 phút</strong> giữ chỗ chống trùng ca
-        </span>
-        <span aria-hidden className="text-border select-none">·</span>
-        <span>
-          <strong className="font-mono-num font-bold text-foreground">QR</strong> check-in tại quầy
-        </span>
-      </div>
     </section>
   );
 }
