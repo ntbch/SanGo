@@ -2,21 +2,7 @@ import React from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import {
-  Building2,
-  CalendarDays,
-  ShieldCheck,
-  TrendingUp,
-  QrCode,
-  Users,
-  PhoneCall,
-  Clock,
-  Sparkles,
-  ArrowRight,
-  Zap,
-  BadgePercent,
-  Check,
-} from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function PartnerPage(): React.ReactElement {
@@ -49,20 +35,15 @@ export function PartnerPage(): React.ReactElement {
   return (
     <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-8 sm:py-12 space-y-16">
       {/* 1. Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-12 lg:p-16 shadow-xs">
+      <section className="rounded-2xl border border-border bg-card p-6 sm:p-12 lg:p-16 shadow-xs">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/80 px-4 py-1.5 text-xs font-semibold text-foreground">
-              <Building2 className="h-3.5 w-3.5 text-primary" />
-              <span>Dành riêng cho Chủ sân &amp; Ban quản trị</span>
-            </div>
-
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.15] text-balance">
-              Số Hóa Quản Lý Sân &amp; <span className="text-primary">Tối Đa Doanh Thu</span>
+              Giải pháp quản lý và đặt sân trực tuyến cho chủ sân
             </h1>
 
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
-              SanGo OS cung cấp giải pháp đồng bộ lịch ma trận thời gian thực, triệt tiêu 100% nguy cơ trùng ca, tự động thu cọc qua VietQR và tiếp cận hơn 50.000 người chơi thể thao phong trào tại Hà Nội &amp; TP.HCM.
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
+              SanGo hỗ trợ đồng bộ lịch trống theo thời gian thực, chống trùng ca, tự động thu tiền cọc qua mã VietQR và kết nối cụm sân với cộng đồng người chơi tại Hà Nội và TP. Hồ Chí Minh.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -73,8 +54,8 @@ export function PartnerPage(): React.ReactElement {
                 </Button>
               </a>
               <Link to="/login">
-                <Button variant="outline" size="lg" className="text-xs font-bold active:scale-[0.98]">
-                  Đăng nhập Chủ sân
+                <Button variant="outline" size="lg" className="text-xs font-semibold active:scale-[0.98]">
+                  Đăng nhập chủ sân
                 </Button>
               </Link>
             </div>
@@ -82,141 +63,109 @@ export function PartnerPage(): React.ReactElement {
 
           {/* Quick Metrics Card */}
           <div className="lg:col-span-5 grid grid-cols-2 gap-3.5">
-            <div className="p-5 rounded-2xl bg-secondary/40 border border-border/80 space-y-1.5">
-              <div className="text-2xl sm:text-3xl font-mono-num font-black text-primary">+35%</div>
-              <div className="text-xs font-bold text-foreground">Lấp đầy ca trống</div>
-              <p className="text-[11px] text-muted-foreground leading-tight">Tối ưu doanh thu khung giờ trưa &amp; đêm</p>
+            <div className="p-5 rounded-xl bg-secondary/60 border border-border space-y-1">
+              <div className="text-2xl sm:text-3xl font-mono-num font-black text-foreground">+35%</div>
+              <div className="text-xs font-bold text-foreground">Tối ưu giờ trống</div>
+              <p className="text-[11px] text-muted-foreground leading-tight">Tăng tỉ lệ lấp đầy ca ngày và đêm</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-secondary/40 border border-border/80 space-y-1.5">
-              <div className="text-2xl sm:text-3xl font-mono-num font-black text-emerald-600 dark:text-emerald-400">0%</div>
-              <div className="text-xs font-bold text-foreground">Trùng lịch ca sân</div>
-              <p className="text-[11px] text-muted-foreground leading-tight">Khóa slot tự động 10 phút</p>
+            <div className="p-5 rounded-xl bg-secondary/60 border border-border space-y-1">
+              <div className="text-2xl sm:text-3xl font-mono-num font-black text-foreground">0%</div>
+              <div className="text-xs font-bold text-foreground">Trùng lịch sân</div>
+              <p className="text-[11px] text-muted-foreground leading-tight">Khóa slot 10 phút tự động</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-secondary/40 border border-border/80 space-y-1.5">
-              <div className="text-2xl sm:text-3xl font-mono-num font-black text-sky-600 dark:text-sky-400">1 Giây</div>
+            <div className="p-5 rounded-xl bg-secondary/60 border border-border space-y-1">
+              <div className="text-2xl sm:text-3xl font-mono-num font-black text-foreground">1 Giây</div>
               <div className="text-xs font-bold text-foreground">Check-in tại quầy</div>
-              <p className="text-[11px] text-muted-foreground leading-tight">Quét mã QR xuất vé thông minh</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">Quét mã QR nhận sân</p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-secondary/40 border border-border/80 space-y-1.5">
-              <div className="text-2xl sm:text-3xl font-mono-num font-black text-amber-600 dark:text-amber-400">250+</div>
+            <div className="p-5 rounded-xl bg-secondary/60 border border-border space-y-1">
+              <div className="text-2xl sm:text-3xl font-mono-num font-black text-foreground">250+</div>
               <div className="text-xs font-bold text-foreground">Cụm sân đối tác</div>
-              <p className="text-[11px] text-muted-foreground leading-tight">Đang vận hành trên hệ thống</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">Đang hoạt động trên hệ thống</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. Bento Grid: 6 Lợi Ích Cốt Lõi Cho Chủ Sân */}
+      {/* 2. Grid: Tính năng dành cho chủ sân */}
       <section className="space-y-6">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-widest">
-            <Zap className="h-3.5 w-3.5" />
-            <span>Tính Năng SanGo OS</span>
-          </div>
+        <div className="text-center max-w-2xl mx-auto space-y-1">
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Bộ Công Cụ Quản Trị Sân Toàn Diện
+            Tính năng quản lý cụm sân
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Thiết kế chuyên biệt cho mô hình vận hành sân cỏ nhân tạo, pickleball, cầu lông và tennis tại Việt Nam.
+          <p className="text-sm text-muted-foreground">
+            Thiết kế phù hợp cho sân bóng đá, pickleball, cầu lông và tennis.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {/* Card 1 */}
-          <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-200 space-y-4">
-            <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-              <CalendarDays className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Ma Trận Lịch Real-time</h3>
+          <Card className="p-6 rounded-2xl border border-border bg-card space-y-3">
+            <h3 className="text-base font-bold text-foreground">Bảng lịch ma trận trực quan</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Hiển thị trực quan toàn bộ sân con theo trục thời gian. Đổi màu linh hoạt theo trạng thái: Trống, Đang giữ chỗ, Đã cọc, Khóa nội bộ.
+              Hiển thị trạng thái các sân con theo khung giờ: Trống, Đang giữ chỗ, Đã cọc hoặc Khóa nội bộ.
             </p>
           </Card>
 
-          {/* Card 2 */}
-          <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-emerald-500/40 transition-all duration-200 space-y-4">
-            <div className="h-11 w-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-              <BadgePercent className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Thu Cọc VietQR Tự Động</h3>
+          <Card className="p-6 rounded-2xl border border-border bg-card space-y-3">
+            <h3 className="text-base font-bold text-foreground">Thu tiền cọc qua VietQR</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Khách thanh toán cọc trực tiếp qua mã VietQR động về thẳng tài khoản ngân hàng của chủ sân. Hệ thống tự động gạch nợ trong 2 giây.
+              Khách thanh toán cọc trực tiếp qua mã VietQR về thẳng tài khoản ngân hàng của chủ sân.
             </p>
           </Card>
 
-          {/* Card 3 */}
-          <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-sky-500/40 transition-all duration-200 space-y-4">
-            <div className="h-11 w-11 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center">
-              <QrCode className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Lễ Tân Check-in 1 Giây</h3>
+          <Card className="p-6 rounded-2xl border border-border bg-card space-y-3">
+            <h3 className="text-base font-bold text-foreground">Quét mã QR check-in</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Quét vé QR của khách bằng điện thoại hoặc máy quét quầy. Loại bỏ hoàn toàn thao tác gọi điện đối soát hay ghi chép sổ sách thủ công.
+              Quét mã vé QR của khách tại quầy lễ tân để đối soát thông tin ca đặt, không cần sổ sách thủ công.
             </p>
           </Card>
 
-          {/* Card 4 */}
-          <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-amber-500/40 transition-all duration-200 space-y-4">
-            <div className="h-11 w-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Báo Cáo &amp; Dịch Vụ Bán Kèm</h3>
+          <Card className="p-6 rounded-2xl border border-border bg-card space-y-3">
+            <h3 className="text-base font-bold text-foreground">Báo cáo và dịch vụ bán kèm</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Quản lý doanh thu thuê sân, nước uống, áo bib và bóng thi đấu. Tự động kết xuất báo cáo doanh số chi tiết theo ngày, tuần, tháng.
+              Theo dõi doanh thu thuê sân, nước uống và dịch vụ. Thống kê số liệu theo ngày, tuần và tháng.
             </p>
           </Card>
 
-          {/* Card 5 */}
-          <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-purple-500/40 transition-all duration-200 space-y-4">
-            <div className="h-11 w-11 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center">
-              <Users className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Tiếp Cận Khách Hàng Quanh Khu Vực</h3>
+          <Card className="p-6 rounded-2xl border border-border bg-card space-y-3">
+            <h3 className="text-base font-bold text-foreground">Hiển thị trên bản đồ sân</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Xuất hiện trên bản đồ thể thao GPS SanGo và được ưu tiên gợi ý cho các đội bóng mở kèo tìm sân trong bán kính 5km lân cận.
+              Xuất hiện trên bản đồ thể thao và tiếp cận người chơi đang tìm sân trong bán kính xung quanh cụm sân.
             </p>
           </Card>
 
-          {/* Card 6 */}
-          <Card className="p-6 rounded-3xl border border-border/80 bg-card hover:border-primary/50 transition-all duration-200 space-y-4">
-            <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Bảo Mật &amp; Cam Kết Vận Hành</h3>
+          <Card className="p-6 rounded-2xl border border-border bg-card space-y-3">
+            <h3 className="text-base font-bold text-foreground">Phân quyền tài khoản</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Phân quyền chặt chẽ giữa Chủ sân, Quản lý ca và Lễ tân. Dữ liệu kinh doanh được mã hóa an toàn, sao lưu tự động hàng ngày.
+              Phân quyền rõ ràng giữa chủ sân, quản lý và nhân viên lễ tân, đảm bảo dữ liệu kinh doanh an toàn.
             </p>
           </Card>
         </div>
       </section>
 
-      {/* 3. Quy Trình 4 Bước Triển Khai */}
+      {/* 3. Quy Trình Triển Khai */}
       <section className="space-y-6">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-widest">
-            <Clock className="h-3.5 w-3.5" />
-            <span>Quy Trình Nhanh Chóng</span>
-          </div>
+        <div className="text-center max-w-2xl mx-auto space-y-1">
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Bắt Đầu Trong 24 Giờ
+            Quy trình triển khai
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Không gián đoạn hoạt động kinh doanh hiện tại của cụm sân.
+          <p className="text-sm text-muted-foreground">
+            Quá trình thiết lập đơn giản, không làm gián đoạn việc đón khách hàng ngày.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { step: '01', title: 'Gửi Thông Tin Sân', desc: 'Điền form thông tin cụm sân, số lượng sân con và địa chỉ vị trí.' },
-            { step: '02', title: 'Khởi Tạo Hệ Thống', desc: 'Đội ngũ SanGo thiết lập ma trận lịch và cấu hình tài khoản trong 24h.' },
-            { step: '03', title: 'Bàn Giao & Hướng Dẫn', desc: 'Hướng dẫn trực tuyến hoặc trực tiếp cho ban quản lý và nhân viên lễ tân.' },
-            { step: '04', title: 'Đón Khách Tự Động', desc: 'Cụm sân hiển thị trực tuyến, bắt đầu nhận tiền cọc tự động qua VietQR.' },
+            { step: '01', title: 'Gửi thông tin sân', desc: 'Cung cấp tên cụm sân, số lượng sân con và địa chỉ.' },
+            { step: '02', title: 'Khởi tạo tài khoản', desc: 'Đội ngũ SanGo hỗ trợ thiết lập bảng lịch và bảng giá.' },
+            { step: '03', title: 'Hướng dẫn sử dụng', desc: 'Bàn giao và hướng dẫn quản lý, lễ tân sử dụng hệ thống.' },
+            { step: '04', title: 'Nhận khách trực tuyến', desc: 'Bắt đầu nhận ca đặt và thu cọc tự động qua hệ thống.' },
           ].map((item, idx) => (
-            <div key={idx} className="p-5 rounded-2xl bg-card border border-border/80 space-y-2 relative shadow-xs">
-              <span className="font-mono-num text-2xl font-black text-muted-foreground/30">{item.step}</span>
+            <div key={idx} className="p-5 rounded-2xl bg-card border border-border space-y-2 shadow-xs">
+              <span className="font-mono-num text-xl font-bold text-foreground/40">{item.step}</span>
               <h4 className="text-sm font-bold text-foreground">{item.title}</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
             </div>
@@ -225,26 +174,22 @@ export function PartnerPage(): React.ReactElement {
       </section>
 
       {/* 4. Form Đăng Ký Hợp Tác */}
-      <section id="partner-form" className="max-w-3xl mx-auto rounded-3xl border border-border bg-card p-6 sm:p-10 shadow-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-widest">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Đăng Ký Tư Vấn Miễn Phí</span>
-          </div>
+      <section id="partner-form" className="max-w-3xl mx-auto rounded-2xl border border-border bg-card p-6 sm:p-10 shadow-xs space-y-6">
+        <div className="text-center space-y-1">
           <h3 className="text-xl sm:text-2xl font-extrabold text-foreground">
-            Trở Thành Đối Tác Cụm Sân SanGo
+            Đăng ký hợp tác cụm sân
           </h3>
-          <p className="text-xs text-muted-foreground">
-            Để lại thông tin bên dưới, chuyên viên hỗ trợ của SanGo sẽ liên hệ tư vấn và thiết lập hệ thống cho bạn trong vòng 2 giờ làm việc.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Điền thông tin bên dưới, nhân viên SanGo sẽ liên hệ tư vấn và thiết lập hệ thống trong vòng 2 giờ làm việc.
           </p>
         </div>
 
         {submitted ? (
-          <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
-            <div className="h-12 w-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto">
-              <Check className="h-6 w-6" />
+          <div className="p-8 rounded-2xl bg-secondary/80 border border-border text-center space-y-3">
+            <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto">
+              <Check className="h-5 w-5" />
             </div>
-            <h4 className="text-base font-bold text-foreground">Đăng Ký Thành Công!</h4>
+            <h4 className="text-base font-bold text-foreground">Đăng ký thành công</h4>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
               Cảm ơn bạn đã quan tâm. Đội ngũ SanGo sẽ liên hệ trực tiếp qua số điện thoại <strong>{formData.phone}</strong> trong thời gian sớm nhất.
             </p>
@@ -262,7 +207,7 @@ export function PartnerPage(): React.ReactElement {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Họ và tên chủ sân / Quản lý *
+                  Họ và tên người liên hệ *
                 </label>
                 <Input
                   required
@@ -275,7 +220,7 @@ export function PartnerPage(): React.ReactElement {
 
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  Số điện thoại liên hệ *
+                  Số điện thoại *
                 </label>
                 <Input
                   required
@@ -295,7 +240,7 @@ export function PartnerPage(): React.ReactElement {
                 </label>
                 <Input
                   required
-                  placeholder="VD: Sân Bóng Đá &amp; Pickleball Ngọc Khánh"
+                  placeholder="VD: Cụm Sân Thể Thao Ngọc Khánh"
                   value={formData.venueName}
                   onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
                   className="h-10 text-xs bg-background"
@@ -309,7 +254,7 @@ export function PartnerPage(): React.ReactElement {
                 <select
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
                 >
                   <option value="Hà Nội">Hà Nội</option>
                   <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
@@ -330,10 +275,10 @@ export function PartnerPage(): React.ReactElement {
                       key={sport}
                       type="button"
                       onClick={() => toggleSport(sport)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                         isChecked
                           ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-muted-foreground hover:text-foreground border-input'
+                          : 'bg-card text-muted-foreground hover:text-foreground border-border'
                       }`}
                     >
                       {sport}
@@ -347,17 +292,21 @@ export function PartnerPage(): React.ReactElement {
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 Ghi chú thêm (Tùy chọn)
               </label>
-              <Input
-                placeholder="VD: Cụm có 4 sân 7 người, cần triển khai gấp trong tuần..."
+              <textarea
+                rows={3}
+                placeholder="Số lượng sân, địa chỉ cụ thể..."
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                className="h-10 text-xs bg-background"
+                className="w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
 
-            <Button type="submit" size="lg" className="w-full font-bold gap-2 shadow-xs active:scale-[0.98]">
-              <PhoneCall className="h-4 w-4" />
-              <span>Gửi thông tin đăng ký hợp tác</span>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full font-bold shadow-xs active:scale-[0.98] cursor-pointer"
+            >
+              Gửi thông tin đăng ký
             </Button>
           </form>
         )}

@@ -2,13 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '../../../components/ui/card';
 import { SportType } from '../../../lib/constants';
-import { ArrowRight, Activity } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const SPORTS_DATA = [
   {
     type: SportType.FOOTBALL5,
     name: 'Bóng Đá Sân 5 & 7',
-    spec: 'Cỏ nhân tạo FIFA Quality • Đèn LED cao áp',
+    spec: 'Cỏ nhân tạo tiêu chuẩn, đèn LED cao áp',
     courts: '140+ Cụm sân',
     price: 'Từ 250.000đ',
     unit: '/ slot 90p',
@@ -18,7 +18,7 @@ const SPORTS_DATA = [
   {
     type: SportType.PICKLEBALL,
     name: 'Pickleball Trong Nhà & Mái Che',
-    spec: 'Mặt sân Acrylic 8 lớp chống trượt • Lưới thi đấu',
+    spec: 'Mặt sân Acrylic chống trượt, lưới thi đấu',
     courts: '60+ Cụm sân',
     price: 'Từ 120.000đ',
     unit: '/ giờ',
@@ -27,8 +27,8 @@ const SPORTS_DATA = [
   },
   {
     type: SportType.BADMINTON,
-    name: 'Cầu Lông Phong Trào & Bán Chuyên',
-    spec: 'Thảm PVC chuẩn BWF • Ánh sáng chống chói mắt',
+    name: 'Cầu Lông',
+    spec: 'Thảm PVC tiêu chuẩn, ánh sáng chống chói',
     courts: '95+ Cụm sân',
     price: 'Từ 80.000đ',
     unit: '/ giờ',
@@ -37,8 +37,8 @@ const SPORTS_DATA = [
   },
   {
     type: SportType.TENNIS,
-    name: 'Tennis Sân Cứng Chuẩn ITF',
-    spec: 'Hệ thống mặt sân sơn chuẩn quốc tế • Đầy đủ tiện ích',
+    name: 'Tennis Sân Cứng',
+    spec: 'Mặt sân tiêu chuẩn quốc tế, đầy đủ tiện ích',
     courts: '40+ Cụm sân',
     price: 'Từ 180.000đ',
     unit: '/ giờ',
@@ -53,20 +53,16 @@ export function HomeSportsCards(): React.ReactElement {
       {/* Section Header */}
       <div className="flex items-end justify-between">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-widest">
-            <Activity className="h-3.5 w-3.5" />
-            <span>Danh mục thi đấu</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground mt-0.5">
-            Khám Phá Theo Môn Thể Thao
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Khám phá theo môn thể thao
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Lọc nhanh các cụm sân chất lượng cao tại Hà Nội & TP. Hồ Chí Minh với mặt sân và khung giờ phù hợp.
+            Lọc nhanh các cụm sân chất lượng cao tại Hà Nội và TP. Hồ Chí Minh theo môn thi đấu.
           </p>
         </div>
         <Link
           to="/venues"
-          className="text-xs font-bold text-primary hover:text-emerald-400 flex items-center gap-1 group transition-colors"
+          className="text-xs font-semibold text-foreground hover:text-primary flex items-center gap-1 group transition-colors"
         >
           <span>Xem tất cả sân</span>
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -77,31 +73,31 @@ export function HomeSportsCards(): React.ReactElement {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {SPORTS_DATA.map((sport) => (
           <Link key={sport.type} to={`/venues?sportType=${sport.type}`} className="group block">
-            <Card className="overflow-hidden rounded-2xl border border-border/80 bg-card hover:border-primary/60 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col justify-between h-full">
+            <Card className="overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md transition-shadow flex flex-col justify-between h-full">
               <div>
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
                   <img
                     src={sport.image}
                     alt={sport.name}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-102"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  <div className="absolute inset-0 bg-black/40" />
 
                   {sport.popular && (
                     <div className="absolute top-2.5 left-2.5">
                       <span className="px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-mono-num font-bold shadow-xs">
-                        Hot Trend
+                        Phổ biến
                       </span>
                     </div>
                   )}
 
                   <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
-                    <span className="text-xs font-mono-num font-semibold text-zinc-200">
+                    <span className="text-xs font-mono-num font-semibold text-zinc-100">
                       {sport.courts}
                     </span>
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 backdrop-blur-xs transition-transform group-hover:translate-x-1 group-hover:bg-primary group-hover:text-primary-foreground">
-                      <ArrowRight className="h-3.5 w-3.5 text-white" />
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </span>
                   </div>
                 </div>
@@ -116,11 +112,11 @@ export function HomeSportsCards(): React.ReactElement {
                 </CardContent>
               </div>
 
-              <div className="px-4 pb-4 pt-1 flex items-center justify-between border-t border-border/50">
+              <div className="px-4 pb-4 pt-1 flex items-center justify-between border-t border-border">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                   Mức giá
                 </span>
-                <span className="text-xs font-mono-num font-bold text-primary">
+                <span className="text-xs font-mono-num font-bold text-foreground">
                   {sport.price}{' '}
                   <span className="text-[10px] text-muted-foreground font-normal">{sport.unit}</span>
                 </span>

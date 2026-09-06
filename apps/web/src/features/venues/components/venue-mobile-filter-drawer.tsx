@@ -84,7 +84,7 @@ export function VenueMobileFilterDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 animate-in fade-in duration-150">
       <div className="w-full max-w-lg max-h-[85vh] flex flex-col bg-card border-t sm:border border-border/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
         {/* Drawer Header */}
         <div className="p-4 border-b border-border/60 flex items-center justify-between">
@@ -269,9 +269,9 @@ export function VenueMobileFilterDrawer({
             <div className="grid grid-cols-4 gap-1.5">
               {[
                 { val: undefined, label: 'Tất cả' },
-                { val: 4.5, label: '4.5★ +' },
-                { val: 4.0, label: '4.0★ +' },
-                { val: 3.5, label: '3.5★ +' },
+                { val: 4.5, label: '4.5 sao trở lên' },
+                { val: 4.0, label: '4.0 sao trở lên' },
+                { val: 3.5, label: '3.5 sao trở lên' },
               ].map((r) => (
                 <button
                   key={String(r.val)}
@@ -280,8 +280,8 @@ export function VenueMobileFilterDrawer({
                   className={cn(
                     'py-1.5 rounded-lg text-xs font-semibold border transition-all text-center cursor-pointer',
                     draftFilters.minRating === r.val
-                      ? 'border-amber-500 bg-amber-500/10 text-amber-500 font-bold'
-                      : 'border-border/60 text-muted-foreground',
+                      ? 'border-primary bg-primary/10 text-primary font-bold'
+                      : 'border-border text-muted-foreground',
                   )}
                 >
                   {r.label}

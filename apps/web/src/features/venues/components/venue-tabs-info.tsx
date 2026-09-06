@@ -104,7 +104,7 @@ export function VenueTabsInfo({ venue }: VenueTabsInfoProps): React.ReactElement
         <Card className="p-5 space-y-4 border border-border/80 bg-card animate-in fade-in duration-150">
           <div>
             <h3 className="text-sm font-bold text-foreground">Tiện ích & Dịch vụ hỗ trợ</h3>
-            <p className="text-xs text-muted-foreground">Các tiện ích sẵn có tại cụm sân phục vụ người chơi</p>
+            <p className="text-xs text-muted-foreground">Tiện ích có tại cụm sân</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
@@ -130,7 +130,7 @@ export function VenueTabsInfo({ venue }: VenueTabsInfoProps): React.ReactElement
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-foreground">Đánh giá từ người chơi</h3>
-              <p className="text-xs text-muted-foreground">Phản hồi thực tế từ các đơn đặt sân đã hoàn thành</p>
+              <p className="text-xs text-muted-foreground">Phản hồi từ đơn đã hoàn thành</p>
             </div>
 
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 text-amber-500 font-bold text-xs border border-amber-500/20 font-mono-num">
@@ -164,7 +164,7 @@ export function VenueTabsInfo({ venue }: VenueTabsInfoProps): React.ReactElement
           ) : (
             <div className="space-y-2 py-6 text-center text-xs text-muted-foreground">
               <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground/50" />
-              <p>Chưa có đánh giá nào cho sân này. Hãy là người đầu tiên trải nghiệm và chia sẻ!</p>
+              <p>Chưa có đánh giá cho sân này.</p>
             </div>
           )}
         </Card>

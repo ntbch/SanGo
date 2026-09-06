@@ -37,7 +37,7 @@ export function LoginPage(): React.ReactElement {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setErrorMessage('Vui lòng điền đầy đủ email và mật khẩu.');
+      setErrorMessage('điền đầy đủ email và mật khẩu.');
       return;
     }
 
@@ -54,7 +54,7 @@ export function LoginPage(): React.ReactElement {
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
+      setErrorMessage(err.message || 'Đăng nhập không thành công. kiểm tra lại thông tin.');
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +77,7 @@ export function LoginPage(): React.ReactElement {
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể đăng nhập bằng tài khoản mẫu. Vui lòng kiểm tra lại kết nối backend.');
+      setErrorMessage(err.message || 'Đăng nhập mẫu thất bại. Vui lòng kiểm tra kết nối backend.');
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +93,7 @@ export function LoginPage(): React.ReactElement {
             <LogIn className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl sm:text-2xl font-black text-foreground">Đăng Nhập Tài Khoản</CardTitle>
-          <p className="text-xs text-muted-foreground">Nhập thông tin tài khoản SanGo để tiếp tục đặt sân.</p>
+          <p className="text-xs text-muted-foreground">Đăng nhập để tiếp tục đặt sân.</p>
         </CardHeader>
 
         <CardContent className="space-y-5">
@@ -161,7 +161,7 @@ export function LoginPage(): React.ReactElement {
               type="submit"
               disabled={isLoading}
               size="lg"
-              className="w-full font-bold text-xs h-10 shadow-lg shadow-emerald-500/20"
+              className="w-full font-bold text-xs h-10 shadow-lg"
             >
               {isLoading ? 'Đang xác thực...' : 'Đăng Nhập Ngay'}
             </Button>

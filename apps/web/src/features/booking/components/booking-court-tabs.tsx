@@ -38,7 +38,7 @@ export function BookingCourtTabs({
               className={cn(
                 'px-4 py-2.5 rounded-2xl border text-left shrink-0 transition-all cursor-pointer',
                 isSelected
-                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-emerald-500/20'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-md'
                   : 'bg-card border-border/80 text-foreground hover:bg-secondary/60',
               )}
             >

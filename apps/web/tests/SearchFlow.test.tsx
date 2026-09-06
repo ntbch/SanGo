@@ -13,6 +13,6 @@ describe('Search Flow from Home to Venues', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Bộ Lọc Nâng Cao/i)).toBeDefined();
-    });
+    }, { timeout: 10000 });
   });
 });

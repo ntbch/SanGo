@@ -16,6 +16,12 @@ import { PrismaModule } from '../../src/prisma/prisma.module';
 import { BookingsModule } from '../../src/bookings/bookings.module';
 import { BookingsService } from '../../src/bookings/bookings.service';
 import { SlotsService } from '../../src/bookings/slots.service';
+import { CreateBookingSchema } from '../../src/bookings/dto/create-booking.dto';
+import {
+  buildVnpayDrRefundPayload,
+  VnpayRefundService,
+} from '../../src/payments/vnpay-refund.service';
+import { signHmacSha512 } from '../../src/payments/vnpay.util';
 
 const SUFFIX = Date.now().toString(36);
 
@@ -203,10 +209,18 @@ describe('Booking engine chống double-booking (integration)', () => {
 
   it('giữ 2 slot liền kề: subtotal theo pricing rule ghi đè; HOLD_LIMIT chặn giữ lần 2', async () => {
     if (!dbUp) return;
-    // 19:00-21:00 nằm trọn rule 17-22h -> 2 x 260k = 520k
+    // Chọn ngày thứ Hai tới để chắc chắn rơi vào WEEKDAY rule (19:00-21:00 -> 2 x 260k = 520k)
+    const nextWeekday = () => {
+      const d = new Date(tomorrow());
+      while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
+        d.setUTCDate(d.getUTCDate() + 1);
+      }
+      return d.toISOString().slice(0, 10);
+    };
+    const weekdayDate = nextWeekday();
     const hold = (await bookings.createHold(uA(), {
       courtId,
-      date: DATE,
+      date: weekdayDate,
       slots: [1140, 1200],
     })) as {
       holdId: string;
@@ -905,5 +919,402 @@ describe('Booking engine chống double-booking (integration)', () => {
         ),
       ).rejects.toMatchObject({ response: { code: 'VENUE_FORBIDDEN' } });
     });
+  });
+
+  /* ------------- Phase 3 + 5b: VNPay DR refund + O1 join gate + DTO passthrough ------------- */
+
+  /** Fixture P3: booking CONFIRMED ~30h tới (hoàn 100%) + payment gốc VNPAY DEPOSIT PAID. */
+  const setupDrBooking = async (txnRef: string) => {
+    const target = Date.now() + 30 * 3_600_000;
+    const midnight = Math.floor(target / 86_400_000) * 86_400_000;
+    const b = await prisma.booking.create({
+      data: {
+        code: `CH-DR-${SUFFIX}-${txnRef.slice(-8)}`,
+        customerId: custA.id,
+        courtId,
+        date: new Date(midnight),
+        startMinute: Math.floor((target - midnight) / 60_000),
+        endMinute: Math.floor((target - midnight) / 60_000) + 60,
+        subtotal: 200_000,
+        depositAmount: 100_000,
+        status: 'CONFIRMED',
+        isPublicMatch: true,
+        slotsNeeded: 2,
+        matchFull: false,
+        requiresApproval: null,
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        bookingId: b.id,
+        amount: 100_000,
+        type: 'DEPOSIT',
+        method: 'VNPAY',
+        txnRef,
+        status: 'PAID',
+        paidAt: new Date(Date.now() - 3_600_000),
+      },
+    });
+    return b;
+  };
+
+  /** Bật flag P3 + credentials giả, spy fetch global; restore mọi thứ qua restore(). */
+  const enableRefundFlag = () => {
+    const saved = {
+      flag: process.env.VNPAY_REFUND_ENABLED,
+      tmn: process.env.VNPAY_TMN_CODE,
+      secret: process.env.VNPAY_HASH_SECRET,
+      url: process.env.VNPAY_SANDBOX_URL,
+    };
+    process.env.VNPAY_REFUND_ENABLED = 'true';
+    process.env.VNPAY_TMN_CODE = 'TMNTEST01';
+    process.env.VNPAY_HASH_SECRET = 'DR-SECRET-TEST';
+    process.env.VNPAY_SANDBOX_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+    return {
+      fetchSpy,
+      restore: () => {
+        for (const [key, val] of Object.entries({
+          VNPAY_REFUND_ENABLED: saved.flag,
+          VNPAY_TMN_CODE: saved.tmn,
+          VNPAY_HASH_SECRET: saved.secret,
+          VNPAY_SANDBOX_URL: saved.url,
+        })) {
+          if (val === undefined) delete process.env[key];
+          else process.env[key] = val;
+        }
+        fetchSpy.mockRestore();
+      },
+    };
+  };
+
+  const drInput = () => ({
+    txnRef: 'HOLD1.FULL.ab12',
+    amountVnd: 100_000,
+    orderInfo: 'Hoan ve don',
+    transDate: '20260830120000',
+  });
+
+  it('P3.1: payload refund VNPay DR — vnp_TransactionType=02 + HMAC-SHA512 13 trường đúng chuẩn (unit)', async () => {
+    // Spec sandbox.vnpayment.vn/apis "Yêu cầu hoàn tiền (Refund)": signData 13 thành phần
+    // requestId|version|command|tmnCode|transactionType|txnRef|amount|transactionNo|transDate|createBy|createDate|ipAddr|orderInfo
+    const p = buildVnpayDrRefundPayload({ ...drInput(), transactionNo: '126571' }, {
+      tmnCode: 'TMNTEST01',
+      hashSecret: 'DR-SECRET-TEST',
+      now: new Date('2026-08-30T10:00:00.000Z'),
+      requestId: 'req12345',
+    });
+    expect(p.body.vnp_Command).toBe('refund');
+    expect(p.body.vnp_TransactionType).toBe('02');
+    expect(p.body.vnp_CreateBy).toBe('sango-admin');
+    expect(p.body.vnp_TransactionNo).toBe('126571');
+    expect(p.body.vnp_Amount).toBe('10000000'); // x100 theo chuẩn VNPay
+    expect(p.signData).toBe(
+      'req12345|2.1.0|refund|TMNTEST01|02|HOLD1.FULL.ab12|10000000|126571|20260830120000|sango-admin|20260830170000|127.0.0.1|Hoan ve don',
+    );
+    expect(p.secureHash).toBe(signHmacSha512(p.signData, 'DR-SECRET-TEST'));
+    expect(p.secureHash).toMatch(/^[0-9a-f]{128}$/);
+    // transactionNo thiếu -> chuỗi rỗng trong signData (spec cho phép)
+    const p2 = buildVnpayDrRefundPayload(drInput(), {
+      tmnCode: 'TMNTEST01',
+      hashSecret: 'DR-SECRET-TEST',
+      now: new Date('2026-08-30T10:00:00.000Z'),
+      requestId: 'req12345',
+    });
+    expect(p2.signData).toBe(
+      'req12345|2.1.0|refund|TMNTEST01|02|HOLD1.FULL.ab12|10000000||20260830120000|sango-admin|20260830170000|127.0.0.1|Hoan ve don',
+    );
+  });
+
+  it('P3.1: VnpayRefundService — ResponseCode=00 -> ok; khác 00 / lỗi mạng -> ok:false, không throw', async () => {
+    const svc = new VnpayRefundService();
+    const env = enableRefundFlag();
+    try {
+      env.fetchSpy.mockResolvedValueOnce(
+        new Response(JSON.stringify({ vnp_ResponseCode: '00', vnp_Message: 'Confirm Success' }), {
+          status: 200,
+        }),
+      );
+      await expect(svc.requestRefund(drInput())).resolves.toMatchObject({ ok: true, code: '00' });
+
+      env.fetchSpy.mockResolvedValueOnce(
+        new Response(JSON.stringify({ vnp_ResponseCode: '70', vnp_Message: 'Invalid' }), {
+          status: 200,
+        }),
+      );
+      await expect(svc.requestRefund(drInput())).resolves.toMatchObject({ ok: false, code: '70' });
+
+      env.fetchSpy.mockRejectedValueOnce(new Error('boom'));
+      await expect(svc.requestRefund(drInput())).resolves.toMatchObject({ ok: false });
+    } finally {
+      env.restore();
+    }
+  });
+
+  it('P3.2: flag ON + payment gốc VNPAY PAID + DR ok -> Payment(REFUND) PAID, KHÔNG credit ví', async () => {
+    if (!dbUp) return;
+    const b = await setupDrBooking(`VNP-${SUFFIX}-DROK`);
+    const env = enableRefundFlag();
+    try {
+      env.fetchSpy.mockResolvedValue(
+        new Response(JSON.stringify({ vnp_ResponseId: 'R1', vnp_ResponseCode: '00' }), {
+          status: 200,
+        }),
+      );
+      const res = (await bookings.cancelBooking(b.id, uA(), 'Đổi kế hoạch')) as {
+        refundPaymentId?: string;
+      };
+      expect(res.refundPaymentId).toBeDefined();
+      const refund = await prisma.payment.findUniqueOrThrow({
+        where: { id: res.refundPaymentId! },
+      });
+      expect(refund.status).toBe('PAID');
+      expect(refund.method).toBe('VNPAY');
+      expect(refund.paidAt).not.toBeNull();
+      // KHÔNG credit ví: không ledger REFUND nào trỏ chứng từ này
+      expect(
+        await prisma.walletLedger.count({
+          where: { refType: 'PAYMENT', refId: refund.id, type: 'REFUND' },
+        }),
+      ).toBe(0);
+      // Body gửi lên DR là payload đã ký đúng chuẩn (vnp_RequestType=02 + secureHash)
+      const [url, init] = env.fetchSpy.mock.calls[0] ?? [];
+      expect(String(url)).toContain('merchant_webapi/api/transaction');
+      const sent = JSON.parse(String(init?.body)) as Record<string, string>;
+      expect(sent.vnp_TransactionType).toBe('02');
+      expect(sent.vnp_CreateBy).toBe('sango-admin');
+      expect(sent.vnp_TxnRef).toBe(`VNP-${SUFFIX}-DROK`);
+      // Ký end-to-end: secureHash khớp HMAC trên 13 trường theo spec DR
+      const expectedSign = [
+        sent.vnp_RequestId,
+        sent.vnp_Version,
+        sent.vnp_Command,
+        sent.vnp_TmnCode,
+        sent.vnp_TransactionType,
+        sent.vnp_TxnRef,
+        sent.vnp_Amount,
+        sent.vnp_TransactionNo,
+        sent.vnp_TransactionDate,
+        sent.vnp_CreateBy,
+        sent.vnp_CreateDate,
+        sent.vnp_IpAddr,
+        sent.vnp_OrderInfo,
+      ].join('|');
+      expect(sent.vnp_SecureHash).toBe(signHmacSha512(expectedSign, 'DR-SECRET-TEST'));
+    } finally {
+      env.restore();
+    }
+  });
+
+  it('P3.2: flag ON nhưng DR fail -> fallback credit ví nội bộ, giữ nguyên luồng hiện tại', async () => {
+    if (!dbUp) return;
+    const b = await setupDrBooking(`VNP-${SUFFIX}-DRFAIL`);
+    const env = enableRefundFlag();
+    try {
+      env.fetchSpy.mockResolvedValue(
+        new Response(JSON.stringify({ vnp_ResponseId: 'R2', vnp_ResponseCode: '70' }), {
+          status: 200,
+        }),
+      );
+      const res = (await bookings.cancelBooking(b.id, uA())) as {
+        refundPaymentId?: string;
+        refundAmount: number;
+      };
+      expect(res.refundPaymentId).toBeDefined();
+      const refund = await prisma.payment.findUniqueOrThrow({
+        where: { id: res.refundPaymentId! },
+      });
+      // fallback: tiền hoàn nội bộ -> chứng từ về MOCK + note DR_FAIL trong rawPayload;
+      // credit ví ok -> PAID + ledger CREDIT như luồng hiện tại
+      expect(refund.method).toBe('MOCK');
+      expect(refund.status).toBe('PAID');
+      expect((refund.rawPayload as unknown as { drFail?: boolean } | null)?.drFail).toBe(true);
+      const ledger = await prisma.walletLedger.findFirst({
+        where: { refType: 'PAYMENT', refId: refund.id, type: 'REFUND' },
+      });
+      expect(ledger?.direction).toBe('CREDIT');
+      expect(ledger?.amount).toBe(res.refundAmount);
+    } finally {
+      env.restore();
+    }
+  });
+
+  it('P3.3: flag OFF (mặc định) -> không gọi DR, hoàn ví nội bộ như hiện tại', async () => {
+    if (!dbUp) return;
+    const savedFlag = process.env.VNPAY_REFUND_ENABLED;
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
+    try {
+      delete process.env.VNPAY_REFUND_ENABLED; // thiếu flag = OFF
+      const b = await setupDrBooking(`VNP-${SUFFIX}-OFF`);
+      const res = (await bookings.cancelBooking(b.id, uA())) as { refundPaymentId?: string };
+      expect(res.refundPaymentId).toBeDefined();
+      const refund = await prisma.payment.findUniqueOrThrow({
+        where: { id: res.refundPaymentId! },
+      });
+      expect(refund.method).toBe('MOCK');
+      expect(refund.status).toBe('PAID');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      if (savedFlag === undefined) delete process.env.VNPAY_REFUND_ENABLED;
+      else process.env.VNPAY_REFUND_ENABLED = savedFlag;
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('P5b.2+P5b.1: create kèm requiresApproval=true lưu đúng cột -> join chặn 409 APPROVAL_REQUIRED', async () => {
+    if (!dbUp) return;
+    await prisma.bookingHold.updateMany({
+      where: { userId: custA.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold(uA(), {
+      courtId,
+      date: DATE,
+      slots: [1020],
+      isPublicMatch: true,
+      slotsNeeded: 2,
+      requiresApproval: true,
+    })) as { holdId: string };
+    // KHÔNG truyền opts.requiresApproval — HOLD-FIX: confirm phải tự đọc từ hold
+    const booking = await bookings.confirmFromHold(hold.holdId, {
+      txnRef: `ITBK-APPROVAL-${SUFFIX}`,
+      paidInFull: true,
+    });
+    // P5b.2 (HOLD-FIX): giá trị trên hold tự lưu đúng cột bookings.requiresApproval
+    expect(booking.requiresApproval).toBe(true);
+    // P5b.1: join trực tiếp bị chặn 409 kèm hướng dẫn gửi join-request
+    await expect(bookings.joinOpenMatch(booking.id, uB())).rejects.toMatchObject({
+      response: { code: 'APPROVAL_REQUIRED' },
+    });
+    await expect(bookings.joinOpenMatch(booking.id, uB())).rejects.toThrow(/matches\/:id\/requests/);
+  });
+
+  it('HOLD-FIX: hold kèm requiresApproval=true -> confirm (không opts) lưu true vào bookings', async () => {
+    if (!dbUp) return;
+    await prisma.bookingHold.updateMany({
+      where: { userId: custA.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold(uA(), {
+      courtId,
+      date: DATE,
+      slots: [1080],
+      isPublicMatch: true,
+      slotsNeeded: 2,
+      requiresApproval: true,
+    })) as { holdId: string; requiresApproval?: boolean | null };
+    // hold đã giữ flag từ lúc POST /bookings/holds
+    expect(hold.requiresApproval).toBe(true);
+    const booking = await bookings.confirmFromHold(hold.holdId, {
+      txnRef: `ITBK-HOLDT-${SUFFIX}`,
+      paidInFull: true,
+    });
+    expect(booking.requiresApproval).toBe(true);
+    // Join vẫn bị chặn 409 sau khi confirm từ hold
+    await expect(bookings.joinOpenMatch(booking.id, uB())).rejects.toMatchObject({
+      response: { code: 'APPROVAL_REQUIRED' },
+    });
+  });
+
+  it('HOLD-FIX: hold không truyền requiresApproval -> confirm lưu null (DIRECT)', async () => {
+    if (!dbUp) return;
+    await prisma.bookingHold.updateMany({
+      where: { userId: custA.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold(uA(), {
+      courtId,
+      date: DATE,
+      slots: [360],
+      isPublicMatch: true,
+      slotsNeeded: 2,
+    })) as { holdId: string; requiresApproval?: boolean | null };
+    expect(hold.requiresApproval ?? null).toBeNull();
+    const booking = await bookings.confirmFromHold(hold.holdId, {
+      txnRef: `ITBK-HOLDN-${SUFFIX}`,
+      paidInFull: true,
+    });
+    expect(booking.requiresApproval).toBeNull();
+  });
+
+  it('HOLD-FIX: caller truyền opts.requiresApproval=false -> ưu tiên opts hơn hold (true)', async () => {
+    if (!dbUp) return;
+    await prisma.bookingHold.updateMany({
+      where: { userId: custA.id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    const hold = (await bookings.createHold(uA(), {
+      courtId,
+      date: DATE,
+      slots: [420],
+      isPublicMatch: true,
+      slotsNeeded: 2,
+      requiresApproval: true,
+    })) as { holdId: string };
+    const booking = await bookings.confirmFromHold(hold.holdId, {
+      txnRef: `ITBK-HOLDO-${SUFFIX}`,
+      paidInFull: true,
+      requiresApproval: false,
+    });
+    expect(booking.requiresApproval).toBe(false);
+  });
+
+  it('P5b.1: requiresApproval null/false -> join trực tiếp như cũ (DIRECT)', async () => {
+    if (!dbUp) return;
+    const mk = (code: string, requiresApproval: boolean | null) =>
+      prisma.booking.create({
+        data: {
+          code,
+          customerId: custA.id,
+          courtId,
+          date: new Date(DATE + 'T00:00:00.000Z'),
+          startMinute: 901,
+          endMinute: 961,
+          subtotal: 200_000,
+          depositAmount: 100_000,
+          status: 'CONFIRMED',
+          isPublicMatch: true,
+          slotsNeeded: 2,
+          matchFull: false,
+          requiresApproval,
+        },
+      });
+    const nullBooking = await mk(`CH-JOINN-${SUFFIX}`, null);
+    await expect(bookings.joinOpenMatch(nullBooking.id, uB())).resolves.toMatchObject({
+      joinedCount: 1,
+      matchFull: false,
+    });
+    const falseBooking = await mk(`CH-JOINF-${SUFFIX}`, false);
+    await expect(bookings.joinOpenMatch(falseBooking.id, uB())).resolves.toMatchObject({
+      joinedCount: 1,
+      matchFull: false,
+    });
+    expect(
+      await prisma.matchParticipant.count({
+        where: { bookingId: { in: [nullBooking.id, falseBooking.id] }, userId: custB.id },
+      }),
+    ).toBe(2);
+  });
+
+  it('P5b.2: CreateBookingSchema parse requiresApproval passthrough (unit)', async () => {
+    const base = {
+      courtId: '11111111-1111-4111-8111-111111111111',
+      date: '2026-09-01',
+      slots: [1020],
+    };
+    expect(
+      CreateBookingSchema.parse({
+        ...base,
+        isPublicMatch: true,
+        slotsNeeded: 2,
+        requiresApproval: true,
+      }),
+    ).toMatchObject({ requiresApproval: true });
+    expect(CreateBookingSchema.parse({ ...base, requiresApproval: null })).toMatchObject({
+      requiresApproval: null,
+    });
+    expect(CreateBookingSchema.parse(base)).not.toHaveProperty('requiresApproval', true);
+    // superRefine gốc vẫn chạy: isPublicMatch thiếu slotsNeeded -> từ chối
+    expect(() => CreateBookingSchema.parse({ ...base, isPublicMatch: true })).toThrow();
   });
 });

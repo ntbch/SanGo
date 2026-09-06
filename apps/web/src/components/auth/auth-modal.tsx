@@ -21,7 +21,7 @@ export function AuthModal({
   onClose,
   onSuccess,
   title = 'Đăng Nhập Để Tiếp Tục',
-  subtitle = 'Vui lòng đăng nhập hoặc tạo tài khoản để xem lịch, đặt sân và tham gia các tính năng thể thao SanGo.',
+  subtitle = 'Đăng nhập để xem lịch, đặt sân và ghép trận.',
 }: AuthModalProps): React.ReactElement | null {
   const [tab, setTab] = React.useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [loginIdentifier, setLoginIdentifier] = React.useState('');
@@ -52,7 +52,7 @@ export function AuthModal({
       onClose();
       onSuccess?.();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
+      setErrorMsg(err.message || 'Đăng nhập không thành công. kiểm tra lại thông tin.');
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +75,7 @@ export function AuthModal({
       onClose();
       onSuccess?.();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Đăng ký không thành công. Vui lòng thử lại.');
+      setErrorMsg(err.message || 'Đăng ký không thành công. thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +92,7 @@ export function AuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <Card className="w-full max-w-md border border-border bg-card shadow-2xl rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Modal Header */}
         <CardHeader className="p-6 pb-4 border-b border-border bg-card relative">
@@ -219,7 +219,7 @@ export function AuthModal({
               <Button
                 type="submit"
                 disabled={isLoading || !loginIdentifier || !loginPassword}
-                className="w-full h-10 font-bold text-xs shadow-md shadow-emerald-500/20"
+                className="w-full h-10 font-bold text-xs shadow-md"
               >
                 {isLoading ? 'Đang đăng nhập...' : 'Đăng Nhập & Tiếp Tục'}
               </Button>
@@ -327,7 +327,7 @@ export function AuthModal({
               <Button
                 type="submit"
                 disabled={isLoading || !fullName || !phoneNumber || !registerPassword}
-                className="w-full h-10 font-bold text-xs shadow-md shadow-emerald-500/20 mt-2"
+                className="w-full h-10 font-bold text-xs shadow-md mt-2"
               >
                 {isLoading ? 'Đang tạo tài khoản...' : 'Đăng Ký & Đăng Nhập Ngay'}
               </Button>

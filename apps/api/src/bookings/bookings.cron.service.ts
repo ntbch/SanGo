@@ -148,7 +148,7 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
         type: NotificationType.REMINDER,
         title: mark.title,
         body: `Đơn ${booking.code} · ${booking.court.name} bắt đầu sau khoảng ${minutesLeft} phút (${mark.label})`,
-        link: '/dashboard/my-bookings', // QA-T4-P2-01: route web có sẵn, tránh 404
+        link: '/bookings', // QA-T4-P2-01: route web có sẵn, tránh 404
         mail: reminderEmail({
           code: booking.code,
           courtName: booking.court.name,

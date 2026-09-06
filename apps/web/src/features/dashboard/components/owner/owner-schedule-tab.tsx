@@ -49,17 +49,14 @@ export function OwnerScheduleTab({
       {/* Top Bar: Title, Date Navigator & Walk-in Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-card border border-border/80 shadow-xs">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2">
+            Ma Trận Lịch Sân
             <Badge variant="primary" className="text-xs font-bold gap-1">
-              <CalendarDays className="h-3.5 w-3.5" /> Ma Trận Lịch Sân
+              <CalendarDays className="h-3.5 w-3.5" /> Trục thời gian 06:00 - 23:00
             </Badge>
-            <span className="text-xs text-muted-foreground font-medium">Trục thời gian 06:00 - 23:00</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-foreground">
-            Lịch Hoạt Động Cụm Sân
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Theo dõi tình trạng từng sân con theo thời gian thực. Bấm vào slot trống để đặt quầy.
+            Lịch Hoạt Động Cụm Sân. Theo dõi tình trạng từng sân con theo thời gian thực. Bấm vào slot trống để đặt quầy.
           </p>
         </div>
 
@@ -157,7 +154,7 @@ export function OwnerScheduleTab({
           <table className="w-full border-collapse text-left min-w-[1200px]">
             <thead>
               <tr className="bg-secondary/40 border-b border-border/80">
-                <th className="sticky left-0 z-20 bg-secondary/90 backdrop-blur-md p-3.5 text-xs font-black uppercase tracking-wider text-foreground w-48 border-r border-border/80 shadow-xs">
+                <th className="sticky left-0 z-20 bg-secondary p-3.5 text-xs font-black uppercase tracking-wider text-foreground w-48 border-r border-border/80 shadow-xs">
                   Sân Con ({courts.length})
                 </th>
                 {TIMELINE_HOURS.map((hour) => (
@@ -183,7 +180,7 @@ export function OwnerScheduleTab({
                   return (
                     <tr key={court.id} className="hover:bg-secondary/15 transition-colors">
                       {/* Sticky Left Court Info */}
-                      <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-md p-3.5 border-r border-border/80 shadow-xs">
+                      <td className="sticky left-0 z-10 bg-card p-3.5 border-r border-border/80 shadow-xs">
                         <div className="space-y-0.5">
                           <p className="font-bold text-xs text-foreground truncate">{court.name}</p>
                           <div className="flex items-center gap-1.5">

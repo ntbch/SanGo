@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PricingModule } from './pricing/pricing.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { ReputationModule } from './reputation/reputation.module';
 import { TeamsModule } from './teams/teams.module';
 import { UsersModule } from './users/users.module';
@@ -45,6 +46,7 @@ import { WalletsModule } from './wallets/wallets.module';
     TeamsModule,
     TournamentsModule,
     RankingModule,
+    RealtimeModule,
   ],
 })
 export class AppModule {}

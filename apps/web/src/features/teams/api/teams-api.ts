@@ -65,7 +65,7 @@ export interface SplitBookingDto {
 export interface ExpenseShare {
   id: string;
   teamId: string;
-  bookingId: string;
+  bookingId: string | null;
   payerId: string;
   debtorId: string;
   amount: number;
@@ -142,7 +142,28 @@ export async function splitBookingApi(teamId: string, data: SplitBookingDto): Pr
 }
 
 export async function getTeamExpensesApi(teamId: string): Promise<ExpenseShare[]> {
-  return apiClient<ExpenseShare[]>(`/teams/${teamId}/expenses`);
+  // BE trả object tổng quan { ..., shares } — chuẩn hoá về mảng shares cho FE. 
+  const data = await apiClient<ExpenseShare[] | { shares?: ExpenseShare[] }>(
+    `/teams/${teamId}/expenses`,
+  );
+  return Array.isArray(data) ? data : (data.shares ?? []);
+}
+
+/** Phase 1 (T1.1): payer/captain xác nhận khoản nợ đã trả (UNPAID -> PAID). */
+export async function updateExpenseShareStatusApi(
+  teamId: string,
+  shareId: string,
+  status: 'PAID' | 'UNPAID',
+): Promise<any> {
+  return apiClient(`/teams/${teamId}/expenses/${shareId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+/** Phase 1 (T1.3): debtor trả nợ chia tiền bằng Ví nội bộ (atomic, idempotent). */
+export async function payExpenseShareApi(teamId: string, shareId: string): Promise<any> {
+  return apiClient(`/teams/${teamId}/expenses/${shareId}/pay`, { method: 'POST' });
 }
 
 export async function getTreasuryOverviewApi(teamId: string): Promise<TreasuryOverview> {

@@ -44,7 +44,7 @@ export function CheckoutHoldPage(): React.ReactElement {
       refetch();
     },
     onError: (err: any) => {
-      setVoucherError(err.message || 'Mã giảm giá không hợp lệ hoặc không áp dụng cho khung giờ này');
+      setVoucherError(err.message || 'Mã giảm giá không áp dụng được cho khung giờ này');
       setVoucherSuccess(null);
     },
   });
@@ -68,7 +68,7 @@ export function CheckoutHoldPage(): React.ReactElement {
       window.location.href = data.paymentUrl;
     },
     onError: (err: any) => {
-      setCheckoutError(err.message || 'Không thể khởi tạo thanh toán. Vui lòng thử lại.');
+      setCheckoutError(err.message || 'Không thể khởi tạo thanh toán. thử lại.');
     },
   });
 
@@ -78,7 +78,7 @@ export function CheckoutHoldPage(): React.ReactElement {
       queryClient.setQueryData(['active-booking-hold'], null);
       navigate('/venues');
     },
-    onError: (err: any) => setCheckoutError(err.message || 'Không thể hủy giữ chỗ. Vui lòng thử lại.'),
+    onError: (err: any) => setCheckoutError(err.message || 'Không thể hủy giữ chỗ. thử lại.'),
   });
 
   if (isLoading) {
@@ -191,7 +191,7 @@ export function CheckoutHoldPage(): React.ReactElement {
             onCheckout={() => {
               setCheckoutError(null);
               if (paymentGateway === 'WALLET') {
-                setCheckoutError('Ví SanGo chưa hỗ trợ thanh toán đặt sân. Vui lòng chọn VNPAY.');
+                setCheckoutError('Ví SanGo chưa hỗ trợ thanh toán đặt sân. chọn VNPAY.');
                 return;
               }
               checkoutMutation.mutate({ holdId: hold.id, type: paymentType });

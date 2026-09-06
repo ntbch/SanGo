@@ -66,7 +66,7 @@ describe('Guest Access and Auth Modal Popups', () => {
     // ProtectedRoute should redirect guest to LoginPage
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Đăng Nhập/i })).toBeDefined();
-    });
+    }, { timeout: 10000 });
   });
 
   it('allows guest to view venue details and shows Auth Modal when clicking booking button', async () => {

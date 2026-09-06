@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { PlusCircle, CheckCircle2, QrCode, CreditCard } from 'lucide-react';
+import { PlusCircle, CheckCircle2, QrCode, CreditCard, X } from 'lucide-react';
 import { formatVND, cn } from '../../../lib/utils';
 import { User } from '../../../lib/auth-store';
 
@@ -40,7 +40,7 @@ export function WalletTopupModal({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between sticky top-0 bg-card z-10">
           <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export function WalletTopupModal({
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground text-sm font-bold cursor-pointer"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </CardHeader>
 
@@ -187,7 +187,7 @@ export function WalletTopupModal({
                 type="submit"
                 disabled={isTopupLoading || topupAmount < 10000}
                 size="sm"
-                className="font-bold text-xs shadow-md shadow-emerald-500/20"
+                className="font-bold text-xs shadow-md"
               >
                 {isTopupLoading ? 'Đang xử lý nạp...' : `Xác Nhận Nạp ${formatVND(topupAmount)}`}
               </Button>

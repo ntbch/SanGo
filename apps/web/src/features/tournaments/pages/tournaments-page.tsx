@@ -115,7 +115,7 @@ export function TournamentsPage(): React.ReactElement {
       ) : filteredTournaments.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-border/80 space-y-3">
           <p className="text-sm font-bold text-foreground">Không tìm thấy giải đấu phù hợp</p>
-          <p className="text-xs text-muted-foreground">Thử đổi môn thể thao, thành phố hoặc trạng thái tìm kiếm.</p>
+          <p className="text-xs text-muted-foreground">Thử đổi môn, thành phố hoặc bộ lọc.</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -155,7 +155,7 @@ export function TournamentsPage(): React.ReactElement {
         onClose={() => setShowAuthModal(false)}
         onSuccess={() => setShowCreateModal(true)}
         title="Đăng Nhập Để Tạo Giải Đấu"
-        subtitle="Vui lòng đăng nhập tài khoản để khởi tạo và quản lý giải đấu thể thao phong trào."
+        subtitle="Đăng nhập để tạo và quản lý giải đấu."
       />
     </div>
   );

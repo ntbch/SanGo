@@ -88,6 +88,8 @@ export function BookingCalendarPage(): React.ReactElement {
   const daySlots = slotsData?.byDate?.find((d) => d.date === selectedDate)?.slots || [];
 
   const [holdError, setHoldError] = React.useState<string | null>(null);
+  // Kèo công khai: bật => thành viên khác phải được chủ kèo duyệt trước khi tham gia (requiresApproval=true)
+  const [requiresApproval, setRequiresApproval] = React.useState<boolean>(false);
 
   const { data: activeHold } = useQuery({
     queryKey: ['active-booking-hold'],
@@ -114,7 +116,7 @@ export function BookingCalendarPage(): React.ReactElement {
           // Hiển thị thông báo backend gốc nếu không thể lấy lại hold.
         }
       }
-      setHoldError(err.message || 'Không thể giữ chỗ. Vui lòng thử lại sau.');
+      setHoldError(err.message || 'Không thể giữ chỗ. thử lại sau.');
     },
   });
 
@@ -130,6 +132,7 @@ export function BookingCalendarPage(): React.ReactElement {
       courtId: selectedCourtId,
       date: selectedSlot.date,
       slots: [selectedSlot.startMinute],
+      requiresApproval,
     });
   };
 
@@ -177,7 +180,7 @@ export function BookingCalendarPage(): React.ReactElement {
         <div className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-bold text-foreground">Bạn đang giữ một khung giờ</p>
-            <p className="text-xs text-muted-foreground">Hoàn tất thanh toán trước khi thời gian giữ chỗ kết thúc.</p>
+            <p className="text-xs text-muted-foreground">Thanh toán trước khi hết thời gian giữ chỗ.</p>
           </div>
           <Button size="sm" onClick={() => navigate(`/checkout/hold/${activeHold.id}`)}>Tiếp tục thanh toán</Button>
         </div>
@@ -230,6 +233,20 @@ export function BookingCalendarPage(): React.ReactElement {
           courtName={currentCourt?.name}
         />
       </div>
+
+      {/* Toggle duyệt thành viên trước (kèo công khai) */}
+      <label className="flex items-center gap-3 rounded-xl border border-dashed border-muted-foreground/30 px-4 py-3 cursor-pointer select-none hover:bg-muted/40 transition-colors">
+        <input
+          type="checkbox"
+          checked={requiresApproval}
+          onChange={(e) => setRequiresApproval(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        <span className="text-sm">
+          <span className="font-semibold">Duyệt thành viên trước</span>
+          <span className="text-muted-foreground"> (kèo cần bạn duyệt người tham gia)</span>
+        </span>
+      </label>
 
       {/* Floating Bottom Summary & Hold CTA Bar */}
       <BookingSummaryBar

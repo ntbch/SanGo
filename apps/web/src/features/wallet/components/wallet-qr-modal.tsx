@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { QrCode } from 'lucide-react';
+import { QrCode, X } from 'lucide-react';
 import { User } from '../../../lib/auth-store';
 
 export interface WalletQrModalProps {
@@ -18,7 +18,7 @@ export function WalletQrModal({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-150 text-center">
         <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between bg-card z-10">
           <div className="flex items-center gap-2">
@@ -30,7 +30,7 @@ export function WalletQrModal({
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground text-sm font-bold cursor-pointer"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </CardHeader>
 

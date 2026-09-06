@@ -245,7 +245,7 @@ export const VenueMapView = React.memo(function VenueMapView({
   return (
     <div className={`relative h-full w-full overflow-hidden bg-background ${isSatellite ? 'is-satellite-map' : 'is-street-map'}`}>
       {/* Map Layer Mode Switcher */}
-      <div className="absolute top-3 right-3 z-20 flex items-center bg-card/90 backdrop-blur-md p-1 rounded-xl border border-border/80 shadow-md gap-1 text-xs">
+      <div className="absolute top-3 right-3 z-20 flex items-center bg-card p-1 rounded-xl border border-border/80 shadow-md gap-1 text-xs">
         {(['google-street', 'google-satellite', 'google-terrain'] as GoogleMapLayerType[]).map((t) => (
           <button
             key={t}
@@ -308,7 +308,7 @@ export const VenueMapView = React.memo(function VenueMapView({
             <div
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
-              className="w-72 sm:w-80 rounded-2xl overflow-hidden border border-border/90 bg-card/95 backdrop-blur-md shadow-2xl p-0 animate-in fade-in duration-150"
+              className="w-72 sm:w-80 rounded-2xl overflow-hidden border border-border/90 bg-card shadow-2xl p-0 animate-in fade-in duration-150"
             >
               {/* 16:9 Image Header */}
               <div className="relative aspect-[16/9] w-full bg-muted overflow-hidden">
@@ -324,7 +324,7 @@ export const VenueMapView = React.memo(function VenueMapView({
                   }}
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-black/45" />
 
                 {/* Close Button */}
                 <button

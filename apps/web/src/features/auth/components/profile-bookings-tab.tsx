@@ -10,7 +10,7 @@ export function ProfileBookingsTab(): React.ReactElement {
       <div className="flex items-center justify-between pb-3 border-b border-border/50">
         <div>
           <h3 className="text-base font-black text-foreground">Vé Đặt Sân Của Tôi</h3>
-          <p className="text-xs text-muted-foreground">Theo dõi và quản lý các lượt giữ chỗ &amp; vé vào sân.</p>
+          <p className="text-xs text-muted-foreground">Quản lý giữ chỗ &amp; vé vào sân.</p>
         </div>
         <Link to="/bookings">
           <Button size="sm" className="text-xs font-bold gap-1.5 cursor-pointer">

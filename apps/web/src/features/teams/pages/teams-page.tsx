@@ -97,7 +97,7 @@ export function TeamsPage(): React.ReactElement {
             </h3>
             <p className="text-xs text-muted-foreground">
               {memberships.length === 0
-                ? 'Tạo đội mới để cùng bạn bè quản lý quỹ đội, lịch thi đấu và chia tiền sân thuận tiện.'
+                ? 'Tạo đội để quản lý quỹ, lịch thi đấu và chia tiền.'
                 : 'Thử chuyển sang bộ môn khác hoặc xóa từ khóa tìm kiếm.'}
             </p>
           </div>

@@ -66,7 +66,7 @@ export function WalletLedgerTable({
           <div>
             <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
               <Receipt className="h-5 w-5 text-primary" />
-              <span>Lịch Sử Giao Dịch &amp; Biến Động Số Dư</span>
+              <span>Lịch sử giao dịch</span>
             </CardTitle>
             <p className="text-xs text-muted-foreground pt-0.5">
               Hệ thống lưu trữ minh bạch toàn bộ các biến động nạp tiền, cọc sân, hoàn tiền và tiền thưởng.

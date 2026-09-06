@@ -36,7 +36,7 @@ export function TournamentHeroHeader({
                   ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                   : tournament.status === 'ONGOING'
                   ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                  : 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
+                  : 'bg-secondary text-foreground border-border',
               )}
             >
               {tournament.status === 'REGISTRATION'
@@ -69,7 +69,7 @@ export function TournamentHeroHeader({
             <Button
               onClick={onOpenRegisterModal}
               size="sm"
-              className="font-bold text-xs gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+              className="font-bold text-xs gap-1.5 shadow-md cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
               <span>Đăng Ký Đội Vào Giải</span>
@@ -122,7 +122,7 @@ export function TournamentHeroHeader({
       {tournament.status === 'FINISHED' && tournament.championTeam && (
         <div className="mt-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shadow-lg shadow-amber-500/30">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shadow-md">
               <Crown className="h-7 w-7" />
             </div>
             <div>

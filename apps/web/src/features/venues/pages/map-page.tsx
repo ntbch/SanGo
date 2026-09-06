@@ -22,7 +22,7 @@ export function MapPage(): React.ReactElement {
   return (
     <div className="h-[calc(100vh-4rem)] w-full relative flex flex-col">
       {/* Top Map Action Strip */}
-      <div className="z-20 bg-card/90 backdrop-blur-md border-b border-border/80 px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <div className="z-20 bg-card border-b border-border/80 px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-primary" />
           <h1 className="text-sm font-bold text-foreground">Bản Đồ Cụm Sân</h1>

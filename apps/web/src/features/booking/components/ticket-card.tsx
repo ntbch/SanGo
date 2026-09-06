@@ -90,15 +90,19 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
       .map(([serviceId, quantity]) => ({ serviceId, quantity }));
 
     setIsSubmittingAddons(true);
+    setAddonSuccessMsg(null);
     try {
       await addBookingAddOnsApi(ticket.id, itemsToSave);
-      setAddonSuccessMsg('Đã cập nhật danh sách dịch vụ đi kèm thành công!');
+      setAddonSuccessMsg('Đã lưu dịch vụ đi kèm.');
       const updated = await listBookingAddOnsApi(ticket.id);
       setCurrentAddOns(updated);
       setTimeout(() => {
         setAddonSuccessMsg(null);
         setShowAddonsModal(false);
       }, 1200);
+    } catch (err: any) {
+      setAddonSuccessMsg(null);
+      alert(err?.message || 'Không thể lưu dịch vụ. thử lại.');
     } finally {
       setIsSubmittingAddons(false);
     }
@@ -249,7 +253,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
 
       {/* QR Check-in Modal */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-5 text-center">
             <button
               type="button"
@@ -261,7 +265,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
 
             <div className="space-y-1">
               <h4 className="text-base font-extrabold text-foreground">Mã Check-in Vào Sân</h4>
-              <p className="text-xs text-muted-foreground">Đưa mã này cho quản lý sân để quét xác nhận</p>
+              <p className="text-xs text-muted-foreground">Đưa mã cho quản lý sân quét check-in</p>
             </div>
 
             {/* QR Code Container */}
@@ -285,7 +289,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
             </div>
 
             <p className="text-[11px] text-muted-foreground">
-              Vui lòng có mặt trước giờ bắt đầu 10-15 phút để chuẩn bị trang phục và nhận sân.
+              có mặt trước giờ bắt đầu 10-15 phút để chuẩn bị trang phục và nhận sân.
             </p>
           </div>
         </div>
@@ -293,7 +297,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
 
       {/* Cancel Booking Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-200">
           <div className="relative w-full max-w-md rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-4">
             <button
               type="button"
@@ -351,7 +355,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
 
       {/* Add-ons & Extra Services Modal */}
       {showAddonsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg rounded-3xl bg-card border border-border p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col justify-between">
             <button
               type="button"
@@ -475,7 +479,7 @@ export function TicketCard({ ticket, onCancel }: TicketCardProps): React.ReactEl
                   size="sm"
                   disabled={isSubmittingAddons}
                   onClick={handleSaveAddons}
-                  className="text-xs font-bold shadow-md shadow-emerald-500/20"
+                  className="text-xs font-bold shadow-md"
                 >
                   {isSubmittingAddons ? 'Đang lưu...' : 'Xác Nhận Đặt'}
                 </Button>

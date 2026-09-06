@@ -129,7 +129,7 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
       localStorage.removeItem('sango_refresh_token');
       localStorage.removeItem('sango_user');
       window.dispatchEvent(new Event('sango_auth_change'));
-      throw new ApiError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.', 401, 'UNAUTHORIZED');
+      throw new ApiError('Phiên đăng nhập đã hết hạn, đăng nhập lại.', 401, 'UNAUTHORIZED');
     } finally {
       isRefreshing = false;
     }

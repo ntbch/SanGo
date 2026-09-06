@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Wallet } from 'lucide-react';
 import { Team, ExpenseShare } from '../api/teams-api';
 import { formatVND, cn } from '../../../lib/utils';
 
@@ -15,6 +15,12 @@ interface TeamSplitTabProps {
   onSelectedMemberIdsChange: (ids: string[]) => void;
   splitMsg: string | null;
   onSubmitSplit: (e: React.FormEvent) => Promise<void>;
+  /** Phase 1 (T1.1/T1.3): id user hiện tại — quyết định nút xác nhận / trả qua ví. */
+  currentUserId: string | null;
+  walletBalance: number | null;
+  actionMsg: string | null;
+  onMarkPaid: (shareId: string) => Promise<void>;
+  onPayViaWallet: (shareId: string) => Promise<void>;
 }
 
 export function TeamSplitTab({
@@ -26,7 +32,32 @@ export function TeamSplitTab({
   onSelectedMemberIdsChange,
   splitMsg,
   onSubmitSplit,
+  currentUserId,
+  walletBalance,
+  actionMsg,
+  onMarkPaid,
+  onPayViaWallet,
 }: TeamSplitTabProps): React.ReactElement {
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const handleMarkPaid = async (shareId: string) => {
+    setBusyId(shareId);
+    try {
+      await onMarkPaid(shareId);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handlePayViaWallet = async (shareId: string) => {
+    setBusyId(shareId);
+    try {
+      await onPayViaWallet(shareId);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Left Form: Split Booking */}
@@ -91,7 +122,7 @@ export function TeamSplitTab({
           <Button
             type="submit"
             disabled={selectedMemberIds.length === 0}
-            className="w-full font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer"
+            className="w-full font-bold text-xs shadow-md cursor-pointer"
           >
             Chia Đều Tiền Sân Ngay
           </Button>
@@ -103,6 +134,12 @@ export function TeamSplitTab({
         <h3 className="text-base font-black text-foreground pb-2 border-b border-border/50">
           Nhật Ký Các Khoản Chia Tiền
         </h3>
+
+        {actionMsg && (
+          <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-xs font-bold text-foreground">
+            {actionMsg}
+          </div>
+        )}
 
         <div className="space-y-3">
           {expenses.map((exp) => (
@@ -117,7 +154,7 @@ export function TeamSplitTab({
                 <p className="text-[11px] text-muted-foreground">{exp.note || 'Tiền sân'}</p>
               </div>
 
-              <div className="text-right space-y-0.5">
+              <div className="text-right space-y-1.5 shrink-0">
                 <span className="font-mono-num font-black text-xs text-foreground block">
                   {formatVND(exp.amount)}
                 </span>
@@ -131,6 +168,53 @@ export function TeamSplitTab({
                 >
                   {exp.status === 'PAID' ? 'Đã Thanh Toán' : 'Chưa Trả'}
                 </span>
+
+                {exp.status === 'UNPAID' && (
+                  <div className="flex flex-col items-end gap-1.5 pt-1">
+                    {/* T1.1: chỉ payer hoặc captain được xác nhận đã nhận tiền */} 
+                    {(currentUserId === exp.payerId || currentUserId === team.captainId) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busyId === exp.id}
+                        onClick={() => handleMarkPaid(exp.id)}
+                        className="h-7 px-2.5 text-[10px] font-black cursor-pointer"
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        Xác nhận đã nhận
+                      </Button>
+                    )}
+                    {/* T1.3: debtor trả nợ qua ví — hiển thị số dư để đối chiếu */}
+                    {currentUserId === exp.debtorId && (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={
+                            busyId === exp.id ||
+                            (walletBalance !== null && walletBalance < exp.amount)
+                          }
+                          onClick={() => handlePayViaWallet(exp.id)}
+                          title={
+                            walletBalance !== null
+                              ? `Số dư ví: ${formatVND(walletBalance)}`
+                              : undefined
+                          }
+                          className="h-7 px-2.5 text-[10px] font-black cursor-pointer"
+                        >
+                          <Wallet className="h-3 w-3" />
+                          Trả qua ví
+                        </Button>
+                        {walletBalance !== null && (
+                          <span className="text-[9px] text-muted-foreground">
+                            Ví: {formatVND(walletBalance)}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

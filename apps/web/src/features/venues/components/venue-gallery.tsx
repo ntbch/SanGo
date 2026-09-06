@@ -96,7 +96,7 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
           alt={`${venue.name} - Ảnh ${activeIndex + 1}`}
           className="h-full w-full object-cover transition-all duration-500"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-black/45 pointer-events-none" />
 
         {/* Prev / Next Navigation Arrows */}
         {images.length > 1 && (
@@ -104,14 +104,14 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
             <button
               type="button"
               onClick={handlePrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 backdrop-blur-md opacity-80 hover:opacity-100 transition-opacity cursor-pointer z-20"
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/75 text-white hover:bg-black/90 cursor-pointer z-20"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={handleNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 backdrop-blur-md opacity-80 hover:opacity-100 transition-opacity cursor-pointer z-20"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/75 text-white hover:bg-black/90 cursor-pointer z-20"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -121,7 +121,7 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
         {/* Top Badges Overlay */}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 pointer-events-none">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-md px-3 py-1 text-xs font-bold text-white border border-white/10">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white border border-white/10">
               <span
                 className={`h-2 w-2 rounded-full ${
                   isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
@@ -130,13 +130,13 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
               <span>{isOpen ? 'Đang mở cửa' : 'Đã đóng cửa'}</span>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-md px-3 py-1 text-xs font-semibold text-zinc-300 border border-white/10 font-mono-num">
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-black/75 px-3 py-1 text-xs font-semibold text-zinc-300 border border-white/10 font-mono-num">
               <Clock className="h-3.5 w-3.5 text-primary" />
               <span>{formatMinutesToTime(openMin)} - {formatMinutesToTime(closeMin)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-black/70 backdrop-blur-md px-3 py-1 rounded-xl text-xs font-bold text-amber-400 border border-white/10">
+          <div className="flex items-center gap-1 bg-black/75 px-3 py-1 rounded-xl text-xs font-bold text-amber-400 border border-white/10">
             <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
             <span className="font-mono-num">{venue.avgRating ? Number(venue.avgRating).toFixed(1) : '5.0'}</span>
             <span className="text-[10px] text-zinc-400 font-normal">({venue.reviewsCount ?? 24} đánh giá)</span>
@@ -144,7 +144,7 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
         </div>
 
         {/* Image Counter Badge */}
-        <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-md px-3 py-1 rounded-xl text-xs font-mono-num font-semibold text-white border border-white/10">
+        <div className="absolute bottom-4 right-4 bg-black/75 px-3 py-1 rounded-xl text-xs font-mono-num font-semibold text-white border border-white/10">
           {activeIndex + 1} / {images.length}
         </div>
       </div>

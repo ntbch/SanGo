@@ -24,7 +24,7 @@ export function ForgotPasswordPage(): React.ReactElement {
       await forgotPasswordApi(email);
       setIsSent(true);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Không thể gửi yêu cầu khôi phục. Vui lòng thử lại.');
+      setErrorMessage(err.message || 'Không thể gửi yêu cầu khôi phục. thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +40,7 @@ export function ForgotPasswordPage(): React.ReactElement {
             <Mail className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl sm:text-2xl font-black text-foreground">Quên Mật Khẩu</CardTitle>
-          <p className="text-xs text-muted-foreground">Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.</p>
+          <p className="text-xs text-muted-foreground">Nhập email nhận link đổi mật khẩu.</p>
         </CardHeader>
 
         <CardContent className="space-y-5">
@@ -49,7 +49,7 @@ export function ForgotPasswordPage(): React.ReactElement {
               <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
               <p className="text-xs font-bold text-foreground">Đã gửi hướng dẫn khôi phục!</p>
               <p className="text-[11px] text-muted-foreground">
-                Vui lòng kiểm tra hộp thư đến tại <strong>{email}</strong> và làm theo hướng dẫn.
+                kiểm tra hộp thư đến tại <strong>{email}</strong> và làm theo hướng dẫn.
               </p>
               <div className="pt-2">
                 <Link to="/login">
@@ -90,7 +90,7 @@ export function ForgotPasswordPage(): React.ReactElement {
                   type="submit"
                   disabled={isLoading || !email}
                   size="lg"
-                  className="w-full font-bold text-xs h-10 shadow-lg shadow-emerald-500/20"
+                  className="w-full font-bold text-xs h-10 shadow-lg"
                 >
                   {isLoading ? 'Đang gửi mã...' : 'Gửi Liên Kết Khôi Phục'}
                 </Button>

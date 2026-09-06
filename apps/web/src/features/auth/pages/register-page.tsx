@@ -37,7 +37,7 @@ export function RegisterPage(): React.ReactElement {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !email || !password) {
-      setErrorMessage('Vui lòng điền các trường bắt buộc.');
+      setErrorMessage('điền các trường bắt buộc.');
       return;
     }
     if (password.length < 6) {
@@ -68,7 +68,7 @@ export function RegisterPage(): React.ReactElement {
         navigate('/', { replace: true });
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Đăng ký không thành công. Email có thể đã được sử dụng.');
+      setErrorMessage(err.message || 'Email có thể đã tồn tại.');
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +84,7 @@ export function RegisterPage(): React.ReactElement {
             <UserPlus className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl sm:text-2xl font-black text-foreground">Tạo Tài Khoản Mới</CardTitle>
-          <p className="text-xs text-muted-foreground">Tham gia mạng lưới thể thao phong trào SanGo.</p>
+          <p className="text-xs text-muted-foreground">Tham gia mạng lưới SanGo.</p>
         </CardHeader>
 
         <CardContent className="space-y-5">
@@ -233,7 +233,7 @@ export function RegisterPage(): React.ReactElement {
               type="submit"
               disabled={isLoading}
               size="lg"
-              className="w-full font-bold text-xs h-10 shadow-lg shadow-emerald-500/20 mt-2"
+              className="w-full font-bold text-xs h-10 shadow-lg mt-2"
             >
               {isLoading ? 'Đang tạo tài khoản...' : 'Hoàn Tất Đăng Ký'}
             </Button>

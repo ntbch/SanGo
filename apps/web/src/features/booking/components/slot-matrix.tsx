@@ -104,12 +104,12 @@ export function SlotMatrix({
           'relative p-3.5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group min-h-[92px]',
           // Trạng thái Đang Chọn
           isSelected &&
-            'bg-primary text-primary-foreground border-primary shadow-xl shadow-emerald-500/25 ring-2 ring-primary ring-offset-2 ring-offset-background scale-[1.02] z-10',
+            'bg-primary text-primary-foreground border-primary shadow-xl ring-2 ring-primary ring-offset-2 ring-offset-background scale-[1.02] z-10',
           // Trạng thái Giờ Vàng (Trống)
           isAvailable &&
             !isSelected &&
             isPeak &&
-            'bg-card border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/5 hover:shadow-md text-foreground',
+            'bg-card border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/5 text-foreground',
           // Trạng thái Giờ Thường (Trống)
           isAvailable &&
             !isSelected &&
@@ -222,7 +222,7 @@ export function SlotMatrix({
     return (
       <div className="py-16 text-center space-y-3">
         <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-xs text-muted-foreground">Đang cập nhật ma trận slot thời gian thực...</p>
+        <p className="text-xs text-muted-foreground">Đang cập nhật slot...</p>
       </div>
     );
   }
@@ -289,7 +289,7 @@ export function SlotMatrix({
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60',
             )}
           >
-            <Moon className="h-3 w-3 text-indigo-400" />
+            <Moon className="h-3 w-3 text-primary" />
             <span>Tối - Giờ Vàng ({eveningSlots.length})</span>
           </button>
         </div>
@@ -337,7 +337,7 @@ export function SlotMatrix({
             renderSection('Ca Chiều (12:00 - 17:00)', <Sunset className="h-4 w-4 text-orange-500" />, afternoonSlots, 'Khung giờ giao lưu, thi đấu')}
 
           {(activeShiftFilter === 'ALL' || activeShiftFilter === 'EVENING') &&
-            renderSection('Ca Tối & Giờ Vàng (17:00 - 23:00)', <Moon className="h-4 w-4 text-indigo-400" />, eveningSlots, 'Khung giờ cao điểm có đèn LED chiếu sáng')}
+            renderSection('Ca Tối & Giờ Vàng (17:00 - 23:00)', <Moon className="h-4 w-4 text-primary" />, eveningSlots, 'Khung giờ cao điểm có đèn LED chiếu sáng')}
         </div>
       )}
 
@@ -347,7 +347,7 @@ export function SlotMatrix({
           <div className="flex items-center justify-between pb-2 border-b border-border/50">
             <div>
               <h3 className="text-sm font-bold text-foreground">Bản Đồ Slot Toàn Bộ Cụm Sân</h3>
-              <p className="text-[11px] text-muted-foreground">So sánh và chọn slot trực tiếp giữa các sân con</p>
+              <p className="text-[11px] text-muted-foreground">So sánh slot giữa các sân con</p>
             </div>
           </div>
 

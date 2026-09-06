@@ -50,7 +50,7 @@ export function ProfileInfoTab({
     <Card className="p-6 border border-border/80 bg-card shadow-md space-y-6 animate-in fade-in-50 duration-200">
       <div className="pb-3 border-b border-border/50">
         <h3 className="text-base font-black text-foreground">Chỉnh Sửa Thông Tin Cá Nhân</h3>
-        <p className="text-xs text-muted-foreground">Cập nhật ảnh đại diện, họ tên và thông tin liên hệ của bạn.</p>
+        <p className="text-xs text-muted-foreground">Cập nhật ảnh, tên và thông tin liên hệ.</p>
       </div>
 
       {updateMsg && (
@@ -179,7 +179,7 @@ export function ProfileInfoTab({
           </div>
         </div>
 
-        <Button type="submit" disabled={isUpdating} size="lg" className="font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
+        <Button type="submit" disabled={isUpdating} size="lg" className="font-bold text-xs shadow-md cursor-pointer">
           {isUpdating ? 'Đang lưu...' : 'Lưu Thay Đổi Thông Tin'}
         </Button>
       </form>

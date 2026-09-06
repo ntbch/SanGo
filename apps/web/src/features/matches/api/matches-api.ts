@@ -54,6 +54,8 @@ export interface OpenMatch {
   filledSlots: number;
   costPerPerson: number;
   description?: string;
+  /** P5a O1: true = kèo cần duyệt (join trực tiếp 409 APPROVAL_REQUIRED); null/false = join trực tiếp. */
+  requiresApproval?: boolean | null;
   hostUser: MatchHostUser;
   participants?: MatchParticipant[];
   comments?: MatchComment[];
@@ -92,7 +94,7 @@ function minuteToTimeStr(minute?: number): string {
 
 function normalizeMatchItem(item: any): OpenMatch {
   const id = item.id || item.bookingId || '';
-  const hostName = item.hostName || item.hostUser?.fullName || item.customer?.fullName || 'Chủ kèo';
+  const hostName = item.host?.fullName || item.hostName || item.hostUser?.fullName || item.customer?.fullName || 'Chủ kèo';
   const slotsNeeded = item.slotsNeeded ?? 2;
   const joinedCount = item.joinedCount ?? (item.participants ? item.participants.filter((p: any) => p.status === 'APPROVED').length : 1);
   const totalSlots = item.totalSlots ?? (slotsNeeded + joinedCount);
@@ -125,7 +127,9 @@ function normalizeMatchItem(item: any): OpenMatch {
     totalSlots: Math.max(1, totalSlots),
     filledSlots: Math.max(1, filledSlots),
     costPerPerson: cost,
-    description: item.description || 'Trận đấu giao lưu phong trào. Vui lòng có mặt đúng giờ.',
+    description: item.description || 'Trận đấu giao lưu phong trào. có mặt đúng giờ.',
+    // P5a O1: BE trả field này sau migration requiresApproval; null coi như join trực tiếp.
+    requiresApproval: item.requiresApproval ?? null,
     hostUser: {
       id: item.hostUser?.id || item.customerId || '',
       fullName: hostName,

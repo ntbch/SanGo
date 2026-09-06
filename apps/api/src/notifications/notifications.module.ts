@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module'; // JwtService cho JwtAuthGuard của controller
+import { RealtimeModule } from '../realtime/realtime.module'; // RealtimeService emit notification:new
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotifyService } from './notify.service';
@@ -8,7 +9,7 @@ import { MAILER_PORT } from './mailer/mailer.port';
 
 // PrismaModule là @Global nên không cần imports.
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, RealtimeModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,

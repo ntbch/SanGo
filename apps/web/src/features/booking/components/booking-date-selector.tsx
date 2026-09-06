@@ -98,7 +98,7 @@ export function BookingDateSelector({
                 'p-3 rounded-2xl border text-center transition-all cursor-pointer relative flex flex-col justify-between min-h-[76px]',
                 d.isPast && 'opacity-40 bg-muted/20 border-border/30 cursor-not-allowed',
                 isSelected &&
-                  'bg-primary text-primary-foreground border-primary shadow-md shadow-emerald-500/20 ring-2 ring-primary/30 scale-[1.02] z-10',
+                  'bg-primary text-primary-foreground border-primary shadow-md ring-2 ring-primary/30 scale-[1.02] z-10',
                 !isSelected &&
                   !d.isPast &&
                   'bg-card border-border/80 text-foreground hover:bg-secondary/60 hover:border-primary/50',

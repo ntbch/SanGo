@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '../../../components/ui/card';
-import { Badge } from '../../../components/ui/badge';
 import { VenueItem } from '../api/venues-api';
 import { SPORT_LABELS, SportType } from '../../../lib/constants';
 import { formatMinutesToTime, formatVND } from '../../../lib/utils';
@@ -40,7 +39,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
   const rating = venue.avgRating ? Number(venue.avgRating).toFixed(1) : '5.0';
 
   return (
-    <Card className="group overflow-hidden rounded-3xl border border-border/80 bg-card hover:border-primary/60 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col justify-between">
+    <Card className="group overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md transition-shadow duration-150 flex flex-col justify-between">
       <div>
         {/* Aspect 16:9 Image Container */}
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
@@ -51,17 +50,17 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
             onError={(e) => {
               e.currentTarget.src = getFallbackImage();
             }}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-102"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+          <div className="absolute inset-0 bg-black/40" />
 
           {/* Top Badges */}
           <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
             {/* Open / Closed Status Pill */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-white border border-white/10">
+            <div className="flex items-center gap-1.5 rounded-md bg-black/75 px-2.5 py-1 text-[11px] font-bold text-white">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                  isOpen ? 'bg-emerald-400' : 'bg-rose-400'
                 }`}
               />
               <span>{isOpen ? 'Đang mở cửa' : 'Đã đóng cửa'}</span>
@@ -69,20 +68,20 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
 
             {/* GPS Distance Badge */}
             {typeof venue.distanceKm === 'number' && (
-              <Badge variant="default" className="gap-1 font-mono-num font-bold text-[11px] bg-black/60 backdrop-blur-md text-white border border-white/10">
-                <Navigation className="h-3 w-3 text-primary" />
+              <div className="flex items-center gap-1 font-mono-num font-bold text-[11px] bg-black/75 px-2.5 py-1 rounded-md text-white">
+                <Navigation className="h-3 w-3 text-white" />
                 <span>{venue.distanceKm.toFixed(1)} km</span>
-              </Badge>
+              </div>
             )}
           </div>
 
           {/* Bottom Overlay: Operating Hours & Rating */}
           <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-white text-xs">
-            <span className="font-mono-num font-semibold text-zinc-300 text-[11px]">
+            <span className="font-mono-num font-semibold text-zinc-100 text-[11px]">
               {formatMinutesToTime(openMin)} - {formatMinutesToTime(closeMin)}
             </span>
 
-            <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/10 text-amber-400 font-mono-num font-bold text-xs">
+            <div className="flex items-center gap-1 bg-black/75 px-2 py-0.5 rounded-md text-white font-mono-num font-bold text-xs">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               <span>{rating}</span>
             </div>
@@ -114,7 +113,7 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
             ))}
             {courtCount > 0 && (
               <span className="text-[11px] text-muted-foreground font-mono-num">
-                • {courtCount} sân
+                {courtCount} sân
               </span>
             )}
           </div>

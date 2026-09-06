@@ -32,7 +32,7 @@ export function ProfileSecurityTab({
     <Card className="p-6 border border-border/80 bg-card shadow-md space-y-5 animate-in fade-in-50 duration-200">
       <div className="pb-3 border-b border-border/50">
         <h3 className="text-base font-black text-foreground">Bảo Mật &amp; Đổi Mật Khẩu</h3>
-        <p className="text-xs text-muted-foreground">Thiết lập mật khẩu mạnh để bảo vệ tài khoản của bạn.</p>
+        <p className="text-xs text-muted-foreground">Đặt mật khẩu mạnh để bảo vệ tài khoản.</p>
       </div>
 
       {passMsg && (
@@ -89,7 +89,7 @@ export function ProfileSecurityTab({
           type="submit"
           disabled={isChangingPass || !currentPassword || !newPassword}
           size="lg"
-          className="font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer"
+          className="font-bold text-xs shadow-md cursor-pointer"
         >
           {isChangingPass ? 'Đang cập nhật...' : 'Đổi Mật Khẩu'}
         </Button>

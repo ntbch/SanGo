@@ -3,7 +3,7 @@ import { Card } from '../../../components/ui/card';
 import { Link } from 'react-router-dom';
 import { MapPin, Clock, Calendar, Crown, Award, ChevronRight } from 'lucide-react';
 import { Tournament } from '../api/tournaments-api';
-import { formatVND, cn } from '../../../lib/utils';
+import { formatVND } from '../../../lib/utils';
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -13,13 +13,13 @@ export function TournamentCard({ tournament: t }: TournamentCardProps): React.Re
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'REGISTRATION':
-        return { label: 'Đang Mở Đăng Ký', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' };
+        return { label: 'Đang mở đăng ký' };
       case 'ONGOING':
-        return { label: 'Đang Diễn Ra', className: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' };
+        return { label: 'Đang diễn ra' };
       case 'FINISHED':
-        return { label: 'Đã Kết Thúc', className: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30' };
+        return { label: 'Đã kết thúc' };
       default:
-        return { label: status, className: 'bg-secondary text-muted-foreground' };
+        return { label: status };
     }
   };
 
@@ -29,20 +29,15 @@ export function TournamentCard({ tournament: t }: TournamentCardProps): React.Re
   return (
     <Card
       key={t.id}
-      className="group relative overflow-hidden border border-border/80 hover:border-primary/50 bg-card hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md transition-shadow duration-150 flex flex-col justify-between"
     >
       <div className="p-6 space-y-4">
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold uppercase border border-primary/20">
+          <span className="px-2.5 py-0.5 rounded-md bg-secondary text-foreground text-[10px] font-mono-num font-bold uppercase tracking-wider border border-border">
             {t.sportType}
           </span>
-          <span
-            className={cn(
-              'px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border',
-              statusInfo.className,
-            )}
-          >
+          <span className="px-2.5 py-0.5 rounded-md bg-secondary text-foreground text-[10px] font-mono-num font-bold uppercase tracking-wider border border-border">
             {statusInfo.label}
           </span>
         </div>

@@ -337,8 +337,9 @@ export async function toggleAdminCourtMaintenance(
   courtId: string,
   isMaintenance: boolean,
 ): Promise<unknown> {
-  return apiClient(`/courts/${courtId}/maintenance`, {
-    method: 'PATCH',
-    body: JSON.stringify({ isMaintenance }),
+  // Contract fix: BE chỉ có PUT /courts/:id (UpdateCourtSchema có status ACTIVE|MAINTENANCE)
+  return apiClient(`/courts/${courtId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: isMaintenance ? 'MAINTENANCE' : 'ACTIVE' }),
   });
 }

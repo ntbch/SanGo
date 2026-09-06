@@ -12,31 +12,31 @@ import { HomePartnerCta } from '../components/home-partner-cta';
 export function HomePage(): React.ReactElement {
   return (
     <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-12 sm:space-y-16">
-      {/* 1. Hero & Search Hub (Balanced 2-column layout with live booking showcase) */}
+      {/* 1. Hero & Search Hub (asymmetric 55/45 + live open-matches panel) */}
       <HomeHero />
 
-      {/* 2. Quy Trình 3 Bước Dành Cho Khách & Người Chơi */}
+      {/* 2. Quy trình đặt sân trong 3 bước */}
       <HomeHowItWorks />
 
-      {/* 3. Khám Phá Theo 4 Môn Thể Thao */}
+      {/* 3. Khám phá theo 4 môn thể thao */}
       <HomeSportsCards />
 
-      {/* 4. Cụm Sân Tiêu Biểu (Đánh Giá Cao) */}
+      {/* 4. Cụm sân tiêu biểu được yêu thích */}
       <HomeFeaturedVenues />
 
-      {/* 5. Bản Đồ Không Gian Trực Tuyến */}
+      {/* 5. Bản đồ tìm sân gần nhất */}
       <HomeMapBanner />
 
-      {/* 6. Giới Thiệu Tính Năng Ghép Trận & Giải Đấu (Cho Cả Guest) */}
+      {/* 6. Ghép trận & giải đấu cho khách */}
       <HomeCommunityFeatures />
 
-      {/* 7. 4 Trụ Cột Công Nghệ Thể Thao SanGo */}
+      {/* 7. Công nghệ vận hành SanGo */}
       <HomeTechPillars />
 
-      {/* 8. Câu Hỏi Thường Gặp Của Khách (FAQ) */}
+      {/* 8. Câu hỏi thường gặp */}
       <HomeGuestFaq />
 
-      {/* 9. Hợp Tác Dành Cho Chủ Sân */}
+      {/* 9. Hợp tác dành cho chủ sân */}
       <HomePartnerCta />
     </div>
   );

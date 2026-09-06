@@ -30,7 +30,7 @@ export function WalletHeader({
         <Button
           size="sm"
           onClick={onOpenTopup}
-          className="gap-1.5 font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer"
+          className="gap-1.5 font-bold text-xs shadow-md cursor-pointer"
         >
           <PlusCircle className="h-4 w-4" />
           <span>Nạp Tiền Vào Ví</span>

@@ -18,11 +18,16 @@ import {
 } from '../notifications/mail-templates';
 import {
   BulkCancelDto,
-  CreateHoldDto,
   CreateReviewDto,
   MyBookingsQueryDto,
   OwnerBookingsQueryDto,
 } from './dto/booking.dto';
+import { CreateBookingDto } from './dto/create-booking.dto';
+import {
+  formatGmt7,
+  isVnpayRefundEnabled,
+  VnpayRefundService,
+} from '../payments/vnpay-refund.service';
 import { priceForSlot, roundVnd, slotDateTime } from './pricing.util';
 
 const HOLD_TTL_MINUTES = 10;
@@ -30,6 +35,13 @@ const HOLD_TTL_MINUTES = 10;
 @Injectable()
 export class BookingsService {
   private readonly logger = new Logger(BookingsService.name);
+
+  /**
+   * P3: client API hoàn tiền VNPay (DR). BookingsModule không import PaymentsModule
+   * (payments đã import bookings — nối ngược sẽ vòng) và service này vô trạng thái,
+   * chỉ bọc fetch + env nên tự dựng tại đây, không cần DI.
+   */
+  private readonly refund: VnpayRefundService = new VnpayRefundService();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -42,7 +54,7 @@ export class BookingsService {
    * khoá dòng sân FOR UPDATE tuần tự hoá mọi request cùng slot ở tầng DB,
    * độc lập timing application -> không thể double-booking.
    */
-  async createHold(user: { id: string }, dto: CreateHoldDto) {
+  async createHold(user: { id: string }, dto: CreateBookingDto) {
     const court = await this.prisma.court.findUnique({
       where: { id: dto.courtId },
       include: {
@@ -132,6 +144,20 @@ export class BookingsService {
     for (const s of starts) subtotal += priceForSlot(court, rules, date, s, s + step);
 
     return this.prisma.$transaction(async (tx) => {
+      // M5 fix: khoá dòng user + đếm lại hold ACTIVE trong tx — hai createHold
+      // song song của cùng user xếp hàng tại đây, không thể tạo 2 hold cùng lúc
+      // (check ngoài tx ở trên chỉ là fast-fail cho UX).
+      await tx.$queryRaw`SELECT id FROM "users" WHERE id = ${user.id}::uuid FOR UPDATE`;
+      const activeHoldsInTx = await tx.bookingHold.count({
+        where: { userId: user.id, status: 'ACTIVE', expiresAt: { gt: new Date() } },
+      });
+      if (activeHoldsInTx >= 1) {
+        throw new ConflictException({
+          message: 'Bạn đang có một lần giữ chỗ đang hiệu lực, vui lòng hoàn tất hoặc chờ hết hạn',
+          code: 'HOLD_LIMIT',
+        });
+      }
+
       // Khoá dòng sân — mọi request cùng sân xếp hàng tại đây (spec §6.1 bước 2a).
       await tx.$queryRaw`SELECT id FROM "courts" WHERE id = ${court.id}::uuid FOR UPDATE`;
 
@@ -175,6 +201,9 @@ export class BookingsService {
           ...(dto.isPublicMatch
             ? { isPublicMatch: true, slotsNeeded: dto.slotsNeeded ?? null }
             : {}),
+          // HOLD-FIX P5b O1: giữ requiresApproval TRÊN HOLD để confirmFromHold copy
+          // sang Booking (null/undefined = DIRECT; true = join phải duyệt).
+          requiresApproval: dto.requiresApproval ?? null,
           // S2-F1: giữ teamId trên hold để confirmFromHold copy sang Booking.
           ...(dto.teamId ? { teamId: dto.teamId } : {}),
         },
@@ -191,6 +220,9 @@ export class BookingsService {
         subtotal,
         expiresAt: hold.expiresAt,
         depositPercent: court.venue.depositPercent,
+        // P5b O1 (HOLD-FIX): echo giá trị requiresApproval đã lưu trên hold —
+        // confirmFromHold copy sang bookings.requiresApproval (kể cả khi không truyền opts).
+        requiresApproval: hold.requiresApproval,
       };
     });
   }
@@ -281,6 +313,8 @@ export class BookingsService {
       amountPaid?: number;
       paidInFull?: boolean;
       teamId?: string;
+      /** P5b O1: true = kèo cần duyệt thành viên (join -> 409 APPROVAL_REQUIRED); null/false = DIRECT. */
+      requiresApproval?: boolean | null;
     },
   ) {
     const booking = await this.prisma.$transaction(async (tx) => {
@@ -383,6 +417,11 @@ export class BookingsService {
             status: BookingStatus.CONFIRMED,
             // S2-F1: payments không biết teamId -> lấy từ hold đã giữ lúc createHold.
             teamId: opts.teamId ?? hold.teamId ?? null,
+            // P5b O1 (HOLD-FIX): ưu tiên opts từ caller (payments), fallback ĐỌC TỪ HOLD
+            // (cột booking_holds.requiresApproval giữ từ lúc POST /bookings/holds).
+            // true = join trực tiếp bị chặn (409 APPROVAL_REQUIRED); null/false = DIRECT
+            // như cũ (kèo cũ không phá).
+            requiresApproval: opts.requiresApproval ?? hold.requiresApproval ?? null,
             // Ghép trận mở (§3.11 & P6): đơn mới luôn chưa đủ người.
             ...(hold.isPublicMatch
               ? {
@@ -469,7 +508,7 @@ export class BookingsService {
       const d = await this.notify.bookingMailData(bookingId);
       // QA-T4-P2-01: /bookings/:code không phải route web (bấm chuông bị 404) —
       // trỏ về trang Đơn của tôi; mã đơn đã nằm sẵn trong title/body.
-      const link = '/dashboard/my-bookings';
+      const link = '/bookings';
       const mailBase = {
         code: d.code,
         customerName: d.customerName,
@@ -505,7 +544,7 @@ export class BookingsService {
         type: NotificationType.NEW_BOOKING_OWNER,
         title: 'Có đơn đặt sân mới',
         body: `Đơn ${d.code} · ${d.courtName} (${d.venueName}) vừa được xác nhận`,
-        link: '/dashboard/bookings', // QA-T4-P2-01: trang đơn của chủ sân (route có sẵn)
+        link: '/dashboard/owner', // QA-T4-P2-01: trang đơn của chủ sân (route có sẵn)
       });
     } catch (e) {
       this.logger.warn(
@@ -562,6 +601,39 @@ export class BookingsService {
     }
     const quote = this.refundQuote(booking);
 
+    // P3.2: refund về thẻ qua API VNPay DR CHỈ khi flag VNPAY_REFUND_ENABLED=true VÀ
+    // đơn có payment gốc VNPAY (DEPOSIT/FULL) đã PAID. Flag OFF/mock/không có payment
+    // gốc -> giữ nguyên luồng hiện tại (P3.3 fallback). Lookup TRƯỚC tx để chọn method
+    // chứng từ; lời gọi DR thực hiện SAU COMMIT (không giữ khoá chờ mạng).
+    let vnpayDr: {
+      txnRef: string;
+      amount: number;
+      transDate: string;
+      transactionNo?: string;
+    } | undefined;
+    if (quote.refundAmount > 0 && isVnpayRefundEnabled()) {
+      const paid = await this.prisma.payment.findFirst({
+        where: {
+          bookingId: booking.id,
+          method: PaymentMethod.VNPAY,
+          status: PaymentStatus.PAID,
+          type: { in: [PaymentType.DEPOSIT, PaymentType.FULL] },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (paid) {
+        // vnp_TransactionNo của GD gốc (callback VNPay lưu trong rawPayload) — thiếu thì rỗng.
+        const rawNo = (paid.rawPayload as unknown as Record<string, unknown> | null)
+          ?.vnp_TransactionNo;
+        vnpayDr = {
+          txnRef: paid.txnRef,
+          amount: quote.refundAmount,
+          transDate: formatGmt7(paid.paidAt ?? paid.createdAt),
+          transactionNo: rawNo != null ? String(rawNo) : '',
+        };
+      }
+    }
+
     const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.booking.update({
         where: { id: booking.id },
@@ -578,7 +650,9 @@ export class BookingsService {
             bookingId: booking.id,
             amount: quote.refundAmount,
             type: PaymentType.REFUND,
-            method: PaymentMethod.MOCK, // sandbox/mock không đẩy tiền thật (§6.2)
+            // P3: đúng kênh hoàn để đối soát — MOCK = hoàn ví nội bộ (§6.2),
+            // VNPAY = sẽ đẩy lệnh hoàn về thẻ qua API DR (vnpay-refund.service.ts).
+            method: vnpayDr ? PaymentMethod.VNPAY : PaymentMethod.MOCK,
             txnRef: `RF-${booking.code}`,
             status: PaymentStatus.PENDING,
           },
@@ -597,26 +671,69 @@ export class BookingsService {
     // kéo dài FOR UPDATE lock); Payment(REFUND) chỉ là chứng từ đối soát.
     // UNIQUE(refType, refId, type) trên ledger chặn hoàn kép khi retry/crash.
     if (result.refundPaymentId && result.refundAmount > 0) {
-      try {
-        await this.wallets.credit({
-          userId: result.booking.customerId,
-          amount: result.refundAmount,
-          type: 'REFUND',
-          refType: 'PAYMENT',
-          refId: result.refundPaymentId,
+      // P3.2: flag BẬT + payment gốc VNPAY PAID -> đẩy lệnh hoàn về thẻ qua VNPay DR.
+      // ok (vnp_ResponseCode === '00') -> chứng từ REFUND PAID, KHÔNG credit ví
+      // (tiền đã về thẻ — hoàn ví thêm là hoàn kép). Lỗi DR KHÔNG làm fail cancel:
+      // rơi xuống fallback hoàn ví nội bộ đúng luồng hiện tại (P3.3).
+      let refundedToCard = false;
+      if (vnpayDr) {
+        const dr = await this.refund.requestRefund({
+          txnRef: vnpayDr.txnRef,
+          amountVnd: vnpayDr.amount,
+          orderInfo: `Hoan tien don ${result.booking.code}`,
+          transDate: vnpayDr.transDate,
+          transactionNo: vnpayDr.transactionNo,
         });
-        await this.prisma.payment.update({
-          where: { id: result.refundPaymentId },
-          data: { status: PaymentStatus.PAID, paidAt: new Date() },
-        });
-      } catch (e) {
-        if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
-          this.logger.warn(`Đơn ${result.booking.id}: refund đã ghi ví trước đó (retry) — bỏ qua`);
-        } else {
-          // Không fail request vì hủy đơn đã commit; Payment(REFUND) giữ PENDING làm dấu đối soát/replay.
-          this.logger.error(
-            `Đơn ${result.booking.id}: hoàn ví thất bại — giữ Payment(REFUND) PENDING: ${(e as Error).message}`,
+        if (dr.ok) {
+          refundedToCard = true;
+          await this.prisma.payment.update({
+            where: { id: result.refundPaymentId },
+            data: { status: PaymentStatus.PAID, paidAt: new Date() },
+          });
+          this.logger.log(
+            `Đơn ${result.booking.id}: hoàn ${vnpayDr.amount}đ về thẻ qua VNPay DR (code=${dr.code})`,
           );
+        } else {
+          this.logger.warn(
+            `Đơn ${result.booking.id}: VNPay DR không thành công (${dr.code ?? dr.message ?? 'ERR'}) — fallback hoàn ví nội bộ`,
+          );
+          // Đối soát: tiền hoàn nội bộ -> chứng từ quay về MOCK + note DR_FAIL
+          // (đang PENDING, credit ví ok sẽ chuyển PAID ở khối fallback dưới).
+          await this.prisma.payment.update({
+            where: { id: result.refundPaymentId },
+            data: {
+              method: PaymentMethod.MOCK,
+              rawPayload: {
+                drFail: true,
+                code: dr.code ?? null,
+                message: dr.message ?? null,
+              } as unknown as Prisma.InputJsonValue,
+            },
+          });
+        }
+      }
+      if (!refundedToCard) {
+        try {
+          await this.wallets.credit({
+            userId: result.booking.customerId,
+            amount: result.refundAmount,
+            type: 'REFUND',
+            refType: 'PAYMENT',
+            refId: result.refundPaymentId,
+          });
+          await this.prisma.payment.update({
+            where: { id: result.refundPaymentId },
+            data: { status: PaymentStatus.PAID, paidAt: new Date() },
+          });
+        } catch (e) {
+          if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
+            this.logger.warn(`Đơn ${result.booking.id}: refund đã ghi ví trước đó (retry) — bỏ qua`);
+          } else {
+            // Không fail request vì hủy đơn đã commit; Payment(REFUND) giữ PENDING làm dấu đối soát/replay.
+            this.logger.error(
+              `Đơn ${result.booking.id}: hoàn ví thất bại — giữ Payment(REFUND) PENDING: ${(e as Error).message}`,
+            );
+          }
         }
       }
     }
@@ -767,7 +884,7 @@ export class BookingsService {
       const d = await this.notify.bookingMailData(bookingId);
       // QA-T4-P2-01: /bookings/:code không phải route web (bấm chuông bị 404) —
       // trỏ về trang Đơn của tôi; mã đơn đã nằm sẵn trong title/body.
-      const link = '/dashboard/my-bookings';
+      const link = '/bookings';
       const body = reason
         ? `Đơn ${d.code} · ${d.courtName} đã bị hủy. Lý do: ${reason}`
         : `Đơn ${d.code} · ${d.courtName} đã bị hủy`;
@@ -1064,6 +1181,7 @@ export class BookingsService {
         isPublicMatch: true,
         slotsNeeded: true,
         matchFull: true,
+        requiresApproval: true,
       },
     });
     if (!booking)
@@ -1078,6 +1196,18 @@ export class BookingsService {
       throw new ConflictException({
         message: 'Đơn này không mở ghép trận',
         code: 'JOIN_NOT_ALLOWED',
+      });
+    }
+
+    // P5b O1: kèo bật duyệt thành viên (requiresApproval=true) chặn join trực tiếp —
+    // hướng người chơi gửi yêu cầu tham gia qua POST /matches/:id/requests.
+    // null/false giữ hành vi cũ (DIRECT — chốt 2026-08-30, không phá kèo cũ).
+    // Gate đứng TRƯỚC transaction để không đụng khoá FOR UPDATE (M1) khi chặn.
+    if (booking.requiresApproval === true) {
+      throw new ConflictException({
+        message:
+          'Kèo này bật duyệt thành viên trước khi tham gia — hãy gửi yêu cầu tham gia qua POST /matches/:id/requests',
+        code: 'APPROVAL_REQUIRED',
       });
     }
 
@@ -1136,7 +1266,7 @@ export class BookingsService {
         type: NotificationType.MATCH_JOINED,
         title: 'Có người tham gia đơn ghép trận',
         body: `${joinerName} vừa tham gia đơn ${result.bookingCode} (${result.joinedCount}/${result.slotsNeeded} người)`,
-        link: '/dashboard/my-bookings', // QA-T4-P2-01: route web có sẵn
+        link: '/bookings', // QA-T4-P2-01: route web có sẵn
       });
     } catch (e) {
       this.logger.warn(`Không gửi được MATCH_JOINED cho ${user.id}: ${(e as Error).message}`);
@@ -1157,19 +1287,25 @@ export class BookingsService {
     if (!participant)
       throw new NotFoundException({ message: 'Bạn chưa tham gia đơn này', code: 'JOIN_NOT_FOUND' });
 
-    await this.prisma.matchParticipant.delete({ where: key });
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: { slotsNeeded: true, matchFull: true },
-    });
-    let matchFull = booking?.matchFull ?? false;
-    if (booking?.matchFull && (booking.slotsNeeded ?? 0) > 0) {
-      const remaining = await this.prisma.matchParticipant.count({ where: { bookingId } });
-      if (remaining < (booking.slotsNeeded ?? 0)) {
-        await this.prisma.booking.update({ where: { id: bookingId }, data: { matchFull: false } });
-        matchFull = false;
+    // M7 fix: xoá participant + đồng bộ cờ matchFull trong MỘT transaction có
+    // khoá dòng booking — hết race với approval đang chạy đồng thời.
+    let matchFull = false;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${bookingId}::uuid FOR UPDATE`;
+      const booking = await tx.booking.findUniqueOrThrow({
+        where: { id: bookingId },
+        select: { slotsNeeded: true, matchFull: true },
+      });
+      matchFull = booking.matchFull ?? false;
+      await tx.matchParticipant.delete({ where: key });
+      if (booking.matchFull && (booking.slotsNeeded ?? 0) > 0) {
+        const remaining = await tx.matchParticipant.count({ where: { bookingId } });
+        if (remaining < (booking.slotsNeeded ?? 0)) {
+          await tx.booking.update({ where: { id: bookingId }, data: { matchFull: false } });
+          matchFull = false;
+        }
       }
-    }
+    });
 
     // P2-B2: chủ đơn cần biết chỗ trống lại để mời người khác.
     const host = await this.prisma.booking.findUnique({
@@ -1189,7 +1325,7 @@ export class BookingsService {
         type: NotificationType.MATCH_LEFT,
         title: 'Có người rời đơn ghép trận',
         body: `${leaverName} đã rời đơn ${host.code}. Đơn mở lại chỗ trống.`,
-        link: '/dashboard/my-bookings', // QA-T4-P2-01: route web có sẵn
+        link: '/bookings', // QA-T4-P2-01: route web có sẵn
       });
     }
     return { left: true, bookingId, matchFull };

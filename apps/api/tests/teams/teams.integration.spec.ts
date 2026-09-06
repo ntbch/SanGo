@@ -15,12 +15,14 @@ import { PrismaModule } from '../../src/prisma/prisma.module';
 import { AuthModule } from '../../src/auth/auth.module';
 import { TeamsModule } from '../../src/teams/teams.module';
 import { TeamsService } from '../../src/teams/teams.service';
+import { WalletsService } from '../../src/wallets/wallets.service';
 
 const SUFFIX = Date.now().toString(36);
 
 describe('Teams & ExpenseShare service (integration)', () => {
   let prisma: PrismaClient;
   let teams: TeamsService;
+  let wallets: WalletsService;
   let dbUp = false;
 
   let captain!: User;
@@ -55,6 +57,7 @@ describe('Teams & ExpenseShare service (integration)', () => {
       imports: [PrismaModule, AuthModule, TeamsModule],
     }).compile();
     teams = moduleRef.get(TeamsService);
+    wallets = moduleRef.get(WalletsService);
   });
 
   afterAll(async () => {
@@ -67,6 +70,9 @@ describe('Teams & ExpenseShare service (integration)', () => {
       await prisma.expenseShare.deleteMany({
         where: { OR: [{ payerId: { in: ids } }, { debtorId: { in: ids } }] },
       });
+      await prisma.walletLedger.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.walletBalance.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
       await prisma.teamMember.deleteMany({ where: { userId: { in: ids } } });
       await prisma.payment.deleteMany({ where: { booking: { customerId: { in: ids } } } });
       await prisma.booking.deleteMany({ where: { customerId: { in: ids } } });
@@ -86,6 +92,14 @@ describe('Teams & ExpenseShare service (integration)', () => {
   let createdTeamId: string;
   /** Booking đã chia tiền ở EXPENSE-1 — dùng lại cho các ca scoping MAJOR-A. */
   let expenseBookingId!: string;
+  /** Khoản nợ đã trả qua ví ở PAY-1 — dùng lại cho ca replay PAY-3. */
+  let walletPaidShareId!: string;
+
+  /** Đọc số dư ví hiện tại từ wallet_balances (kho/cache đồng bộ của ledger). */
+  const walletBalanceOf = async (userId: string): Promise<number> => {
+    const rows = (await prisma.$queryRaw`SELECT balance FROM "wallet_balances" WHERE "userId" = ${userId}::uuid`) as Array<{ balance: number }>;
+    return Number(rows[0]?.balance ?? 0);
+  };
 
   it('TEAM-1: tạo team -> người tạo là CAPTAIN và thành viên ACTIVE', async () => {
     if (!dbUp) return;
@@ -364,5 +378,208 @@ describe('Teams & ExpenseShare service (integration)', () => {
     expect(split.sharePerPerson).toBe(240_000);
     expect(split.shares[0].debtorId).toBe(member1.id);
     expect(split.shares[0].amount).toBe(240_000);
+  });
+
+  /* ------------------- Phase 1 (T1.2): notification ghi nợ / xác nhận ------------------- */ 
+
+  it('NOTIF-1 (Phase 1): bị ghi nợ (split + createExpenseShare) -> debtor nhận notification TEAM', async () => {
+    if (!dbUp) return;
+    // EXPENSE-1 đã split cho member1/member2 -> từng debtor phải có notification ghi nợ.
+    const m2Notifs = await prisma.notification.findMany({
+      where: { userId: member2.id, type: 'TEAM' },
+    });
+    expect(m2Notifs.length).toBeGreaterThan(0);
+    expect(m2Notifs.some((n) => n.title === 'Bạn có khoản nợ chia tiền mới')).toBe(true);
+
+    // Ghi nợ thủ công -> member1 nhận thêm đúng 1 notification TEAM mới.
+    const before = await prisma.notification.count({ where: { userId: member1.id, type: 'TEAM' } });
+    const share = await teams.createExpenseShare(createdTeamId, captain, {
+      debtorId: member1.id,
+      amount: 50_000,
+      note: 'Nợ nước tuần này',
+    });
+    expect(share.status).toBe('UNPAID');
+    const after = await prisma.notification.count({ where: { userId: member1.id, type: 'TEAM' } });
+    expect(after).toBe(before + 1);
+  });
+
+  it('NOTIF-2 (Phase 1): share -> PAID sinh notification; sai quyền không nhận', async () => {
+    if (!dbUp) return;
+    const expenses = await teams.getTeamExpenses(createdTeamId, member2);
+    const share = expenses.shares.find((s) => s.debtorId === member2.id && s.status === 'UNPAID');
+    expect(share).toBeDefined();
+    const countTeam = () =>
+      prisma.notification.count({ where: { userId: member2.id, type: 'TEAM' } });
+    const before = await countTeam();
+
+    // member1 không phải payer/captain của share member2 -> 403, KHÔNG sinh notification.
+    await expect(
+      teams.updateExpenseShareStatus(createdTeamId, share!.id, member1, { status: 'PAID' }),
+    ).rejects.toMatchObject({ response: { code: 'EXPENSE_FORBIDDEN' } });
+    expect(await countTeam()).toBe(before);
+
+    // Captain (đồng thời là payer) xác nhận -> debtor nhận notification xác nhận ĐÃ TRẢ.
+    const updated = await teams.updateExpenseShareStatus(createdTeamId, share!.id, captain, {
+      status: 'PAID',
+    });
+    expect(updated.status).toBe('PAID');
+    expect(await countTeam()).toBe(before + 1);
+  });
+
+  /* ------------------- Phase 1 (T1.3): trả nợ qua ví ------------------- */
+
+  it('PAY-1 (Phase 1): trả nợ qua ví thành công — debit debtor + credit payer + PAID', async () => {
+    if (!dbUp) return;
+    const expenses = await teams.getTeamExpenses(createdTeamId, member2);
+    const share = expenses.shares.find((s) => s.debtorId === member2.id && s.status === 'UNPAID');
+    expect(share).toBeDefined();
+    walletPaidShareId = share!.id;
+
+    // Nạp ví member2 1 triệu; ví captain (payer) bắt đầu từ 0.
+    await wallets.credit({
+      userId: member2.id,
+      amount: 1_000_000,
+      type: 'TOPUP',
+      refType: 'TEST_TOPUP',
+      refId: 'seed-m2-' + SUFFIX,
+    });
+    const m2Before = await walletBalanceOf(member2.id);
+    const capBefore = await walletBalanceOf(captain.id);
+    expect(m2Before).toBe(1_000_000);
+
+    const paid = await teams.payExpenseShare(createdTeamId, share!.id, member2);
+    expect(paid.status).toBe('PAID');
+
+    // Số dư 2 ví đổi đúng: debtor bị trừ, payer được cộng đúng share.amount.
+    expect(await walletBalanceOf(member2.id)).toBe(m2Before - share!.amount);
+    expect(await walletBalanceOf(captain.id)).toBe(capBefore + share!.amount);
+
+    // Đúng 1 cặp ledger EXPENSE_SHARE_PAYMENT theo shareId (UNIQUE chống ghi đôi).
+    const ledgers = await prisma.walletLedger.findMany({
+      where: { refType: 'EXPENSE_SHARE_PAYMENT', refId: share!.id },
+    });
+    expect(ledgers).toHaveLength(2);
+    expect(
+      ledgers.find((l) => l.direction === 'DEBIT' && l.type === 'PAYMENT' && l.userId === member2.id),
+    ).toBeDefined();
+    expect(
+      ledgers.find((l) => l.direction === 'CREDIT' && l.type === 'REFUND' && l.userId === captain.id),
+    ).toBeDefined();
+  });
+
+  it('PAY-2 (Phase 1): ví không đủ -> 409 WALLET_INSUFFICIENT_FUNDS, share vẫn UNPAID', async () => {
+    if (!dbUp) return;
+    // member1 còn khoản UNPAID nhưng ví = 0 -> bị chặn, không ghi ledger nào.
+    const expenses = await teams.getTeamExpenses(createdTeamId, member1);
+    const share = expenses.shares.find((s) => s.debtorId === member1.id && s.status === 'UNPAID');
+    expect(share).toBeDefined();
+    expect(await walletBalanceOf(member1.id)).toBe(0);
+
+    await expect(
+      teams.payExpenseShare(createdTeamId, share!.id, member1),
+    ).rejects.toMatchObject({ response: { code: 'WALLET_INSUFFICIENT_FUNDS' } });
+
+    const stillUnpaid = await prisma.expenseShare.findUnique({ where: { id: share!.id } });
+    expect(stillUnpaid!.status).toBe('UNPAID');
+    expect(
+      await prisma.walletLedger.count({
+        where: { refType: 'EXPENSE_SHARE_PAYMENT', refId: share!.id },
+      }),
+    ).toBe(0);
+  });
+
+  it('PAY-3 (Phase 1): replay trả lại lần 2 — idempotent, không trừ lần 2', async () => {
+    if (!dbUp) return;
+    const share = await prisma.expenseShare.findUnique({ where: { id: walletPaidShareId } });
+    expect(share!.status).toBe('PAID');
+    const m2Before = await walletBalanceOf(member2.id);
+    const capBefore = await walletBalanceOf(captain.id);
+
+    // Gọi lại trên share đã PAID: trả về kết quả hiện tại, không phát sinh ledger mới.
+    const replayed = await teams.payExpenseShare(createdTeamId, walletPaidShareId, member2);
+    expect(replayed.status).toBe('PAID');
+    expect(await walletBalanceOf(member2.id)).toBe(m2Before);
+    expect(await walletBalanceOf(captain.id)).toBe(capBefore);
+    expect(
+      await prisma.walletLedger.count({
+        where: { refType: 'EXPENSE_SHARE_PAYMENT', refId: walletPaidShareId },
+      }),
+    ).toBe(2);
+  });
+
+  it('PAY-4 (Phase 1): người không phải debtor -> 403', async () => {
+    if (!dbUp) return;
+    // member1 còn khoản UNPAID (DEDUP) — member2 và stranger không được trả hộ.
+    const expenses = await teams.getTeamExpenses(createdTeamId, member1);
+    const share = expenses.shares.find((s) => s.debtorId === member1.id && s.status === 'UNPAID');
+    expect(share).toBeDefined();
+
+    await expect(
+      teams.payExpenseShare(createdTeamId, share!.id, member2),
+    ).rejects.toMatchObject({ response: { code: 'EXPENSE_FORBIDDEN' } });
+    await expect(
+      teams.payExpenseShare(createdTeamId, share!.id, stranger),
+    ).rejects.toMatchObject({ response: { code: 'EXPENSE_FORBIDDEN' } });
+
+    const stillUnpaid = await prisma.expenseShare.findUnique({ where: { id: share!.id } });
+    expect(stillUnpaid!.status).toBe('UNPAID');
+  });
+
+  it('PAY-5 (R1): trả lại khoản đã trả qua ví nhưng bị PATCH mở lại UNPAID -> 409 EXPENSE_ALREADY_PAID', async () => {
+    if (!dbUp) return;
+    // member1 còn khoản UNPAID (PAY-2/PAY-4 không đụng vào) — dùng cho cả 2 lần trả trong ca này.
+    const expenses = await teams.getTeamExpenses(createdTeamId, member1);
+    const share = expenses.shares.find((s) => s.debtorId === member1.id && s.status === 'UNPAID');
+    expect(share).toBeDefined();
+
+    // Nạp đủ cho CẢ 2 lần trả (2x amount + buffer) để lần 2 rơi vào guard UNIQUE
+    // chứ không phải WALLET_INSUFFICIENT (lần 1 đã tiêu amount).
+    await wallets.credit({
+      userId: member1.id,
+      amount: share!.amount * 2 + 10_000,
+      type: 'TOPUP',
+      refType: 'TEST_TOPUP',
+      refId: 'seed-m1-pay5-' + SUFFIX,
+    });
+
+    // Lần 1: trả thành công -> PAID + đúng 2 dòng ledger (DEBIT/PAYMENT + CREDIT/REFUND).
+    const paid = await teams.payExpenseShare(createdTeamId, share!.id, member1);
+    expect(paid.status).toBe('PAID');
+    expect(
+      await prisma.walletLedger.count({
+        where: { refType: 'EXPENSE_SHARE_PAYMENT', refId: share!.id },
+      }),
+    ).toBe(2);
+
+    const m1AfterFirst = await walletBalanceOf(member1.id);
+    const capAfterFirst = await walletBalanceOf(captain.id);
+
+    // PATCH mở lại UNPAID (captain là payer nên được quyền) — ledger cũ vẫn còn nguyên.
+    await teams.updateExpenseShareStatus(createdTeamId, share!.id, captain, {
+      status: 'UNPAID',
+    });
+
+    // Lần 2: recheck UNPAID đi qua nhưng insert debit va UNIQUE(refType, refId, type)
+    // -> P2002 được bắt thành 409 EXPENSE_ALREADY_PAID (teams.service.ts:664), không vỡ 500.
+    await expect(
+      teams.payExpenseShare(createdTeamId, share!.id, member1),
+    ).rejects.toMatchObject({ response: { code: 'EXPENSE_ALREADY_PAID' } });
+
+    // Tx rollback sạch: không thêm ledger, số dư không đổi, share không chuyển PAID.
+    expect(
+      await prisma.walletLedger.count({
+        where: { refType: 'EXPENSE_SHARE_PAYMENT', refId: share!.id },
+      }),
+    ).toBe(2);
+    expect(await walletBalanceOf(member1.id)).toBe(m1AfterFirst);
+    expect(await walletBalanceOf(captain.id)).toBe(capAfterFirst);
+    const afterRetry = await prisma.expenseShare.findUnique({ where: { id: share!.id } });
+    expect(afterRetry!.status).toBe('UNPAID');
+
+    // Dọn trạng thái khớp ledger (khoản này thực tế đã được trả qua ví) — tránh nhiễu test sau.
+    await prisma.expenseShare.update({
+      where: { id: share!.id },
+      data: { status: 'PAID' },
+    });
   });
 });

@@ -106,7 +106,7 @@ export function VenueFilterSidebar({
   );
 
   return (
-    <Card className="w-72 shrink-0 hidden lg:block sticky top-20 border-border/80 bg-card/90 backdrop-blur-md shadow-xs self-start">
+    <Card className="w-72 shrink-0 hidden lg:block sticky top-20 border-border/80 bg-card shadow-xs self-start">
       <CardHeader className="p-4 pb-3 border-b border-border/60 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-bold flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 text-primary" />
@@ -312,9 +312,9 @@ export function VenueFilterSidebar({
           <div className="flex flex-wrap gap-1.5">
             {[
               { val: undefined, label: 'Tất cả' },
-              { val: 4.5, label: '4.5★ +' },
-              { val: 4.0, label: '4.0★ +' },
-              { val: 3.5, label: '3.5★ +' },
+              { val: 4.5, label: '4.5 sao trở lên' },
+              { val: 4.0, label: '4.0 sao trở lên' },
+              { val: 3.5, label: '3.5 sao trở lên' },
             ].map((r) => (
               <button
                 key={String(r.val)}
@@ -323,8 +323,8 @@ export function VenueFilterSidebar({
                 className={cn(
                   'px-2.5 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer',
                   filters.minRating === r.val
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-500 font-bold'
-                    : 'border-border/60 text-muted-foreground hover:text-foreground',
+                    ? 'border-primary bg-primary/10 text-primary font-bold'
+                    : 'border-border text-muted-foreground hover:text-foreground',
                 )}
               >
                 {r.label}

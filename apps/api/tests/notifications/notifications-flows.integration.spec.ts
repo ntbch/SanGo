@@ -92,10 +92,33 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
 
   afterAll(async () => {
     if (!dbUp) return;
-    await prisma.notification.deleteMany({
-      where: { user: { email: { contains: `itflow-${SUFFIX}` } } },
+    // FIX F1 (T13-F1): cleanup theo PREFIX 'itflow-' (không phụ thuộc SUFFIX chạy
+    // trước — SUFFIX đổi theo thời gian chạy). Xoá CON TRƯỚC CHA: booking.customer,
+    // wallet_* , venue.owner giữ FK RESTRICT về users — phải dọn hết mới xoá được
+    // user rác do các lần chạy cũ để lại (tránh tích luỹ chiếm top-10 leaderboard).
+    const strays = await prisma.user.findMany({
+      where: { email: { startsWith: 'itflow-' } },
+      select: { id: true },
     });
-    await prisma.user.deleteMany({ where: { email: { contains: `itflow-${SUFFIX}` } } });
+    if (strays.length > 0) {
+      const ids = strays.map((u) => u.id);
+      await prisma.notification.deleteMany({ where: { userId: { in: ids } } }).catch(() => undefined);
+      await prisma.walletLedger.deleteMany({ where: { userId: { in: ids } } }).catch(() => undefined);
+      await prisma.walletBalance.deleteMany({ where: { userId: { in: ids } } }).catch(() => undefined);
+      await prisma.walletTopup.deleteMany({ where: { userId: { in: ids } } }).catch(() => undefined);
+      await prisma.payment
+        .deleteMany({ where: { booking: { customerId: { in: ids } } } })
+        .catch(() => undefined);
+      await prisma.bookingHold.deleteMany({ where: { userId: { in: ids } } }).catch(() => undefined);
+      await prisma.booking.deleteMany({ where: { customerId: { in: ids } } }).catch(() => undefined);
+      const owned = await prisma.venue.findMany({ where: { ownerId: { in: ids } }, select: { id: true } });
+      if (owned.length > 0) {
+        const vIds = owned.map((v) => v.id);
+        await prisma.court.deleteMany({ where: { venueId: { in: vIds } } }).catch(() => undefined);
+        await prisma.venue.deleteMany({ where: { id: { in: vIds } } }).catch(() => undefined);
+      }
+      await prisma.user.deleteMany({ where: { id: { in: ids } } }).catch(() => undefined);
+    }
     await prisma.$disconnect();
   });
 

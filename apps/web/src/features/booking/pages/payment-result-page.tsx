@@ -8,6 +8,7 @@ import { CheckCircle2, Ticket, XCircle } from 'lucide-react';
 export function PaymentResultPage(): React.ReactElement {
   const [searchParams] = useSearchParams();
   const txnRef = searchParams.get('txnRef') || 'TXN-SUCCESS';
+  const bookingCode = searchParams.get('code');
   const amount = Number(searchParams.get('amount')) || 0;
   const isSuccess = searchParams.get('status') !== 'FAIL';
 
@@ -24,11 +25,17 @@ export function PaymentResultPage(): React.ReactElement {
         <p className="text-xs text-muted-foreground">
           {isSuccess
             ? 'Vé đặt sân của bạn đã được xác nhận. Mã QR Check-in đã sẵn sàng.'
-            : 'Giao dịch chưa được xác nhận. Bạn có thể quay lại lượt giữ chỗ nếu vẫn còn thời gian.'}
+            : 'Chưa xác nhận giao dịch. Vui lòng quay lại giữ chỗ nếu còn hạn.'}
         </p>
       </div>
 
       <Card className="p-4 border border-border/80 bg-card space-y-2 text-xs text-left">
+        {bookingCode && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Mã đơn đặt sân:</span>
+            <span className="font-mono-num font-bold text-primary">{bookingCode}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Mã giao dịch:</span>
           <span className="font-mono-num font-bold text-foreground">{txnRef}</span>

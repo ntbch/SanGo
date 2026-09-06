@@ -86,7 +86,7 @@ export function VenueBookingSidebar({ venue }: VenueBookingSidebarProps): React.
             <Button
               size="lg"
               onClick={handleBookingClick}
-              className="w-full font-bold gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer"
+              className="w-full font-bold gap-2 shadow-lg cursor-pointer"
             >
               <CalendarCheck className="h-4 w-4" />
               <span>Xem Lịch & Đặt Sân Ngay</span>
@@ -105,7 +105,7 @@ export function VenueBookingSidebar({ venue }: VenueBookingSidebarProps): React.
         onClose={() => setShowAuthModal(false)}
         onSuccess={() => navigate(bookingUrl)}
         title="Đăng Nhập Để Xem Lịch & Đặt Sân"
-        subtitle={`Vui lòng đăng nhập tài khoản để chọn khung giờ và đặt sân tại "${venue.name}".`}
+        subtitle={`đăng nhập tài khoản để chọn khung giờ và đặt sân tại "${venue.name}".`}
       />
     </>
   );

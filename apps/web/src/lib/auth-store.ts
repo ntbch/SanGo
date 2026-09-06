@@ -98,7 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
 
       try {
-        const freshUser = await apiClient<User>('/auth/me');
+        const res = await apiClient<{ user: User }>('/users/me');
+        const freshUser = res?.user;
         if (freshUser && freshUser.id) {
           localStorage.setItem('sango_user', JSON.stringify(freshUser));
           set({ user: freshUser, accessToken: localStorage.getItem('sango_access_token'), status: 'authenticated' });

@@ -85,7 +85,7 @@ export function Navbar(): React.ReactElement {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-card/90 backdrop-blur-md transition-all">
+    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-card transition-all">
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 flex h-16 items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 group shrink-0">
@@ -112,14 +112,13 @@ export function Navbar(): React.ReactElement {
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs lg:text-sm font-semibold transition-colors',
+                  'px-3 py-1.5 rounded-lg text-xs lg:text-sm font-semibold transition-colors',
                   isActive
                     ? 'text-primary bg-primary/10 font-bold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/70',
                 )
               }
             >
-              <item.icon className="h-4 w-4" />
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -135,7 +134,7 @@ export function Navbar(): React.ReactElement {
             className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
             title="Đổi giao diện Sáng/Tối"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {user ? (
@@ -162,7 +161,7 @@ export function Navbar(): React.ReactElement {
 
                 {/* Dropdown Menu Popup */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl p-2 z-50 animate-in fade-in-0 zoom-in-95 duration-150">
+                  <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border/80 bg-card shadow-2xl p-2 z-50 animate-in fade-in-0 zoom-in-95 duration-150">
                     {/* User Header Summary */}
                     <div className="p-2.5 pb-3 border-b border-border/60 flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary font-black text-sm">
@@ -211,7 +210,7 @@ export function Navbar(): React.ReactElement {
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-secondary transition-colors"
                       >
-                        <User className="h-4 w-4 text-indigo-400" />
+                        <User className="h-4 w-4 text-primary" />
                         <span>Hồ sơ cá nhân</span>
                       </Link>
 
@@ -268,7 +267,7 @@ export function Navbar(): React.ReactElement {
             className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
             title="Đổi giao diện Sáng/Tối"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {user && (

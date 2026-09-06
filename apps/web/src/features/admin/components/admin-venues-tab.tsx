@@ -166,14 +166,14 @@ export function AdminVenuesTab(): React.ReactElement {
             {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'] as const).map((s) => {
               const label =
                 s === 'ALL'
-                  ? 'Tất Cả'
+                  ? 'Tất cả'
                   : s === 'PENDING'
-                  ? '⏳ Chờ Duyệt'
+                  ? 'Chờ duyệt'
                   : s === 'APPROVED'
-                  ? '✅ Đã Duyệt'
+                  ? 'Đã duyệt'
                   : s === 'REJECTED'
-                  ? '❌ Bị Từ Chối'
-                  : '⏸️ Tạm Treo';
+                  ? 'Bị từ chối'
+                  : 'Tạm treo';
               const isActive = statusFilter === s;
               return (
                 <button
@@ -484,7 +484,7 @@ export function AdminVenuesTab(): React.ReactElement {
               <XCircle className="h-5 w-5" /> Từ Chối Hồ Sơ Cụm Sân
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Vui lòng nêu rõ lý do từ chối để chủ sân biết cần chỉnh sửa hoặc bổ sung giấy tờ gì.
+              nêu rõ lý do từ chối để chủ sân biết cần chỉnh sửa hoặc bổ sung giấy tờ gì.
             </DialogDescription>
           </DialogHeader>
 

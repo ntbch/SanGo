@@ -198,7 +198,7 @@ export class VouchersService {
         type: NotificationType.VOUCHER,
         title: 'Áp dụng mã giảm giá thành công',
         body: `Mã ${voucher.code} giảm ${discountAmount.toLocaleString('vi-VN')}đ. Giá cần thanh toán còn ${finalAmount.toLocaleString('vi-VN')}đ.`,
-        link: '/dat-san',
+        link: '/bookings',
       })
       .catch(() => undefined); // best-effort: lỗi thông báo không chặn kết quả áp mã
 

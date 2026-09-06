@@ -24,7 +24,7 @@ export function TeamHeader({ onCreateTeam }: TeamHeaderProps): React.ReactElemen
 
       <Button
         onClick={onCreateTeam}
-        className="font-bold text-xs gap-1.5 shadow-md shadow-emerald-500/20 self-start sm:self-auto cursor-pointer"
+        className="font-bold text-xs gap-1.5 shadow-md self-start sm:self-auto cursor-pointer"
       >
         <UserPlus className="h-4 w-4" />
         <span>Tạo Đội Mới</span>

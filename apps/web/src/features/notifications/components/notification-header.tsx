@@ -35,7 +35,7 @@ export function NotificationHeader({
           <Button
             size="sm"
             onClick={onMarkAllAsRead}
-            className="gap-1.5 font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer"
+            className="gap-1.5 font-bold text-xs shadow-md cursor-pointer"
           >
             <CheckCheck className="h-4 w-4" />
             <span>Đánh Dấu Đã Đọc Tất Cả ({unreadCount})</span>

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getVenuesListApi } from '../../venues/api/venues-api';
 import { VenueCard } from '../../venues/components/venue-card';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { ArrowRight, Star, MapPin } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export function HomeFeaturedVenues(): React.ReactElement {
   const { data, isLoading } = useQuery({
@@ -18,18 +18,14 @@ export function HomeFeaturedVenues(): React.ReactElement {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500">
-            <Star className="h-3.5 w-3.5 fill-amber-500" />
-            <span>Đánh Giá Cao Nhất</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground mt-0.5">
-            Cụm Sân Tiêu Biểu Được Yêu Thích
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Cụm sân tiêu biểu được yêu thích
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Các cụm sân đạt chuẩn thi đấu với mặt sân cao cấp và đầy đủ tiện ích phòng thay đồ, bãi đỗ xe.
+            Các cụm sân đạt tiêu chuẩn thi đấu với mặt sân chất lượng và đầy đủ tiện ích.
           </p>
         </div>
-        <Link to="/venues" className="text-xs font-bold text-primary hover:text-emerald-400 flex items-center gap-1 group transition-colors">
+        <Link to="/venues" className="text-xs font-semibold text-foreground hover:text-primary flex items-center gap-1 group transition-colors">
           <span>Xem tất cả sân</span>
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
@@ -59,12 +55,9 @@ export function HomeFeaturedVenues(): React.ReactElement {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center bg-card/40">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
-            <MapPin className="h-6 w-6" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">Đang tải và cập nhật cụm sân thể thao</h3>
+          <h3 className="text-sm font-semibold text-foreground">Chưa có cụm sân nào được giới thiệu</h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-            Hệ thống đang đồng bộ dữ liệu sân thi đấu. Bạn có thể duyệt danh sách sân hoặc chủ sân có thể đăng ký tạo cụm sân mới.
+            Hệ thống đang đồng bộ dữ liệu sân thi đấu. Duyệt danh sách sân hoặc đăng ký tạo cụm sân mới.
           </p>
           <div className="mt-4 flex items-center justify-center gap-3">
             <Link

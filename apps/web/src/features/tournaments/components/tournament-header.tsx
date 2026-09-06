@@ -25,7 +25,7 @@ export function TournamentHeader({ onCreateTournament }: TournamentHeaderProps):
       <Button
         onClick={onCreateTournament}
         size="sm"
-        className="font-bold text-xs gap-1.5 shadow-md shadow-emerald-500/20 self-start sm:self-auto cursor-pointer"
+        className="font-bold text-xs gap-1.5 shadow-md self-start sm:self-auto cursor-pointer"
       >
         <PlusCircle className="h-4 w-4" />
         <span>Tạo Giải Đấu</span>

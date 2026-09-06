@@ -294,7 +294,7 @@ export function useOwnerDashboard() {
   const handleWalkInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!walkInCourtId || !walkInCustomerName.trim()) {
-      alert('Vui lòng chọn sân và điền tên khách');
+      alert('chọn sân và điền tên khách');
       return;
     }
     setWalkInSubmitting(true);
@@ -338,7 +338,7 @@ export function useOwnerDashboard() {
   };
 
   const handleMarkNoShow = async (bookingId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn đánh dấu đơn này là Khách Vắng Mặt (NO_SHOW)?')) return;
+    if (!confirm('Đánh dấu NO_SHOW cho đơn này?')) return;
     try {
       await markNoShowBookingApi(bookingId);
       fetchBookings();
@@ -379,7 +379,7 @@ export function useOwnerDashboard() {
   };
 
   const handleDeleteCourt = async (courtId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa sân con này? Thao tác không thể hoàn tác!')) return;
+    if (!confirm('Xóa sân con? Không thể hoàn tác!')) return;
     try {
       await deleteCourtApi(courtId);
       fetchCourts();
@@ -428,7 +428,7 @@ export function useOwnerDashboard() {
         pricePerSlot: r.pricePerSlot,
       }));
       await replaceCourtPricingRulesApi(selectedCourtForPricing.id, { rules: payloadRules });
-      alert('Đã cập nhật toàn bộ bảng giá giờ vàng thành công!');
+      alert('Đã lưu bảng giá giờ vàng.');
       fetchPricingRules(selectedCourtForPricing.id);
     } catch (err: any) {
       alert(err.message || 'Lỗi khi lưu bảng giá');

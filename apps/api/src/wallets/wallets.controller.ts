@@ -64,4 +64,13 @@ export class WalletsController {
   mockCallback(@Query() query: { txnRef?: string; amount?: string }) {
     return this.walletsService.handleMockCallback(query);
   }
+
+  @Get('vnpay/callback')
+  @ApiOperation({
+    summary:
+      'Callback thật VNPay nạp ví — verify HMAC-SHA512 + amount (xu) khớp, idempotent replay, redirect FE /wallet?topup=...',
+  })
+  vnpayCallback(@Query() query: Record<string, string | undefined>) {
+    return this.walletsService.handleVnpayCallback(query);
+  }
 }

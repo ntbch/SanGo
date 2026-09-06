@@ -358,6 +358,10 @@ model BookingHold {
   slotsNeeded   Int?
   /// S2-F1: đặt sân tư cách đội — giữ teamId từ lúc hold để confirm copy sang Booking.
   teamId      String?           @db.Uuid
+  /// P5b O1 (HOLD-FIX): giữ lựa chọn duyệt thành viên từ lúc hold để confirmFromHold
+  /// copy sang Booking. NULL/false = join trực tiếp (DIRECT — kèo cũ không phá);
+  /// true = POST /bookings/:id/join -> 409 APPROVAL_REQUIRED (qua /matches/:id/requests).
+  requiresApproval Boolean?
   createdAt   DateTime          @default(now())
 
   user  User  @relation(fields: [userId], references: [id])
@@ -390,6 +394,9 @@ model Booking {
   slotsNeeded   Int?
   matchFull     Boolean?
   matchLevel    MatchLevel? @default(FRIENDLY)
+  /// P5a O1: true = join trực tiếp bị chặn (409 APPROVAL_REQUIRED, phải qua /matches/:id/requests).
+  /// NULL/false = join trực tiếp như cũ — kèo cũ coi là DIRECT (quyết định chốt 2026-08-30), không phá data cũ.
+  requiresApproval Boolean?
   targetPositions String[]
   costPerPerson Int?
   /// P2-B2: mốc chống gửi trùng nhắc lịch (null = chưa nhắc ở mốc đó).

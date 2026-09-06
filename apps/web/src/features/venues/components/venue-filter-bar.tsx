@@ -85,7 +85,7 @@ export function VenueFilterBar({
   );
 
   return (
-    <div className="sticky top-16 z-30 w-full bg-card/90 backdrop-blur-lg border-b border-border/80 px-4 sm:px-6 md:px-8 lg:px-12 py-3 space-y-2.5 shadow-xs">
+    <div className="sticky top-16 z-30 w-full bg-card border-b border-border/80 px-4 sm:px-6 md:px-8 lg:px-12 py-3 space-y-2.5 shadow-xs">
       {/* Row 1: Sport Pills & Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
         {/* Sport Pills (Horizontal scrollable on mobile) */}
@@ -100,7 +100,7 @@ export function VenueFilterBar({
                 className={cn(
                   'whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-xs shadow-emerald-500/20'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-secondary border border-border/40',
                 )}
               >

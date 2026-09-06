@@ -29,12 +29,12 @@ export function ProfileSidebar({
 
   return (
     <aside className="lg:col-span-4 xl:col-span-3 space-y-4 sticky top-20">
-      <Card className="p-5 border border-border/80 bg-card/95 backdrop-blur-md shadow-xl space-y-5">
+      <Card className="p-5 border border-border/80 bg-card shadow-xl space-y-5">
         {/* Athlete Profile Mini Card */}
         <div className="flex flex-col items-center text-center space-y-3 pb-4 border-b border-border/60">
           {/* Avatar with Camera Upload Overlay */}
           <div className="relative group">
-            <div className="h-20 w-20 rounded-3xl bg-primary/15 border-2 border-primary/40 text-primary font-black text-3xl flex items-center justify-center overflow-hidden shadow-lg shadow-emerald-500/20">
+            <div className="h-20 w-20 rounded-3xl bg-primary/15 border-2 border-primary/40 text-primary font-black text-3xl flex items-center justify-center overflow-hidden shadow-lg">
               {user.avatarUrl || avatarUrl ? (
                 <img
                   src={user.avatarUrl || avatarUrl || ''}
@@ -93,7 +93,7 @@ export function ProfileSidebar({
                 className={cn(
                   'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-emerald-500/20'
+                    ? 'bg-primary text-primary-foreground shadow-md'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/70',
                 )}
               >

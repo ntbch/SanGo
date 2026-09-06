@@ -23,14 +23,14 @@ export function ProfileNotificationsTab({
     <Card className="p-6 border border-border/80 bg-card shadow-md space-y-5 animate-in fade-in-50 duration-200">
       <div className="pb-3 border-b border-border/50">
         <h3 className="text-base font-black text-foreground">Cài Đặt Thông Báo</h3>
-        <p className="text-xs text-muted-foreground">Tùy chỉnh thông báo nhắc giờ thi đấu và lời mời ghép trận.</p>
+        <p className="text-xs text-muted-foreground">Nhắc giờ thi đấu &amp; lời mời kèo.</p>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/40 border border-border/60">
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-foreground">Nhắc nhở trước trận 60 phút</p>
-            <p className="text-[11px] text-muted-foreground">Gửi thông báo nhắc giờ xuất phát đến sân thi đấu.</p>
+            <p className="text-[11px] text-muted-foreground">Nhắc giờ xuất phát đến sân.</p>
           </div>
           <button
             type="button"
@@ -52,7 +52,7 @@ export function ProfileNotificationsTab({
         <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/40 border border-border/60">
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-foreground">Lời mời tham gia ghép trận</p>
-            <p className="text-[11px] text-muted-foreground">Nhận thông báo khi có đội bóng tìm đối gần khu vực của bạn.</p>
+            <p className="text-[11px] text-muted-foreground">Thông báo đội tìm đối gần bạn.</p>
           </div>
           <button
             type="button"
@@ -74,7 +74,7 @@ export function ProfileNotificationsTab({
         <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/40 border border-border/60">
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-foreground">Ưu đãi giờ vàng &amp; Voucher</p>
-            <p className="text-[11px] text-muted-foreground">Nhận mã giảm giá từ các cụm sân bạn thường xuyên chơi.</p>
+            <p className="text-[11px] text-muted-foreground">Nhận mã giảm từ sân bạn hay chơi.</p>
           </div>
           <button
             type="button"

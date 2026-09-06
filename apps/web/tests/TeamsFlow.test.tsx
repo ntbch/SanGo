@@ -1,9 +1,76 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { TeamsPage, TeamDetailPage } from '../src/features/teams/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { UserRole } from '../src/lib/constants';
+
+vi.mock('../src/features/teams/api/teams-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/features/teams/api/teams-api')>();
+  const mockTeam = {
+    id: 'team-fc-sango',
+    name: 'SanGo Warriors FC',
+    sportType: 'FOOTBALL5',
+    logoUrl: null,
+    description: 'Đội bóng giao lưu sân 5 tại Cầu Giấy.',
+    captainId: 'u-1',
+    createdAt: new Date().toISOString(),
+    memberCount: 2,
+    captain: {
+      id: 'u-1',
+      fullName: 'Trần Đức Người Chơi',
+      email: 'player1@sango.vn',
+      phone: '0912345678',
+      avatarUrl: null,
+    },
+    members: [
+      {
+        id: 'mem-1',
+        teamId: 'team-fc-sango',
+        userId: 'u-1',
+        role: 'CAPTAIN' as const,
+        status: 'ACTIVE' as const,
+        joinedAt: new Date().toISOString(),
+        user: { id: 'u-1', fullName: 'Trần Đức Người Chơi', avatarUrl: null, phone: '0912345678', email: 'player1@sango.vn' },
+      },
+      {
+        id: 'mem-2',
+        teamId: 'team-fc-sango',
+        userId: 'u-2',
+        role: 'MEMBER' as const,
+        status: 'ACTIVE' as const,
+        joinedAt: new Date().toISOString(),
+        user: { id: 'u-2', fullName: 'Nguyễn Văn Nam', avatarUrl: null, phone: '0908765432', email: 'nam@sango.vn' },
+      },
+    ],
+  };
+  return {
+    ...actual,
+    getTeamApi: vi.fn().mockResolvedValue(mockTeam),
+    getTeamExpensesApi: vi.fn().mockResolvedValue([]),
+    getTreasuryOverviewApi: vi.fn().mockResolvedValue({
+      teamId: 'team-fc-sango',
+      balance: 1500000,
+      totalIncomeThisMonth: 2000000,
+      totalExpenseThisMonth: 500000,
+      recentTransactions: [],
+    }),
+  };
+});
+
+vi.mock('../src/features/wallet/api/wallet-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/features/wallet/api/wallet-api')>();
+  return {
+    ...actual,
+    getMyWalletApi: vi.fn().mockResolvedValue({
+      balance: 2500000,
+      page: 1,
+      pageSize: 10,
+      total: 0,
+      items: [],
+    }),
+  };
+});
 
 describe('Teams Flow Integration', () => {
   beforeEach(() => {
@@ -39,7 +106,7 @@ describe('Teams Flow Integration', () => {
     expect(screen.getByRole('button', { name: /Cầu Lông/i })).toBeDefined();
 
     // Search input
-    const searchInput = screen.getByPlaceholderText(/Tìm tên đội.../i) as HTMLInputElement;
+    const searchInput = screen.getByPlaceholderText(/Tìm tên đội/i) as HTMLInputElement;
     expect(searchInput).toBeDefined();
     fireEvent.change(searchInput, { target: { value: 'Warriors' } });
     expect(searchInput.value).toBe('Warriors');

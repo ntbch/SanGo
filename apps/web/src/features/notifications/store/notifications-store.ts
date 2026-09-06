@@ -1,120 +1,135 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { apiClient } from '../../../lib/api-client';
+import { bindRealtimeToAuth } from '../../../lib/socket';
 import { AppNotification, NotificationType } from '../types';
 
-const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif-1',
-    type: 'BOOKING',
-    title: 'Đặt sân thành công - Mã CH-20260828-0001',
-    message: 'Bạn đã đặt thành công Sân Bóng Đá 5A tại Cụm Sân Ba Đình lúc 18:00 - 19:30 hôm nay. Mã QR Check-in đã sẵn sàng.',
-    link: '/bookings',
-    isRead: false,
-    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 mins ago
-    priority: 'HIGH',
-    metadata: {
-      bookingCode: 'CH-20260828-0001',
-      venueName: 'Cụm Sân Ba Đình',
-    },
-  },
-  {
-    id: 'notif-2',
-    type: 'MATCH',
-    title: 'Có đội nhận kèo giao lưu!',
-    message: 'FC Cầu Giấy United vừa đồng ý nhận lời thách đấu tại kèo bóng đá 7 người lúc 20:00 ngày mai.',
-    link: '/matches/m-1',
-    isRead: false,
-    createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(), // 35 mins ago
-    priority: 'NORMAL',
-    metadata: {
-      matchId: 'm-1',
-    },
-  },
-  {
-    id: 'notif-3',
-    type: 'WALLET',
-    title: 'Biến động số dư: +500.000 đ',
-    message: 'Giao dịch nạp tiền qua VietQR thành công. Số dư khả dụng hiện tại: 2.450.000 đ.',
-    link: '/wallet',
-    isRead: false,
-    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), // 2 hours ago
-    priority: 'NORMAL',
-    metadata: {
-      amount: 500000,
-    },
-  },
-  {
-    id: 'notif-4',
-    type: 'TOURNAMENT',
-    title: 'Giải Đấu SanGo Open 2026 đã công bố sơ đồ nhánh cây',
-    message: 'Đội SanGo Warriors của bạn sẽ gặp CLB Bạch Mai FC tại Vòng Tứ Kết lúc 08:30 sáng Thứ Bảy.',
-    link: '/tournaments/t-1',
-    isRead: true,
-    createdAt: new Date(Date.now() - 14 * 3600 * 1000).toISOString(), // 14 hours ago
-    priority: 'NORMAL',
-    metadata: {
-      tournamentId: 't-1',
-    },
-  },
-  {
-    id: 'notif-5',
-    type: 'SYSTEM',
-    title: 'Bảo mật tài khoản: Đã xác thực KYC Level 2',
-    message: 'Hồ sơ tài khoản vận động viên của bạn đã được kiểm duyệt và nâng hạn mức giao dịch ví lên 50.000.000 đ/lần.',
-    link: '/profile',
-    isRead: true,
-    createdAt: new Date(Date.now() - 2 * 86400 * 1000).toISOString(), // 2 days ago
-    priority: 'NORMAL',
-  },
-];
+// ---- Shape trả về từ BE GET /notifications (notifications.service.ts list()) ----
+interface BeNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+interface NotificationListResponse {
+  items: BeNotification[];
+  page: number;
+  pageSize: number;
+  total: number;
+  unreadCount: number;
+}
+
+/** Shape BE emit qua WS event 'notification:new' — khớp BeNotification của GET /notifications. */
+export type RealtimeBeNotification = BeNotification;
+
+/** Map NotificationType của BE (schema.prisma) sang nhóm filter của FE. */
+function mapBeType(t: string): Exclude<NotificationType, 'ALL'> {
+  if (['BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'NEW_BOOKING_OWNER', 'REMINDER'].includes(t)) {
+    return 'BOOKING';
+  }
+  if (['MATCH_JOINED', 'MATCH_LEFT', 'MATCH_REQUEST'].includes(t)) return 'MATCH';
+  if (['PAYMENT_RECEIVED', 'WALLET'].includes(t)) return 'WALLET';
+  if (t === 'TOURNAMENT') return 'TOURNAMENT';
+  return 'SYSTEM';
+}
+
+function mapBeNotification(n: BeNotification): AppNotification {
+  return {
+    id: n.id,
+    type: mapBeType(n.type),
+    title: n.title,
+    message: n.body,
+    link: n.link ?? undefined,
+    isRead: n.readAt != null,
+    createdAt: n.createdAt,
+  };
+}
 
 interface NotificationsState {
   notifications: AppNotification[];
+  loading: boolean;
+  loaded: boolean;
   filterType: NotificationType;
   filterUnreadOnly: boolean;
+  fetchNotifications: () => Promise<void>;
   setFilterType: (type: NotificationType) => void;
   setFilterUnreadOnly: (unreadOnly: boolean) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  handleRealtimeNotification: (notification: BeNotification) => void;
   deleteNotification: (id: string) => void;
   clearAll: () => void;
   unreadCount: () => number;
 }
 
-export const useNotificationsStore = create<NotificationsState>()(
-  persist(
-    (set, get) => ({
-      notifications: INITIAL_NOTIFICATIONS,
-      filterType: 'ALL',
-      filterUnreadOnly: false,
+export const useNotificationsStore = create<NotificationsState>()((set, get) => ({
+  notifications: [],
+  loading: false,
+  loaded: false,
+  filterType: 'ALL',
+  filterUnreadOnly: false,
 
-      setFilterType: (type) => set({ filterType: type }),
-      setFilterUnreadOnly: (unreadOnly) => set({ filterUnreadOnly: unreadOnly }),
+  /** Tải hộp thư thật từ BE (trang 1, mới nhất trước). */
+  fetchNotifications: async () => {
+    if (get().loading) return;
+    set({ loading: true });
+    try {
+      const res = await apiClient<NotificationListResponse>('/notifications', {
+        params: { page: 1 },
+      });
+      set({ notifications: res.items.map(mapBeNotification), loaded: true });
+    } catch {
+      // Lỗi mạng/401: giữ danh sách đã có, apiClient đã lo refresh token/chuyển event
+    } finally {
+      set({ loading: false });
+    }
+  },
 
-      markAsRead: (id) =>
-        set((state) => ({
-          notifications: state.notifications.map((n) =>
-            n.id === id ? { ...n, isRead: true } : n,
-          ),
-        })),
+  setFilterType: (type) => set({ filterType: type }),
+  setFilterUnreadOnly: (unreadOnly) => set({ filterUnreadOnly: unreadOnly }),
 
-      markAllAsRead: () =>
-        set((state) => ({
-          notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
-        })),
+  markAsRead: (id) => {
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, isRead: true } : n,
+      ),
+    }));
+    void apiClient(`/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
+  },
 
-      deleteNotification: (id) =>
-        set((state) => ({
-          notifications: state.notifications.filter((n) => n.id !== id),
-        })),
+  markAllAsRead: () => {
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+    }));
+    void apiClient('/notifications/read-all', { method: 'POST' }).catch(() => {});
+  },
 
-      clearAll: () => set({ notifications: [] }),
+  /**
+   * Phase 4: nhận event WS 'notification:new' (gợi ý refetch) — prepend có dedupe theo id
+   * để badge unread tự tăng qua unreadCount(); nếu user đang mở trang thì danh sách cập nhật
+   * ngay không cần gọi lại REST (REST vẫn là nguồn sự thật khi F5/refetch).
+   */
+  handleRealtimeNotification: (notification) => {
+    set((state) => {
+      if (state.notifications.some((n) => n.id === notification.id)) return state;
+      return { notifications: [mapBeNotification(notification), ...state.notifications], loaded: true };
+    });
+  },
 
-      unreadCount: () => get().notifications.filter((n) => !n.isRead).length,
-    }),
-    {
-      name: 'sango_notifications_storage',
-      storage: createJSONStorage(() => localStorage),
-    },
-  ),
-);
+  // View-state cục bộ: BE chưa có endpoint xoá/clear — chỉ ảnh hưởng phiên hiện tại.
+  deleteNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+    })),
+
+  clearAll: () => set({ notifications: [] }),
+
+  unreadCount: () => get().notifications.filter((n) => !n.isRead).length,
+}));
+
+// Phase 4: kích hoạt kết nối realtime theo auth state đúng một lần khi store được nạp
+// (navbar luôn mount NotificationDropdown nên store nằm trong bundle khởi động app).
+bindRealtimeToAuth();

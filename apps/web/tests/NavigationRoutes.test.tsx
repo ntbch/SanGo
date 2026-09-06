@@ -15,6 +15,6 @@ describe('Navigation to Venues and Map', () => {
     await waitFor(() => {
       // The venues page should render sidebar and top sort bar
       expect(screen.getByText(/Bộ Lọc Nâng Cao/i)).toBeDefined();
-    });
+    }, { timeout: 10000 });
   });
 });

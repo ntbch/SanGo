@@ -17,8 +17,8 @@ export function AdminCourtsTab(): React.ReactElement {
       </div>
       <Card className="border-border/80">
         <CardContent className="p-8 text-center text-muted-foreground text-xs sm:text-sm space-y-2">
-          <p className="font-semibold text-foreground">Hệ Thống Sân Con Đang Hoạt Động Bình Thường</p>
-          <p>Quản trị viên có thể vào trực tiếp từng Cụm Sân trong tab <strong>Hàng Chờ &amp; Duyệt Sân</strong> để xem chi tiết và can thiệp bảo trì từng sân con.</p>
+          <p className="font-semibold text-foreground">Sân con đang hoạt động bình thường</p>
+          <p>Quản trị viên vào trực tiếp từng sân trong tab <strong>Hàng Chờ &amp; Duyệt Sân</strong> để xem và bảo trì từng sân con.</p>
         </CardContent>
       </Card>
     </div>

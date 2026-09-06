@@ -86,7 +86,7 @@ export function OwnerServicesTab({
         <Card className="border-border/60">
           <CardContent className="py-12 text-center text-xs text-muted-foreground space-y-2">
             <CupSoda className="h-8 w-8 mx-auto text-muted-foreground/50" />
-            <p className="font-semibold">Cụm sân này chưa có dịch vụ tiện ích nào.</p>
+            <p className="font-semibold">Sân chưa có tiện ích nào.</p>
             <Button size="sm" onClick={() => setAddServiceModalOpen(true)} className="mt-2">
               Thêm mặt hàng đầu tiên
             </Button>

@@ -68,7 +68,7 @@ export function NotificationDropdown(): React.ReactElement {
       {open && (
         <div className="absolute right-0 mt-2.5 w-[360px] sm:w-[420px] rounded-3xl border border-border/80 bg-card shadow-2xl z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 flex flex-col max-h-[580px]">
           {/* Header */}
-          <div className="p-4 pb-3 border-b border-border/60 flex items-center justify-between bg-card/80 backdrop-blur-xs sticky top-0 z-10">
+          <div className="p-4 pb-3 border-b border-border/60 flex items-center justify-between bg-card sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <Bell className="h-4 w-4" />
@@ -135,7 +135,7 @@ export function NotificationDropdown(): React.ReactElement {
                 <p className="text-xs font-bold text-foreground">Không có thông báo nào</p>
                 <p className="text-[11px] text-muted-foreground">
                   {tab === 'UNREAD'
-                    ? 'Tuyệt vời! Bạn không còn thông báo chưa đọc nào.'
+                    ? 'Bạn đã đọc hết thông báo.'
                     : 'Các thông báo mới về lịch đặt sân, kèo đấu sẽ xuất hiện tại đây.'}
                 </p>
               </div>

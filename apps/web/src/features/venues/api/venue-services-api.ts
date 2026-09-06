@@ -37,64 +37,42 @@ export interface BookingAddOnsSummary {
 // 1. Danh sách dịch vụ đang mở bán của cụm sân (Public)
 export async function listPublicVenueServicesApi(venueId: string): Promise<VenueServiceItem[]> {
   try {
-    const res = await apiClient<VenueServiceItem[]>(`/venues/${venueId}/services`);
-    return res;
+    const res = await apiClient<any[]>(`/venues/${venueId}/services`);
+    // BE trả {price, type, isAvailable} — normalize sang shape FE (category/unitPriceVnd/isActive)
+    return (res ?? []).map((s) => ({
+      ...s,
+      category: s.type ?? 'AMENITY',
+      unitPriceVnd: s.price ?? 0,
+      unit: s.unit ?? 'phục vụ',
+      isActive: s.isAvailable ?? false,
+    }));
   } catch {
-    // Mock fallback items nếu sân chưa cấu hình menu
-    return [
-      {
-        id: 'vs-1',
-        venueId,
-        name: 'Nước Tăng Lực & Điện Giải Revive / Pocari',
-        category: 'BEVERAGE',
-        unitPriceVnd: 15000,
-        unit: 'chai',
-        isActive: true,
-      },
-      {
-        id: 'vs-2',
-        venueId,
-        name: 'Thuê Bộ Áo Pitch / Bib Thi Đấu (14 áo)',
-        category: 'RENTAL',
-        unitPriceVnd: 50000,
-        unit: 'bộ/trận',
-        isActive: true,
-      },
-      {
-        id: 'vs-3',
-        venueId,
-        name: 'Bóng Thi Đấu Tiêu Chuẩn FIFA Pro',
-        category: 'RENTAL',
-        unitPriceVnd: 30000,
-        unit: 'quả/trận',
-        isActive: true,
-      },
-      {
-        id: 'vs-4',
-        venueId,
-        name: 'Thuê Vợt Thi Đấu Carbon Cao Cấp',
-        category: 'RENTAL',
-        unitPriceVnd: 40000,
-        unit: 'cây/trận',
-        isActive: true,
-      },
-      {
-        id: 'vs-5',
-        venueId,
-        name: 'Trọng Tài Điều Khiển Trận Đấu',
-        category: 'REFEREE',
-        unitPriceVnd: 200000,
-        unit: 'trận',
-        isActive: true,
-      },
-    ];
+    return [];
   }
 }
 
 // 2. Danh sách add-ons đã đặt của đơn
 export async function listBookingAddOnsApi(bookingId: string): Promise<BookingAddOnsSummary> {
   try {
-    return await apiClient<BookingAddOnsSummary>(`/bookings/${bookingId}/addons`);
+    const raw = await apiClient<any>(`/bookings/${bookingId}/addons`);
+    // BE trả {items:[{unitPrice, quantity, service:{name, type}}], totalCost, paidAmount, unpaidAmount}
+    return {
+      bookingId: raw.bookingId,
+      totalVnd: raw.totalCost ?? 0,
+      paidVnd: raw.paidAmount ?? 0,
+      unpaidVnd: raw.unpaidAmount ?? 0,
+      items: (raw.items ?? []).map((i: any) => ({
+        id: i.id,
+        bookingId: i.bookingId,
+        serviceId: i.serviceId,
+        serviceName: i.service?.name ?? '',
+        category: i.service?.type ?? 'AMENITY',
+        quantity: i.quantity,
+        unitPriceVnd: i.unitPrice ?? 0,
+        totalPriceVnd: (i.unitPrice ?? 0) * (i.quantity ?? 0),
+        isPaid: (raw.unpaidAmount ?? 0) === 0,
+      })),
+    };
   } catch {
     return {
       bookingId,
@@ -116,8 +94,8 @@ export async function addBookingAddOnsApi(
       method: 'POST',
       body: JSON.stringify({ items }),
     });
-  } catch {
-    return { success: true, totalVnd: items.length * 50000 };
+  } catch (err) {
+    throw err;
   }
 }
 
@@ -127,7 +105,7 @@ export async function checkoutBookingAddOnsApi(bookingId: string): Promise<{ pay
     return await apiClient<{ paymentUrl?: string; success: boolean }>(`/bookings/${bookingId}/addons/checkout`, {
       method: 'POST',
     });
-  } catch {
-    return { success: true };
+  } catch (err) {
+    throw err;
   }
 }

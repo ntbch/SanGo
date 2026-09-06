@@ -15,7 +15,6 @@ import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
   CancelBookingSchema,
   CheckInSchema,
-  CreateHoldSchema,
   CreateReviewSchema,
   MyBookingsQuerySchema,
   BulkCancelSchema,
@@ -24,12 +23,12 @@ import {
   type BulkCancelDto,
   type CancelBookingDto,
   type CheckInDto,
-  type CreateHoldDto,
   type CreateReviewDto,
   type MyBookingsQueryDto,
   type OwnerBookingsQueryDto,
   type SlotsQueryDto,
 } from './dto/booking.dto';
+import { CreateBookingSchema, type CreateBookingDto } from './dto/create-booking.dto';
 import { Roles } from '../common/guards/roles.decorator';
 import { SlotsService } from './slots.service';
 import { z } from 'zod';
@@ -144,7 +143,7 @@ export class BookingsController {
   @ApiResponse({ status: 409, description: 'SLOT_TAKEN | HOLD_LIMIT | COURT_MAINTENANCE' })
   createHold(
     @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(CreateHoldSchema)) dto: CreateHoldDto,
+    @Body(new ZodValidationPipe(CreateBookingSchema)) dto: CreateBookingDto,
   ) {
     return this.bookingsService.createHold(user, dto);
   }

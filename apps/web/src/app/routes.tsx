@@ -41,7 +41,7 @@ function NotFoundPage() {
     <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center space-y-3">
       <p className="text-4xl font-extrabold text-primary font-mono-num">404</p>
       <h1 className="text-2xl font-bold text-foreground">Không tìm thấy trang</h1>
-      <p className="text-sm text-muted-foreground">Đường dẫn bạn yêu cầu không tồn tại hoặc đã được di chuyển.</p>
+      <p className="text-sm text-muted-foreground">Trang không tồn tại hoặc đã bị di chuyển.</p>
     </div>
   );
 }
@@ -89,11 +89,14 @@ export function AppRoutes(): React.ReactElement {
             <Route path="bookings/hold/:holdId" element={<CheckoutHoldPage />} />
             <Route path="checkout/hold/:holdId" element={<CheckoutHoldPage />} />
             <Route path="checkout/payment" element={<PaymentPendingPage />} />
-            <Route path="bookings/payment-result" element={<PaymentResultPage />} />
             <Route path="payment/result" element={<PaymentResultPage />} />
-            <Route path="thanh-toan/ket-qua" element={<PaymentResultPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="profile" element={<ProfilePage />} />
+
+            {/* Alias cho link thông báo CŨ đã lưu trong DB (BE cũ sinh link sai) */}
+            <Route path="dashboard/my-bookings" element={<Navigate to="/bookings" replace />} />
+            <Route path="dashboard/bookings" element={<Navigate to="/dashboard/owner" replace />} />
+            <Route path="dat-san" element={<Navigate to="/bookings" replace />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

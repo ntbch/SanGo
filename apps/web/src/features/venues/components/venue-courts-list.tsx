@@ -155,7 +155,7 @@ export function VenueCourtsList({ courts = [], venueSlugOrId }: VenueCourtsListP
           }
         }}
         title="Đăng Nhập Để Chọn Lịch Đặt Sân"
-        subtitle="Vui lòng đăng nhập tài khoản để xem chi tiết lịch thi đấu và đặt sân."
+        subtitle="đăng nhập tài khoản để đặt sân."
       />
     </>
   );

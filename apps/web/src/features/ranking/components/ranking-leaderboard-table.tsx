@@ -25,14 +25,14 @@ export function RankingLeaderboardTable({
       >
         <div className="pb-3 border-b border-border/50">
           <h3 className="text-base font-black text-foreground">Bảng Tổng Sắp Câu Lạc Bộ</h3>
-          <p className="text-xs text-muted-foreground">Tính điểm theo chuẩn hệ số ELO thể thao quốc tế.</p>
+          <p className="text-xs text-muted-foreground">Tính điểm theo hệ số ELO quốc tế.</p>
         </div>
 
         {clubRankings.length === 0 ? (
           <div className="py-12 text-center space-y-2">
             <Trophy className="h-8 w-8 text-muted-foreground/40 mx-auto" />
             <p className="text-xs font-bold text-foreground">Chưa có dữ liệu xếp hạng câu lạc bộ</p>
-            <p className="text-[11px] text-muted-foreground">Thử đổi bộ môn hoặc khu vực để xem bảng xếp hạng.</p>
+            <p className="text-[11px] text-muted-foreground">Thử đổi môn hoặc khu vực khác.</p>
           </div>
         ) : (
           <div className="min-w-[650px]">
@@ -105,14 +105,14 @@ export function RankingLeaderboardTable({
     >
       <div className="pb-3 border-b border-border/50">
         <h3 className="text-base font-black text-foreground">Bảng Vàng Vận Động Viên Phong Trào</h3>
-        <p className="text-xs text-muted-foreground">Đánh giá dựa trên Điểm Uy Tín, số trận tham gia và giải đấu.</p>
+        <p className="text-xs text-muted-foreground">Theo Uy tín, số trận, giải đấu.</p>
       </div>
 
       {athleteRankings.length === 0 ? (
         <div className="py-12 text-center space-y-2">
           <Trophy className="h-8 w-8 text-muted-foreground/40 mx-auto" />
           <p className="text-xs font-bold text-foreground">Chưa có dữ liệu xếp hạng vận động viên</p>
-          <p className="text-[11px] text-muted-foreground">Thử đổi bộ môn hoặc khu vực để xem bảng xếp hạng.</p>
+          <p className="text-[11px] text-muted-foreground">Thử đổi môn hoặc khu vực khác.</p>
         </div>
       ) : (
         <div className="min-w-[650px]">

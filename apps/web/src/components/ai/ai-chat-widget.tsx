@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Bot,
-  Sparkles,
   Send,
   RotateCcw,
   Compass,
@@ -29,7 +28,7 @@ export function AiChatWidget(): React.ReactElement {
     {
       role: 'assistant',
       content:
-        'Xin chào! Tôi là **SanGo AI Assistant** 🤖. Tôi có thể giúp bạn tìm kiếm sân thể thao trống theo vị trí, gợi ý giờ vàng và tự động tạo phiên giữ chỗ 10 phút. Bạn cần tìm sân gì hôm nay?',
+        'Xin chào! Mình là **SanGo AI**: tìm sân, gợi ý giờ vàng, giữ chỗ 10 phút. Bạn cần tìm sân gì hôm nay?',
     },
   ]);
 
@@ -67,7 +66,7 @@ export function AiChatWidget(): React.ReactElement {
         {
           role: 'assistant',
           content:
-            'Xin lỗi, hiện tôi đang gặp chút gián đoạn kết nối. Bạn vui lòng thử lại hoặc xem trực tiếp danh sách sân tại trang [Tìm Sân](/venues) nhé!',
+            'Kết nối gián đoạn, bạn thử lại hoặc xem trực tiếp tại [Tìm Sân](/venues) nhé!',
         },
       ]);
     } finally {
@@ -80,7 +79,7 @@ export function AiChatWidget(): React.ReactElement {
       {
         role: 'assistant',
         content:
-          'Đã làm mới cuộc hội thoại! Bạn cần SanGo AI hỗ trợ tìm sân thể thao nào tiếp theo?',
+          'Đã làm mới! Bạn cần tìm sân gì tiếp theo?',
       },
     ]);
   };
@@ -94,11 +93,10 @@ export function AiChatWidget(): React.ReactElement {
             type="button"
             onClick={() => setIsOpen(true)}
             aria-label="Mở Trợ Lý AI Đặt Sân"
-            className="group relative flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-primary/40"
+            className="group relative flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-primary/40"
           >
             <div className="relative flex items-center justify-center">
-              <Bot className="h-6 w-6 sm:h-7 sm:w-7 transition-transform group-hover:rotate-12" />
-              <Sparkles className="h-3 w-3 text-amber-300 absolute -top-1 -right-1 animate-bounce" />
+              <Bot className="h-6 w-6 sm:h-7 sm:w-7" />
             </div>
 
             {/* Tooltip on hover (desktop only) */}
@@ -119,7 +117,7 @@ export function AiChatWidget(): React.ReactElement {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-extrabold text-foreground">SanGo AI Assistant</span>
-                    <span className="px-1.5 py-0.2 rounded-full bg-primary/15 text-[9px] font-black text-primary border border-primary/20">
+                    <span className="px-1.5 py-0.5 rounded-full bg-primary/15 text-[9px] font-black text-primary border border-primary/20">
                       GPT-4o
                     </span>
                   </div>

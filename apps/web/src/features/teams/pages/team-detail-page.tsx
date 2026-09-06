@@ -8,10 +8,14 @@ import {
   getTeamExpensesApi,
   getTreasuryOverviewApi,
   contributeTreasuryApi,
+  updateExpenseShareStatusApi,
+  payExpenseShareApi,
   type Team,
   type ExpenseShare,
   type TreasuryOverview,
 } from '../api/teams-api';
+import { getMyWalletApi } from '../../wallet/api/wallet-api';
+import { ApiError } from '../../../lib/api-client';
 import { useAuthStore } from '../../../lib/auth-store';
 import { formatVND } from '../../../lib/utils';
 import { TeamHeroHeader } from '../components/team-hero-header';
@@ -39,9 +43,13 @@ export function TeamDetailPage(): React.ReactElement {
   const [inviteMsg, setInviteMsg] = React.useState<string | null>(null);
 
   // Split booking form
-  const [splitBookingCode, setSplitBookingCode] = React.useState('SG-20260828-001');
+  const [splitBookingCode, setSplitBookingCode] = React.useState('');
   const [selectedMemberIds, setSelectedMemberIds] = React.useState<string[]>([]);
   const [splitMsg, setSplitMsg] = React.useState<string | null>(null);
+
+  // Phase 1 (T1.1/T1.3): số dư ví + thông báo hành động trên khoản chia tiền
+  const [walletBalance, setWalletBalance] = React.useState<number | null>(null);
+  const [actionMsg, setActionMsg] = React.useState<string | null>(null);
 
   // Treasury contribute form
   const [fundAmount, setFundAmount] = React.useState('200000');
@@ -71,6 +79,71 @@ export function TeamDetailPage(): React.ReactElement {
     fetchTeamData();
   }, [fetchTeamData]);
 
+  /** Nạp lại đúng list khoản chia tiền (không bật skeleton cả trang) — dùng sau optimistic update. */
+  const refetchExpenses = React.useCallback(async () => {
+    if (!id) return;
+    try {
+      setExpenses(await getTeamExpensesApi(id));
+    } catch {
+      // giữ nguyên state hiện tại nếu refetch lỗi
+    }
+  }, [id]);
+
+  const fetchWalletBalance = React.useCallback(async () => {
+    try {
+      const w = await getMyWalletApi({ page: 1, pageSize: 1 });
+      setWalletBalance(w.balance);
+    } catch {
+      // không chặn trang đội vì lỗi ví — FE hiển thị '—'
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchWalletBalance();
+  }, [fetchWalletBalance]);
+
+  /** Phase 1 (T1.1): payer/captain xác nhận đã nhận tiền — optimistic + refetch, lỗi rollback. */ 
+  const handleMarkPaid = async (shareId: string) => {
+    if (!id) return;
+    const prev = expenses;
+    setExpenses((es) =>
+      es.map((x) => (x.id === shareId ? { ...x, status: 'PAID' as const } : x)),
+    );
+    try {
+      await updateExpenseShareStatusApi(id, shareId, 'PAID');
+      setActionMsg('Đã xác nhận khoản chia tiền ĐÃ TRẢ');
+      await refetchExpenses();
+    } catch (e) {
+      setExpenses(prev); // rollback optimistic
+      await refetchExpenses();
+      const code = e instanceof ApiError ? e.code : '';
+      setActionMsg(
+        code === 'EXPENSE_FORBIDDEN'
+          ? 'Chỉ người ứng tiền hoặc đội trưởng mới được xác nhận'
+          : 'Xác nhận thất bại, vui lòng thử lại',
+      );
+    }
+  };
+
+  /** Phase 1 (T1.3): debtor trả nợ qua ví — BE atomic; lỗi 409 thiếu tiền báo ngay. */
+  const handlePayViaWallet = async (shareId: string) => {
+    if (!id) return;
+    try {
+      await payExpenseShareApi(id, shareId);
+      setActionMsg('Đã trả khoản nợ qua ví thành công');
+      await Promise.all([refetchExpenses(), fetchWalletBalance()]);
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : '';
+      if (code === 'WALLET_INSUFFICIENT_FUNDS') {
+        setActionMsg('Số dư ví không đủ. Hãy nạp thêm tiền vào ví');
+      } else if (code === 'EXPENSE_FORBIDDEN') {
+        setActionMsg('Chỉ người nợ mới được trả khoản này qua ví');
+      } else {
+        setActionMsg('Trả qua ví thất bại, vui lòng thử lại');
+      }
+    }
+  };
+
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !inviteEmail) return;
@@ -96,12 +169,13 @@ export function TeamDetailPage(): React.ReactElement {
 
   const handleSplitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || selectedMemberIds.length === 0) return;
+    const cleanBookingId = splitBookingCode.trim();
+    if (!id || !cleanBookingId || selectedMemberIds.length === 0) return;
     try {
       await splitBookingApi(id, {
-        bookingId: 'b-mock-1',
+        bookingId: cleanBookingId,
         memberIds: selectedMemberIds,
-        note: `Chia tiền đơn ${splitBookingCode}`,
+        note: `Chia tiền đơn ${cleanBookingId}`,
       });
       setSplitMsg(`Đã tạo khoản chia tiền thành công cho ${selectedMemberIds.length} người!`);
       setTimeout(() => {
@@ -176,6 +250,11 @@ export function TeamDetailPage(): React.ReactElement {
           onSelectedMemberIdsChange={setSelectedMemberIds}
           splitMsg={splitMsg}
           onSubmitSplit={handleSplitBooking}
+          currentUserId={user?.id ?? null}
+          walletBalance={walletBalance}
+          actionMsg={actionMsg}
+          onMarkPaid={handleMarkPaid}
+          onPayViaWallet={handlePayViaWallet}
         />
       )}
 

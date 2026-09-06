@@ -34,7 +34,7 @@ export function MyBookingsPage(): React.ReactElement {
   });
 
   const handleCancelBooking = async (bookingId: string, reason = 'Khách yêu cầu hủy đơn') => {
-    if (window.confirm('Bạn có chắc chắn muốn hủy đơn đặt sân này? Tiền cọc sẽ được hoàn lại theo chính sách của cụm sân.')) {
+    if (window.confirm('Hủy đơn này? Cọc sẽ hoàn theo chính sách sân.')) {
       await cancelMutation.mutateAsync({ id: bookingId, reason });
     }
   };

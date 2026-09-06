@@ -208,7 +208,7 @@ export function OwnerOverviewTab({
           <CardContent className="p-4 sm:p-5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quy Mô Sân Bãi</span>
-              <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Layers className="h-4 w-4" />
               </div>
             </div>
@@ -241,7 +241,7 @@ export function OwnerOverviewTab({
                 </div>
                 <div>
                   <CardTitle className="text-base font-bold">Check-in Nhanh Tại Bàn Làm Việc</CardTitle>
-                  <CardDescription className="text-xs">Quét hoặc gõ mã vé CH-YYYYMMDD-NNNN để xác nhận khách tới sân.</CardDescription>
+                  <CardDescription className="text-xs">Quét hoặc nhập mã vé để check-in khách.</CardDescription>
                 </div>
               </div>
               <Button
@@ -321,7 +321,7 @@ export function OwnerOverviewTab({
                 <div className="py-8 text-center text-xs text-muted-foreground space-y-1">
                   <Calendar className="h-8 w-8 mx-auto text-muted-foreground/40" />
                   <p className="font-semibold text-foreground">Hôm nay chưa có ca đặt nào.</p>
-                  <p className="text-[11px] text-muted-foreground">Khi khách đặt sân qua ứng dụng hoặc quầy, đơn sẽ tự động hiển thị tại đây.</p>
+                  <p className="text-[11px] text-muted-foreground">Đơn từ app hoặc quầy sẽ hiện tại đây.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border/60">
@@ -385,7 +385,7 @@ export function OwnerOverviewTab({
                   <CardTitle className="text-base font-bold flex items-center gap-2">
                     <BarChart3 className="h-4 w-4 text-primary" /> Xu Hướng Doanh Thu Gần Đây
                   </CardTitle>
-                  <CardDescription className="text-xs">Theo dõi biến động dòng tiền và lượt đặt sân theo thời gian thực.</CardDescription>
+                  <CardDescription className="text-xs">Dòng tiền và lượt đặt theo thời gian thực.</CardDescription>
                 </div>
                 <Button
                   variant="ghost"
@@ -470,7 +470,7 @@ export function OwnerOverviewTab({
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-card border border-border/80 hover:border-primary/40 hover:bg-secondary/50 transition-all text-left text-xs group"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-7 w-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold shrink-0">
+                  <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                     <TicketPercent className="h-3.5 w-3.5" />
                   </div>
                   <div className="truncate">

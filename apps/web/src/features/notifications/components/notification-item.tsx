@@ -59,8 +59,8 @@ export function NotificationItem({
       badgeLabel = 'Ghép Kèo';
       break;
     case 'TOURNAMENT':
-      icon = <Trophy className="h-4 w-4 text-purple-500" />;
-      iconBg = 'bg-purple-500/10 text-purple-600 dark:text-purple-400';
+      icon = <Trophy className="h-4 w-4 text-primary" />;
+      iconBg = 'bg-primary/10 text-primary';
       badgeLabel = 'Giải Đấu';
       break;
     case 'WALLET':

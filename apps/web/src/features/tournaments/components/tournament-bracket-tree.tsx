@@ -23,7 +23,7 @@ export function TournamentBracketTree({
       <div className="flex items-center justify-between pb-3 border-b border-border/50">
         <div>
           <h3 className="text-base font-black text-foreground">Sơ Đồ Cây Loại Trực Tiếp</h3>
-          <p className="text-xs text-muted-foreground">Tự động đẩy đội thắng vào vòng kế tiếp.</p>
+          <p className="text-xs text-muted-foreground">Đội thắng vào vòng sau.</p>
         </div>
       </div>
 
@@ -31,7 +31,7 @@ export function TournamentBracketTree({
         <div className="py-12 text-center text-xs text-muted-foreground space-y-2">
           <Swords className="h-8 w-8 mx-auto text-muted-foreground/40" />
           <p className="font-bold text-foreground">Chưa sinh nhánh đấu</p>
-          <p>Ban tổ chức sẽ bốc thăm và sinh nhánh đấu sau khi kết thúc hạn đăng ký.</p>
+          <p>BTC bốc thăm sinh nhánh sau hạn đăng ký.</p>
         </div>
       ) : (
         <div className="flex gap-8 min-w-[700px] py-4">

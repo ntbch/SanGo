@@ -52,18 +52,18 @@ export class PaymentsController {
   }
 
   // Browser đi qua đây trực tiếp (returnUrl của VNPay) -> phải là HTTP 302 về FE
-  // /thanh-toan/ket-qua chứ không trả JSON; handler vẫn throw HttpException bình thường.
-  @Redirect('/thanh-toan/ket-qua', 302)
+  // /payment/result chứ không trả JSON; handler vẫn throw HttpException bình thường.
+  @Redirect('/payment/result', 302)
   @Get('vnpay/callback')
   @ApiOperation({
     summary: '[Cổng VNPay gọi] Verify HMAC-SHA512 + amount + idempotency rồi confirm đơn',
   })
   async vnpayCallback(@Query() query: Record<string, string>) {
     const res = await this.paymentsService.handleVnpayCallback(query);
-    return { url: 'redirectUrl' in res ? res.redirectUrl : '/thanh-toan/ket-qua' };
+    return { url: 'redirectUrl' in res ? res.redirectUrl : '/payment/result' };
   }
 
-  @Redirect('/thanh-toan/ket-qua', 302)
+  @Redirect('/payment/result', 302)
   @Get('mock/callback')
   @ApiOperation({
     summary:
@@ -71,7 +71,7 @@ export class PaymentsController {
   })
   async mockCallback(@Query() query: { txnRef?: string; amount?: string }) {
     const res = await this.paymentsService.handleMockCallback(query);
-    return { url: 'redirectUrl' in res ? res.redirectUrl : '/thanh-toan/ket-qua' };
+    return { url: 'redirectUrl' in res ? res.redirectUrl : '/payment/result' };
   }
 
   @Post('mock/confirm')

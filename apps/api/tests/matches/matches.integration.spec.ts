@@ -179,7 +179,7 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
         courtName: 'Sân 5 IT',
         sportType: 'FOOTBALL5',
         date: DATE,
-        hostName: `itmk-host-${SUFFIX}`, // fullName = phần trước '@' của email seed
+        host: { fullName: `itmk-host-${SUFFIX}` },
         slotsNeeded: 2,
         joinedCount: 0,
       });

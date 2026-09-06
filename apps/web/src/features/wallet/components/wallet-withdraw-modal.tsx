@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { ArrowUpRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { formatVND } from '../../../lib/utils';
 
 const BANK_OPTIONS = [
@@ -53,7 +53,7 @@ export function WalletWithdrawModal({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between sticky top-0 bg-card z-10">
           <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export function WalletWithdrawModal({
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground text-sm font-bold cursor-pointer"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </CardHeader>
 
@@ -183,7 +183,7 @@ export function WalletWithdrawModal({
                 type="submit"
                 disabled={isWithdrawLoading || Number(withdrawAmount) > balance || Number(withdrawAmount) < 50000}
                 size="sm"
-                className="font-bold text-xs shadow-md shadow-rose-500/20 bg-rose-600 hover:bg-rose-700 text-white"
+                className="font-bold text-xs shadow-xs bg-rose-600 hover:bg-rose-700 text-white"
               >
                 {isWithdrawLoading ? 'Đang rút tiền...' : 'Xác Nhận Rút Tiền'}
               </Button>

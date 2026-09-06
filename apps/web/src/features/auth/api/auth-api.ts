@@ -72,8 +72,9 @@ export async function changePasswordApi(dto: ChangePasswordDto): Promise<void> {
 }
 
 export async function updateProfileApi(dto: UpdateProfileDto): Promise<User> {
-  return apiClient<User>('/auth/profile', {
-    method: 'PUT',
+  const res = await apiClient<{ user: User }>('/users/me', {
+    method: 'PATCH',
     body: JSON.stringify(dto),
   });
+  return res.user;
 }

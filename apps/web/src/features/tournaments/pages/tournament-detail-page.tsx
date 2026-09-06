@@ -77,7 +77,7 @@ export function TournamentDetailPage(): React.ReactElement {
     e.preventDefault();
     if (!id || !selectedTeamId) return;
     if (!agreeTerms) {
-      alert('Vui lòng đồng ý với điều lệ và cam kết thi đấu fair-play.');
+      alert('đồng ý với điều lệ và cam kết thi đấu fair-play.');
       return;
     }
 
@@ -102,14 +102,14 @@ export function TournamentDetailPage(): React.ReactElement {
         setActiveTab('TEAMS');
       }, 1200);
     } catch {
-      setActionMsg('Đăng ký không thành công, vui lòng thử lại.');
+      setActionMsg('Đăng ký không thành công, thử lại.');
     } finally {
       setIsRegistering(false);
     }
   };
 
   const handleStartTournament = async () => {
-    if (!id || !window.confirm('Khởi tranh giải đấu và tự động sinh nhánh cây bảng đấu?')) return;
+    if (!id || !window.confirm('Bắt đầu giải? Hệ thống sinh nhánh đấu tự động.')) return;
     await startTournamentApi(id);
     await fetchTournamentData();
   };
@@ -120,7 +120,7 @@ export function TournamentDetailPage(): React.ReactElement {
     const h = parseInt(homeScore, 10);
     const a = parseInt(awayScore, 10);
     if (h === a) {
-      alert('Thể thức loại trực tiếp yêu cầu phải có đội thắng / thua, không chấp nhận tỷ số hòa.');
+      alert('Loại trực tiếp không nhận tỷ số hòa.');
       return;
     }
     setIsUpdatingScore(true);
@@ -236,7 +236,7 @@ export function TournamentDetailPage(): React.ReactElement {
         onClose={() => setShowAuthModal(false)}
         onSuccess={() => setShowRegisterModal(true)}
         title="Đăng Nhập Để Đăng Ký Giải Đấu"
-        subtitle="Vui lòng đăng nhập tài khoản để đưa câu lạc bộ của bạn tham gia giải đấu."
+        subtitle="đăng nhập tài khoản để đưa CLB tham gia giải."
       />
     </div>
   );

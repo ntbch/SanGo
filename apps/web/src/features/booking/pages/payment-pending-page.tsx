@@ -21,7 +21,7 @@ export function PaymentPendingPage(): React.ReactElement {
     mutationFn: () => confirmMockPaymentApi(txnRef, amount),
     onSuccess: (result) => {
       navigate(
-        `/thanh-toan/ket-qua?status=SUCCESS&txnRef=${encodeURIComponent(result.txnRef ?? txnRef)}&amount=${amount}`,
+        `/payment/result?status=SUCCESS&txnRef=${encodeURIComponent(result.txnRef ?? txnRef)}&amount=${amount}`,
         { replace: true },
       );
     },
@@ -34,7 +34,7 @@ export function PaymentPendingPage(): React.ReactElement {
           <XCircle className="h-6 w-6" />
         </div>
         <h1 className="text-xl font-black text-foreground">Không tìm thấy giao dịch chờ thanh toán</h1>
-        <p className="text-sm text-muted-foreground">Vui lòng quay lại lượt giữ chỗ để tạo giao dịch mới.</p>
+        <p className="text-sm text-muted-foreground">quay lại giữ chỗ để tạo giao dịch.</p>
         <Link to={holdId ? `/checkout/hold/${holdId}` : '/venues'}>
           <Button>Quay lại</Button>
         </Link>
@@ -50,7 +50,7 @@ export function PaymentPendingPage(): React.ReactElement {
             <QrCode className="h-7 w-7" />
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-foreground">Quét mã QR để thanh toán</h1>
-          <p className="text-xs text-muted-foreground">Mở ứng dụng ngân hàng, quét mã và hoàn tất giao dịch.</p>
+          <p className="text-xs text-muted-foreground">Mở app ngân hàng, quét mã, hoàn tất.</p>
         </div>
 
         <div className="rounded-3xl bg-white p-4 mx-auto w-fit shadow-inner">
@@ -71,7 +71,7 @@ export function PaymentPendingPage(): React.ReactElement {
 
         {confirmMutation.error && (
           <p className="text-xs font-medium text-destructive">
-            {(confirmMutation.error as Error).message || 'Không thể xác nhận giao dịch. Vui lòng thử lại.'}
+            {(confirmMutation.error as Error).message || 'Không thể xác nhận giao dịch. thử lại.'}
           </p>
         )}
 

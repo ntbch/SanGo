@@ -210,6 +210,20 @@ export class MatchesService {
       throw new ConflictException({ message: 'Kèo đã đủ người', code: 'MATCH_FULL' });
     }
 
+    // M6 fix: kèo có yêu cầu vị trí (spec §3.11) thì position khai báo phải thuộc
+    // targetPositions — host vẫn có thể duyệt ngoại lệ ở bước review nếu muốn.
+    const targetPositions = booking.targetPositions ?? [];
+    if (
+      targetPositions.length > 0 &&
+      dto.position != null &&
+      !targetPositions.includes(dto.position)
+    ) {
+      throw new BadRequestException({
+        message: 'Vị trí không nằm trong yêu cầu của kèo này',
+        code: 'POSITION_NOT_ALLOWED',
+      });
+    }
+
     // Kiểm tra đã là participant chưa
     const isParticipant = await this.prisma.matchParticipant.findUnique({
       where: { bookingId_userId: { bookingId, userId: user.id } },
@@ -278,18 +292,36 @@ export class MatchesService {
 
     // Nếu APPROVED -> Thêm vào matchParticipant
     return this.prisma.$transaction(async (tx) => {
+      // M1 fix: khoá dòng booking (pattern bookings.joinOpenMatch:1085) — hai lần
+      // duyệt song song xếp hàng tại đây, đếm đọc sau khi tx trước đã commit.
+      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${bookingId}::uuid FOR UPDATE`;
+      const fresh = await tx.booking.findUniqueOrThrow({
+        where: { id: bookingId },
+        select: { slotsNeeded: true },
+      });
       const currentParticipants = await tx.matchParticipant.count({ where: { bookingId } });
-      const needed = booking.slotsNeeded ?? 0;
+      const needed = fresh.slotsNeeded ?? 0;
       if (currentParticipants >= needed) {
         throw new ConflictException({ message: 'Kèo đã đủ người, không thể duyệt thêm', code: 'MATCH_FULL' });
       }
 
-      await tx.matchParticipant.create({
-        data: {
-          bookingId,
-          userId: req.userId,
-        },
-      });
+      try {
+        await tx.matchParticipant.create({
+          data: {
+            bookingId,
+            userId: req.userId,
+          },
+        });
+      } catch (e) {
+        // UNIQUE(bookingId, userId) chặn duyệt trùng người (P2002) trong race.
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          throw new ConflictException({
+            message: 'Người này đã tham gia kèo này rồi',
+            code: 'ALREADY_JOINED',
+          });
+        }
+        throw e;
+      }
 
       const updatedReq = await tx.matchJoinRequest.update({
         where: { id: requestId },

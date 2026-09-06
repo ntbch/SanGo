@@ -35,6 +35,8 @@ export interface CreateHoldParams {
   matchLevel?: 'FRIENDLY' | 'CASUAL' | 'SCRIM' | 'SEMI_PRO';
   targetPositions?: string[];
   costPerPerson?: number;
+  /** P5a.3 O1: true = kèo cần duyệt thành viên trước khi tham gia (join trực tiếp -> 409 APPROVAL_REQUIRED); null/false = join trực tiếp. */
+  requiresApproval?: boolean | null;
 }
 
 export interface BookingHoldResponse {
@@ -162,6 +164,8 @@ export async function createBookingHoldApi(params: CreateHoldParams): Promise<Bo
     if (params.matchLevel) body.matchLevel = params.matchLevel;
     if (params.targetPositions) body.targetPositions = params.targetPositions;
     if (params.costPerPerson !== undefined) body.costPerPerson = params.costPerPerson;
+    // P5a.3 O1: toggle "Duyệt thành viên trước" — dto BE passthrough (Boolean?); null/false = hành vi cũ.
+    if (params.requiresApproval != null) body.requiresApproval = params.requiresApproval;
   }
 
   const response = await apiClient<CreateHoldResponse>('/bookings/holds', {
@@ -238,4 +242,16 @@ export async function cancelBookingApi(bookingId: string, reason: string): Promi
     method: 'POST',
     body: JSON.stringify({ reason }),
   });
+}
+
+// 9. P5a.3 O1: tham gia ghép trận mở trực tiếp (§3.11) — POST /bookings/:id/join.
+// Kèo requiresApproval=true -> 409 { code: 'APPROVAL_REQUIRED' } (FE bắt và dẫn sang join-request).
+export interface JoinOpenMatchResponse {
+  joinedCount?: number;
+  slotsNeeded?: number;
+  matchFull?: boolean;
+}
+
+export async function joinOpenMatchApi(bookingId: string): Promise<JoinOpenMatchResponse> {
+  return apiClient<JoinOpenMatchResponse>(`/bookings/${bookingId}/join`, { method: 'POST' });
 }

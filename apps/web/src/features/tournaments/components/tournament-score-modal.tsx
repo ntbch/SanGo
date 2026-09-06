@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { X } from 'lucide-react';
 import { TournamentMatch } from '../api/tournaments-api';
 
 interface TournamentScoreModalProps {
@@ -28,7 +29,7 @@ export function TournamentScoreModal({
   if (!match) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-150">
         <div className="p-4 border-b border-border/60 flex items-center justify-between">
           <h3 className="text-sm font-black text-foreground">Cập Nhật Tỷ Số Trận Đấu</h3>
@@ -37,7 +38,7 @@ export function TournamentScoreModal({
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 

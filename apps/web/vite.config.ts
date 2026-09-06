@@ -18,6 +18,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+        // Phase 4: cho phép upgrade WebSocket của socket.io (path /api/socket.io) qua proxy dev.
+        ws: true,
       },
     },
   },
@@ -38,5 +40,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['tests/**/*.test.{ts,tsx}'],
+    setupFiles: ['./tests/setup.ts'],
+    // Test lazy-load trang lớn (venues/map) qua network stub — cần >5s mặc định khi chạy song song
+    testTimeout: 20000,
   },
 });

@@ -20,7 +20,7 @@ export function MatchHeader(): React.ReactElement {
       </div>
 
       <Link to="/venues">
-        <Button size="sm" className="font-bold text-xs gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer">
+        <Button size="sm" className="font-bold text-xs gap-1.5 shadow-md cursor-pointer">
           <PlusCircle className="h-4 w-4" />
           <span>Tạo Kèo Mới</span>
         </Button>

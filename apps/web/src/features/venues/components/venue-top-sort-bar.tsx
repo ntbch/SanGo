@@ -101,7 +101,7 @@ export function VenueTopSortBar({
       </div>
 
       {/* Main Sort & Search Strip */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-card/80 border border-border/80 backdrop-blur-md shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-card border border-border shadow-xs">
         {/* Search Input */}
         <div className="relative flex-1 sm:max-w-md">
           <Input

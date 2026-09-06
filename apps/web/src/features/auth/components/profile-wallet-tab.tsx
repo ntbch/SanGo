@@ -11,7 +11,7 @@ export function ProfileWalletTab(): React.ReactElement {
       <div className="flex items-center justify-between pb-3 border-b border-border/50">
         <div>
           <h3 className="text-base font-black text-foreground">Ví Tiền SanGo</h3>
-          <p className="text-xs text-muted-foreground">Quản lý số dư đặt cọc và thanh toán tiền sân.</p>
+          <p className="text-xs text-muted-foreground">Quản lý số dư cọc và tiền sân.</p>
         </div>
         <Link to="/wallet">
           <Button size="sm" className="text-xs font-bold gap-1.5 cursor-pointer">
@@ -24,7 +24,7 @@ export function ProfileWalletTab(): React.ReactElement {
       <div className="p-6 rounded-2xl bg-primary/10 border border-primary/20 space-y-2">
         <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số Dư Khả Dụng</span>
         <p className="font-mono-num font-black text-2xl sm:text-3xl text-primary">{formatVND(1500000)}</p>
-        <p className="text-[11px] text-muted-foreground">Dùng để đặt cọc 30% nhanh chóng không cần qua cổng ngân hàng.</p>
+        <p className="text-[11px] text-muted-foreground">Đặt cọc 30% không cần ngân hàng.</p>
       </div>
     </Card>
   );

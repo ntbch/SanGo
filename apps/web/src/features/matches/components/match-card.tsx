@@ -20,50 +20,45 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
   const isFull = slotsLeft === 0;
   const isUrgent = slotsLeft > 0 && slotsLeft <= 2;
 
-  // Skill level styling
-  const skill = (m.skillLevel || 'Giao lưu nhẹ').toUpperCase();
-  const isAdvanced = skill.includes('D1') || skill.includes('BÁN CHUYÊN');
-  const isIntermediate = skill.includes('D2') || skill.includes('KHÁ');
+
 
   return (
     <Card
       key={m.id}
-      className="group relative overflow-hidden rounded-3xl border border-border/80 hover:border-primary/50 bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md transition-shadow duration-150 flex flex-col justify-between"
     >
       {/* Full-card accessible click hitbox */}
       <Link
         to={`/matches/${m.id}`}
         aria-label={`Xem chi tiết kèo thi đấu: ${m.title}`}
-        className="absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-3xl"
+        className="absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-2xl"
       />
 
       <div className="p-6 space-y-4 relative z-20 pointer-events-none">
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2">
-          <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-mono-num font-extrabold uppercase tracking-wider border border-primary/20">
-            {m.sportType || 'THỂ THAO'}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2.5 py-0.5 rounded-md bg-secondary text-foreground text-[10px] font-mono-num font-bold uppercase tracking-wider border border-border">
+              {m.sportType || 'THỂ THAO'}
+            </span>
+            {m.requiresApproval === true && (
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-secondary text-foreground border border-border">
+                Cần duyệt
+              </span>
+            )}
+          </div>
 
           <div className="flex items-center gap-1.5">
             {isFull ? (
-              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold bg-muted text-muted-foreground border border-border">
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono-num font-bold bg-muted text-muted-foreground border border-border">
                 Đã đủ người
               </span>
             ) : isUrgent ? (
-              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
-                Còn {slotsLeft} slot!
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono-num font-bold bg-secondary text-foreground border border-border">
+                Còn {slotsLeft} slot
               </span>
             ) : (
-              <span
-                className={cn(
-                  'px-2.5 py-0.5 rounded-lg text-[10px] font-mono-num font-bold border',
-                  isAdvanced
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                    : isIntermediate
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                      : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
-                )}
-              >
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono-num font-bold bg-secondary text-foreground border border-border">
                 {m.skillLevel || 'Giao lưu nhẹ'}
               </span>
             )}
@@ -76,7 +71,7 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
             {m.title}
           </h3>
           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {m.description || 'Tham gia giao lưu thể thao cùng câu lạc bộ.'}
+            {m.description || 'Tham gia CLB giao lưu.'}
           </p>
         </div>
 

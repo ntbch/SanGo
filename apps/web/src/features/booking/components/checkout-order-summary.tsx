@@ -70,7 +70,7 @@ export function CheckoutOrderSummary({
         size="lg"
         disabled={isPending || !isActive}
         onClick={onCheckout}
-        className="w-full font-bold gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer"
+        className="w-full font-bold gap-2 shadow-lg cursor-pointer"
       >
         <CreditCard className="h-4 w-4" />
         <span>{isPending ? 'Đang tạo giao dịch...' : 'Xác Nhận Thanh Toán'}</span>

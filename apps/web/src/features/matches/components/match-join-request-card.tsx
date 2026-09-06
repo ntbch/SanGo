@@ -63,7 +63,7 @@ export function MatchJoinRequestCard({
           />
         </div>
 
-        <Button type="submit" className="w-full font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
+        <Button type="submit" className="w-full font-bold text-xs shadow-md cursor-pointer">
           Gửi Yêu Cầu Xin Slot
         </Button>
       </form>

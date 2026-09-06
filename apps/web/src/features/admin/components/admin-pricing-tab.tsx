@@ -18,7 +18,7 @@ export function AdminPricingTab(): React.ReactElement {
       <Card className="border-border/80">
         <CardContent className="p-8 text-center text-muted-foreground text-xs sm:text-sm space-y-2">
           <p className="font-semibold text-foreground">Giám Sát Chính Sách Giá Sàn</p>
-          <p>Tất cả cụm sân đối tác đang tuân thủ đúng quy định niêm yết bảng giá giờ vàng và menu dịch vụ công khai trên sàn SanGo.</p>
+          <p>Sân đối tác niêm yết giá và menu công khai trên sàn.</p>
         </CardContent>
       </Card>
     </div>

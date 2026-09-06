@@ -202,7 +202,7 @@ export function OwnerAnalyticsTab({
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" /> Bảng Xếp Hạng Sân Con Sinh Lời
                 </CardTitle>
-                <CardDescription className="text-xs">Xếp hạng sân mang lại doanh thu cao nhất.</CardDescription>
+                <CardDescription className="text-xs">Sân có doanh thu cao nhất.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {analytics.topCourts.length === 0 ? (

@@ -59,7 +59,7 @@ export function MatchesPage(): React.ReactElement {
       ) : matches.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-border/80 space-y-3">
           <p className="text-sm font-bold text-foreground">Không tìm thấy kèo thi đấu phù hợp</p>
-          <p className="text-xs text-muted-foreground">Thử đổi bộ môn hoặc khu vực tìm kiếm.</p>
+          <p className="text-xs text-muted-foreground">Thử đổi môn hoặc khu vực.</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

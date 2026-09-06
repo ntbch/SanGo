@@ -55,7 +55,7 @@ export function ProfilePage(): React.ReactElement {
   if (!user) {
     return (
       <div className="w-full py-16 text-center space-y-4">
-        <p className="text-sm text-muted-foreground">Vui lòng đăng nhập để xem hồ sơ cá nhân.</p>
+        <p className="text-sm text-muted-foreground">đăng nhập để xem hồ sơ cá nhân.</p>
         <Link to="/login">
           <Button size="sm">Đăng nhập ngay</Button>
         </Link>

@@ -116,7 +116,7 @@ export function useWallet() {
         setWithdrawSuccessMsg(null);
       }, 2000);
     } catch (err: any) {
-      setWithdrawError(err.message || 'Không thể thực hiện rút tiền, vui lòng thử lại');
+      setWithdrawError(err.message || 'Không thể thực hiện rút tiền, thử lại');
     } finally {
       setIsWithdrawLoading(false);
     }

@@ -108,7 +108,7 @@ export function AdminStatsTab({
           <CardContent className="p-4 sm:p-5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Lượt Đặt Toàn Sàn</span>
-              <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <Calendar className="h-4 w-4" />
               </div>
             </div>
@@ -185,7 +185,7 @@ export function AdminStatsTab({
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Trophy className="h-4 w-4 text-amber-500" /> Top Cụm Sân Sinh Lời Cao Nhất
             </CardTitle>
-            <CardDescription className="text-xs">Xếp hạng theo số lượt booking và doanh thu.</CardDescription>
+            <CardDescription className="text-xs">Xếp hạng theo lượt đặt và doanh thu.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {!stats?.topVenues || stats.topVenues.length === 0 ? (

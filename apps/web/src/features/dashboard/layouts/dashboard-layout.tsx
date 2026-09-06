@@ -162,7 +162,7 @@ export function DashboardLayout({
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-xs z-40 md:hidden"
+          className="fixed inset-0 bg-background/90 z-40 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -170,7 +170,7 @@ export function DashboardLayout({
       {/* Sidebar Navigation (Always pinned & fixed on Desktop) */}
       <aside
         className={cn(
-          'fixed md:relative top-0 left-0 h-screen z-50 w-64 lg:w-72 shrink-0 bg-card/95 backdrop-blur-md border-r border-border/80 flex flex-col justify-between transition-transform duration-200 ease-in-out',
+          'fixed md:relative top-0 left-0 h-screen z-50 w-64 lg:w-72 shrink-0 bg-card border-r border-border/80 flex flex-col justify-between transition-transform duration-200 ease-in-out',
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         )}
       >
@@ -279,7 +279,7 @@ export function DashboardLayout({
       {/* Main Content Area (Independent scroll container) */}
       <div className="flex-1 h-screen flex flex-col min-w-0 max-w-full overflow-hidden">
         {/* Topbar Header (Fixed at top of main area) */}
-        <header className="shrink-0 h-14 sm:h-16 bg-background/85 backdrop-blur-md border-b border-border/80 px-4 sm:px-6 flex items-center justify-between gap-4 z-30">
+        <header className="shrink-0 h-14 sm:h-16 bg-background border-b border-border/80 px-4 sm:px-6 flex items-center justify-between gap-4 z-30">
           <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="ghost"

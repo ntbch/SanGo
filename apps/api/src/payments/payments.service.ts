@@ -44,9 +44,14 @@ export class PaymentsService {
   /**
    * Chế độ thanh toán hiện hành — mock callback CHỈ được phép mở khi trả về 'mock'
    * (S0: mọi giá trị PAYMENT_MODE khác 'mock' coi như vnpay).
+   * PROD-READY: NODE_ENV=production mặc định là vnpay — PAYMENT_MODE=mock phải
+   * opt-in tường minh (chỉ dành cho demo local). Khi prod để mặc định, các route
+   * mock callback/confirm tự 403 nhờ gate resolveMode() !== 'mock'.
    */
   static resolveMode(): 'mock' | 'vnpay' {
-    return (process.env.PAYMENT_MODE ?? 'mock') === 'mock' ? 'mock' : 'vnpay';
+    const explicitMock = process.env.PAYMENT_MODE === 'mock';
+    if (process.env.NODE_ENV === 'production') return explicitMock ? 'mock' : 'vnpay';
+    return explicitMock || process.env.PAYMENT_MODE === undefined ? 'mock' : 'vnpay';
   }
 
   /** Số tiền phải trả cho lệnh checkout này theo type. */
@@ -297,7 +302,7 @@ export class PaymentsService {
   } {
     const qs = new URLSearchParams(detail).toString();
     return {
-      redirectUrl: `${this.env('FRONTEND_URL', 'http://localhost:5173')}/thanh-toan/ket-qua?status=${status}&${qs}`,
+      redirectUrl: `${this.env('FRONTEND_URL', 'http://localhost:5173')}/payment/result?status=${status}&${qs}`,
     };
   }
 
@@ -371,7 +376,7 @@ export class PaymentsService {
           type: NotificationType.SERVICE,
           title: 'Thanh toán dịch vụ thành công',
           body: `Đã thanh toán ${expected.toLocaleString('vi-VN')}đ dịch vụ đi kèm cho đơn ${booking.code}.`,
-          link: '/dashboard/my-bookings',
+          link: '/bookings',
         })
         .catch(() => undefined);
 
@@ -418,7 +423,13 @@ export class PaymentsService {
       return { success: true, txnRef, type, alreadyPaid: true };
     }
     const expected = await this.expectedAmountFor(id, type);
-    if (params.amount !== undefined && Number(params.amount) !== expected) {
+    // M3 fix (S0 đồng bộ wallets.handleMockCallback L168-177): amount là BẮT BUỘC —
+    // thiếu/rỗng/sai đều bị chặn, không mặc định tin callback.
+    if (
+      params.amount === undefined ||
+      params.amount === '' ||
+      Number(params.amount) !== expected
+    ) {
       throw new BadRequestException({
         message: 'Số tiền callback không khớp',
         code: 'PAYMENT_AMOUNT_MISMATCH',
@@ -530,7 +541,7 @@ export class PaymentsService {
           type: NotificationType.SERVICE,
           title: 'Thanh toán dịch vụ thành công',
           body: `Đã thanh toán ${expected.toLocaleString('vi-VN')}đ dịch vụ đi kèm cho đơn ${booking.code}.`,
-          link: '/dashboard/my-bookings',
+          link: '/bookings',
         })
         .catch(() => undefined);
 

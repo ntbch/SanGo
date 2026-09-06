@@ -58,6 +58,32 @@ services:
       - key: CORS_ORIGIN
         sync: false
 
+  # ------------------------------------------------------------------
+  # SanGo Web — SPA tĩnh (Vite build, React Router cần rewrite về index.html)
+  # VITE_API_URL set trên Render dashboard, vd: https://sango-api.onrender.com/api/v1
+  # Lưu ý: biến VITE_* được "nướng" vào bundle lúc build — đổi URL API phải rebuild.
+  # Đồng bộ CORS_ORIGIN của API phải chứa domain web này.
+  # ------------------------------------------------------------------
+  - type: web
+    name: sango-web
+    runtime: static
+    plan: free
+    region: singapore
+    autoDeploy: true
+    buildCommand: >-
+      corepack enable &&
+      pnpm install --no-frozen-lockfile &&
+      pnpm --filter @sango/shared build &&
+      pnpm --filter @sango/web build
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
 # ----------------------------------------------------------------------------
 # Mẫu khi nâng plan trả phí (tách migrate khỏi build, đúng nghĩa release):
 #

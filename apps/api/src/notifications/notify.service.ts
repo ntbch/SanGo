@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { Notification } from '@prisma/client';
 import type { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.module';
 import { MAILER_PORT, type MailerPort, type SendMailInput } from './mailer/mailer.port';
 import type { MailContent } from './mail-templates';
 
@@ -35,6 +36,8 @@ export class NotifyService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(MAILER_PORT) private readonly mailer: MailerPort,
+    // Optional: test construct NotifyService thủ công (2 tham số) không có realtime.
+    @Optional() private readonly realtime?: RealtimeService,
   ) {}
 
   /** Nạp đủ dữ liệu đơn (khách, sân con, venue) phục vụ render 3 loại mail. */
@@ -95,6 +98,17 @@ export class NotifyService {
         body: input.body,
         link: input.link,
       },
+    });
+    // Phase 4: WS chỉ là gợi ý refetch (REST nguồn sự thật). dispatch luôn chạy SAU
+    // commit nghiệp vụ; emit fire-and-forget — lỗi WS nuốt trong emitToUser, không fail here.
+    this.realtime?.emitToUser(input.userId, 'notification:new', {
+      id: created.id,
+      type: created.type,
+      title: created.title,
+      body: created.body,
+      link: created.link,
+      readAt: created.readAt,
+      createdAt: created.createdAt,
     });
     if (input.mail) {
       // Tra email người nhận tại chỗ — template chỉ trả subject/html/text.

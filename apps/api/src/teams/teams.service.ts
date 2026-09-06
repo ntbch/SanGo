@@ -3,11 +3,20 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, FundDriveScope, FundDriveStatus, TeamFundEntryType } from '@prisma/client';
+import {
+  Prisma,
+  FundDriveScope,
+  FundDriveStatus,
+  TeamFundEntryType,
+  type ExpenseShare,
+} from '@prisma/client';
+import { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletsService } from '../wallets/wallets.service';
+import { NotifyService } from '../notifications/notify.service';
 import type {
   CreateExpenseShareDto,
   CreateFundDriveDto,
@@ -22,10 +31,37 @@ import type {
 
 @Injectable()
 export class TeamsService {
+  private readonly logger = new Logger(TeamsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly wallets: WalletsService,
+    private readonly notify: NotifyService,
   ) {}
+
+  /**
+   * Phase 1 (T1.2): notification TEAM cho debtor — LUÔN gọi SAU khi transaction
+   * nghiệp vụ commit (pattern notifyAfterConfirm — bookings.service.ts). Lỗi notify
+   * chỉ được log, KHÔNG BAO GIỜ làm fail nghiệp vụ chia tiền (fire-and-forget).
+   */
+  private async notifyTeamSafe(input: {
+    userId: string;
+    title: string;
+    body: string;
+    link?: string;
+  }): Promise<void> {
+    try {
+      await this.notify.dispatch({
+        userId: input.userId,
+        type: NotificationType.TEAM,
+        title: input.title,
+        body: input.body,
+        link: input.link,
+      });
+    } catch (e) {
+      this.logger.warn(`Gửi notification TEAM thất bại (bỏ qua): ${(e as Error).message}`);
+    }
+  }
 
   /** Tạo đội thể thao mới: người tạo tự động là CAPTAIN và thành viên ACTIVE đầu tiên. */
   async createTeam(user: { id: string }, dto: CreateTeamDto) {
@@ -265,7 +301,7 @@ export class TeamsService {
       });
     }
 
-    return this.prisma.expenseShare.create({
+    const share = await this.prisma.expenseShare.create({
       data: {
         teamId,
         bookingId: dto.bookingId || null,
@@ -276,6 +312,16 @@ export class TeamsService {
         status: 'UNPAID',
       },
     });
+
+    // Phase 1 (T1.2): debtor bị ghi nợ -> notification TEAM sau khi CREATE commit.
+    await this.notifyTeamSafe({
+      userId: share.debtorId,
+      title: 'Bạn có khoản nợ chia tiền mới',
+      body: `Bạn bị ghi nợ ${share.amount.toLocaleString('vi-VN')}đ trong đội${share.note ? ` — ${share.note}` : ''}`,
+      link: `/teams/${teamId}`,
+    });
+
+    return share;
   }
 
   /**
@@ -354,9 +400,11 @@ export class TeamsService {
     // Tạo các ExpenseShare cho các thành viên (loại trừ chính người trả nếu có trong danh sách)
     const debtors = dto.memberIds.filter((id) => id !== user.id);
 
-    return this.prisma.$transaction(async (tx) => {
+    const split = await this.prisma.$transaction(async (tx) => {
       // MAJOR-A(2b): một booking chỉ được chia tiền MỘT lần trong đội —
-      // kiểm tra lại trong transaction để hạn chế double-submit.
+      // M4 fix: khoá dòng booking để hai split song song xếp hàng (ReadCommitted
+      // không tự chặn), recheck findFirst phía sau luôn thấy share tx trước đã commit.
+      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${booking.id}::uuid FOR UPDATE`;
       const existingShare = await tx.expenseShare.findFirst({
         where: { teamId, bookingId: booking.id },
         select: { id: true },
@@ -393,6 +441,18 @@ export class TeamsService {
         shares: createdShares,
       };
     });
+
+    // Phase 1 (T1.2): SAU khi tx commit — từng debtor bị ghi nợ nhận notification TEAM.
+    for (const share of split.shares) {
+      await this.notifyTeamSafe({
+        userId: share.debtorId,
+        title: 'Bạn có khoản nợ chia tiền mới',
+        body: `Đơn ${booking.code} đã được chia đều — bạn nợ ${share.amount.toLocaleString('vi-VN')}đ`,
+        link: `/teams/${teamId}`,
+      });
+    }
+
+    return split;
   }
 
   /** Xem danh sách khoản chia tiền của đội + tổng quan nợ. */
@@ -522,10 +582,104 @@ export class TeamsService {
       });
     }
 
-    return this.prisma.expenseShare.update({
+    const updated = await this.prisma.expenseShare.update({
       where: { id: shareId },
       data: { status: dto.status },
     });
+
+    // Phase 1 (T1.2): chỉ báo cho debtor đúng lúc chuyển UNPAID -> PAID (PATCH lặp không spam).
+    if (dto.status === 'PAID' && share.status !== 'PAID') {
+      await this.notifyTeamSafe({
+        userId: updated.debtorId,
+        title: 'Khoản nợ đã được xác nhận trả',
+        body: `Khoản ${updated.amount.toLocaleString('vi-VN')}đ đã được ${isPayer ? 'người ứng tiền' : 'đội trưởng'} xác nhận ĐÃ TRẢ`,
+        link: `/teams/${teamId}`,
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Phase 1 (T1.3): debtor tự trả nợ chia tiền bằng Ví nội bộ — MỘT transaction: 
+   * FOR UPDATE khoá dòng share + recheck UNPAID -> debit debtor + credit payer
+   * (ledger refType EXPENSE_SHARE_PAYMENT, refId shareId — UNIQUE(refType, refId, type)
+   * chặn ghi đôi/replay) -> status PAID. Replay trên share đã PAID trả về kết quả
+   * hiện tại (idempotent — KHÔNG trừ ví lần 2). Ví thiếu tiền -> 409 WALLET_INSUFFICIENT_FUNDS.
+   */
+  async payExpenseShare(teamId: string, shareId: string, user: { id: string }) {
+    let settled: { share: ExpenseShare; replay: boolean };
+    try {
+      settled = await this.prisma.$transaction(async (tx) => {
+        // Khoá dòng share: hai lần trả song song xếp hàng, recheck dưới lock luôn đúng trạng thái.
+        await tx.$queryRaw`SELECT id FROM "expense_shares" WHERE id = ${shareId}::uuid FOR UPDATE`;
+        const share = await tx.expenseShare.findUnique({ where: { id: shareId } });
+        if (!share || share.teamId !== teamId) {
+          throw new NotFoundException({
+            message: 'Không tìm thấy khoản chia tiền',
+            code: 'EXPENSE_NOT_FOUND',
+          });
+        }
+        // Chỉ debtor được tự trả nợ.
+        if (share.debtorId !== user.id) {
+          throw new ForbiddenException({
+            message: 'Chỉ người nợ (debtor) mới được trả khoản này qua ví',
+            code: 'EXPENSE_FORBIDDEN',
+          });
+        }
+        // Idempotent: share đã PAID -> trả lại kết quả hiện tại, KHÔNG trừ ví lần 2.
+        if (share.status === 'PAID') {
+          return { share, replay: true };
+        }
+
+        // Debit trước: thiếu tiền ném 409 ngay, credit chưa kịp ghi (cùng tx -> rollback sạch).
+        await this.wallets.applyInTx(tx, {
+          userId: share.debtorId,
+          amount: share.amount,
+          direction: 'DEBIT',
+          type: 'PAYMENT',
+          refType: 'EXPENSE_SHARE_PAYMENT',
+          refId: share.id,
+        });
+        // Payer được hoàn tiền ứng trước — type REFUND khác PAYMENT nên
+        // UNIQUE(refType, refId, type) của ledger không va chạm giữa 2 dòng.
+        await this.wallets.applyInTx(tx, {
+          userId: share.payerId,
+          amount: share.amount,
+          direction: 'CREDIT',
+          type: 'REFUND',
+          refType: 'EXPENSE_SHARE_PAYMENT',
+          refId: share.id,
+        });
+
+        const updated = await tx.expenseShare.update({
+          where: { id: share.id },
+          data: { status: 'PAID' },
+        });
+        return { share: updated, replay: false };
+      });
+    } catch (e) {
+      // Ledger UNIQUE trúng (khoản đã trả qua ví trước đó nhưng bị PATCH mở lại UNPAID)
+      // -> chặn trả lần 2 bằng 409 thay vì để P2002 vỡ 500.
+      if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
+        throw new ConflictException({
+          message: 'Khoản này đã được thanh toán qua ví trước đó',
+          code: 'EXPENSE_ALREADY_PAID',
+        });
+      }
+      throw e;
+    }
+
+    // SAU khi tx commit: debtor nhận xác nhận — lỗi notify không fail business.
+    if (!settled.replay) {
+      await this.notifyTeamSafe({
+        userId: settled.share.debtorId,
+        title: 'Trả nợ qua ví thành công',
+        body: `Bạn đã trả ${settled.share.amount.toLocaleString('vi-VN')}đ cho khoản chia tiền bằng ví`,
+        link: `/teams/${teamId}`,
+      });
+    }
+    return settled.share;
   }
 
   // ================================================================
@@ -682,32 +836,29 @@ export class TeamsService {
       });
     }
 
-    // 1. Tạo bản ghi đóng quỹ
-    const contribution = await this.prisma.fundContribution.create({
-      data: {
-        fundDriveId: driveId,
-        userId: user.id,
-        amount: dto.amount,
-        note: dto.note ?? null,
-      },
-    });
+    // M2 fix: ghi quỹ + trừ ví trong MỘT transaction — hết lệch sổ khi crash
+    // giữa chừng (bỏ compensation xoá-bản-ghi ngoài tx).
+    return this.prisma.$transaction(async (tx) => {
+      const contribution = await tx.fundContribution.create({
+        data: {
+          fundDriveId: driveId,
+          userId: user.id,
+          amount: dto.amount,
+          note: dto.note ?? null,
+        },
+      });
 
-    // 2. Trừ tiền ví cá nhân qua WalletsService
-    try {
-      await this.wallets.debit({
+      await this.wallets.applyInTx(tx, {
         userId: user.id,
         amount: dto.amount,
         type: 'PAYMENT',
+        direction: 'DEBIT',
         refType: 'FUND_CONTRIBUTION',
         refId: contribution.id,
       });
-    } catch (err) {
-      // Rollback bản ghi đóng quỹ nếu trừ ví thất bại
-      await this.prisma.fundContribution.delete({ where: { id: contribution.id } });
-      throw err;
-    }
 
-    return contribution;
+      return contribution;
+    });
   }
 
   /** Thành viên đóng quỹ trực tiếp vào quỹ đội (P5 — Frontend alias) */
@@ -722,49 +873,48 @@ export class TeamsService {
       });
     }
 
-    // Ghi nhận như một khoản INCOME vào TeamExpense
-    const created = await this.prisma.teamExpense.create({
-      data: {
-        teamId,
-        type: TeamFundEntryType.INCOME,
-        amount: dto.amount,
-        reason: dto.note ? `Đóng quỹ: ${dto.note}` : 'Đóng quỹ đội',
-        recordedBy: user.id,
-        occurredAt: new Date(),
-      },
-      include: { recorder: { select: { fullName: true } } },
-    });
+    // M2 fix: ghi INCOME + trừ ví trong MỘT transaction (atomic, hết compensation).
+    const created = await this.prisma.$transaction(async (tx) => {
+      const expense = await tx.teamExpense.create({
+        data: {
+          teamId,
+          type: TeamFundEntryType.INCOME,
+          amount: dto.amount,
+          reason: dto.note ? `Đóng quỹ: ${dto.note}` : 'Đóng quỹ đội',
+          recordedBy: user.id,
+          occurredAt: new Date(),
+        },
+        include: { recorder: { select: { fullName: true } } },
+      });
 
-    // Trừ ví cá nhân
-    try {
-      await this.wallets.debit({
+      await this.wallets.applyInTx(tx, {
         userId: user.id,
         amount: dto.amount,
         type: 'PAYMENT',
+        direction: 'DEBIT',
         refType: 'TEAM_EXPENSE_INCOME',
-        refId: created.id,
+        refId: expense.id,
       });
 
-      // Lấy số dư mới của quỹ đội
-      const overview = await this.getTreasuryOverview(teamId, user);
-      return {
-        success: true,
-        newBalance: overview.balance,
-        log: {
-          id: created.id,
-          teamId: created.teamId,
-          type: created.type,
-          title: created.reason,
-          amount: created.amount,
-          creatorName: created.recorder.fullName,
-          billImageUrl: null,
-          createdAt: created.occurredAt.toISOString(),
-        },
-      };
-    } catch (err) {
-      await this.prisma.teamExpense.delete({ where: { id: created.id } });
-      throw err;
-    }
+      return expense;
+    });
+
+    // Post-commit: lấy số dư mới của quỹ đội cho phản hồi.
+    const overview = await this.getTreasuryOverview(teamId, user);
+    return {
+      success: true,
+      newBalance: overview.balance,
+      log: {
+        id: created.id,
+        teamId: created.teamId,
+        type: created.type,
+        title: created.reason,
+        amount: created.amount,
+        creatorName: created.recorder.fullName,
+        billImageUrl: null,
+        createdAt: created.occurredAt.toISOString(),
+      },
+    };
   }
 
   /** Danh sách nhật ký thu–chi quỹ đội */

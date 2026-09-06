@@ -22,7 +22,7 @@ export function ResetPasswordPage(): React.ReactElement {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !newPassword) {
-      setErrorMessage('Vui lòng nhập đầy đủ mã token và mật khẩu mới.');
+      setErrorMessage('nhập đầy đủ mã token và mật khẩu mới.');
       return;
     }
     if (newPassword.length < 6) {
@@ -60,7 +60,7 @@ export function ResetPasswordPage(): React.ReactElement {
             <KeyRound className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl sm:text-2xl font-black text-foreground">Đặt Lại Mật Khẩu</CardTitle>
-          <p className="text-xs text-muted-foreground">Nhập mã xác thực và thiết lập mật khẩu mới.</p>
+          <p className="text-xs text-muted-foreground">Nhập mã xác thực, đặt mật khẩu mới.</p>
         </CardHeader>
 
         <CardContent className="space-y-5">
@@ -68,7 +68,7 @@ export function ResetPasswordPage(): React.ReactElement {
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2">
               <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
               <p className="text-xs font-bold text-foreground">Đặt lại mật khẩu thành công!</p>
-              <p className="text-[11px] text-muted-foreground">Đang tự động chuyển về trang Đăng nhập...</p>
+              <p className="text-[11px] text-muted-foreground">Đang chuyển về trang Đăng nhập...</p>
             </div>
           ) : (
             <>
@@ -134,7 +134,7 @@ export function ResetPasswordPage(): React.ReactElement {
                   type="submit"
                   disabled={isLoading}
                   size="lg"
-                  className="w-full font-bold text-xs h-10 shadow-lg shadow-emerald-500/20"
+                  className="w-full font-bold text-xs h-10 shadow-lg"
                 >
                   {isLoading ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu'}
                 </Button>

@@ -18,7 +18,7 @@ export function AdminVouchersTab(): React.ReactElement {
       <Card className="border-border/80">
         <CardContent className="p-8 text-center text-muted-foreground text-xs sm:text-sm space-y-2">
           <p className="font-semibold text-foreground">Trung Tâm Quản Lý Mã Giảm Giá Chiến Dịch</p>
-          <p>Các mã voucher kích cầu toàn sàn đang được áp dụng tự động cho các khung giờ thấp điểm từ 08:00 đến 15:00 hàng ngày.</p>
+          <p>Voucher áp tự động cho khung thấp điểm 08:00–15:00.</p>
         </CardContent>
       </Card>
     </div>

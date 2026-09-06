@@ -141,6 +141,19 @@ export class TeamsController {
     return this.teamsService.updateExpenseShareStatus(id, shareId, user, dto);
   }
 
+  // Phase 1 (T1.3): trả nợ qua ví — atomic + idempotent
+  @Post(':id/expenses/:shareId/pay')
+  @ApiOperation({
+    summary: '[Phase 1] Debtor trả nợ chia tiền qua ví — 1 tx debit/credit + PAID, idempotent',
+  })
+  payExpenseShareFromWallet(
+    @Param('id') id: string,
+    @Param('shareId') shareId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.teamsService.payExpenseShare(id, shareId, user);
+  }
+
   // ================================================================
   // P5: TEAM TREASURY
   // ================================================================

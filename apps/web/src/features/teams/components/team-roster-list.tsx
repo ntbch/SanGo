@@ -49,7 +49,7 @@ export function TeamRosterList({
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-bold text-foreground">{m.user?.fullName || 'Thành viên'}</p>
                   {m.role === 'CAPTAIN' && (
-                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-500 text-[9px] font-black uppercase">
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[9px] font-black uppercase">
                       Captain
                     </span>
                   )}

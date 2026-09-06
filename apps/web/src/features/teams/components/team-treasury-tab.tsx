@@ -32,7 +32,7 @@ export function TeamTreasuryTab({
           <p className="font-mono-num font-black text-3xl sm:text-4xl text-primary">
             {formatVND(treasury?.balance || 0)}
           </p>
-          <p className="text-[11px] text-muted-foreground">Quản lý thu chi công khai giữa các thành viên</p>
+          <p className="text-[11px] text-muted-foreground">Thu chi công khai trong đội</p>
         </div>
 
         {fundMsg && (
@@ -61,7 +61,7 @@ export function TeamTreasuryTab({
             </div>
           </div>
 
-          <Button type="submit" className="w-full font-bold text-xs shadow-md shadow-emerald-500/20 cursor-pointer">
+          <Button type="submit" className="w-full font-bold text-xs shadow-md cursor-pointer">
             Xác Nhận Đóng Quỹ
           </Button>
         </form>

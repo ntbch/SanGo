@@ -10,6 +10,8 @@ import { NotificationEmptyState } from '../components/notification-empty-state';
 export function NotificationsPage(): React.ReactElement {
   const {
     notifications,
+    loading,
+    fetchNotifications,
     filterType,
     filterUnreadOnly,
     setFilterType,
@@ -22,6 +24,11 @@ export function NotificationsPage(): React.ReactElement {
   } = useNotificationsStore();
 
   const [searchQuery, setSearchQuery] = React.useState('');
+
+  // Dữ liệu thật từ BE — tải hộp thư khi mở trang, refresh khi quay lại.
+  React.useEffect(() => {
+    void fetchNotifications();
+  }, [fetchNotifications]);
 
   const count = unreadCount();
   const totalCount = notifications.length;
@@ -74,7 +81,13 @@ export function NotificationsPage(): React.ReactElement {
         />
 
         <CardContent className="p-4 sm:p-6 space-y-3">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-16 rounded-lg bg-secondary/60 animate-pulse" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <NotificationEmptyState
               isFiltered={filterType !== 'ALL' || filterUnreadOnly || searchQuery.trim() !== ''}
               onResetFilters={handleResetFilters}

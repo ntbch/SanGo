@@ -29,6 +29,7 @@ export function TeamHeroHeader({
             {team.name.charAt(0).toUpperCase()}
           </div>
           <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{team.name}</h1>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold uppercase border border-primary/20">
                 {team.sportType}
@@ -39,7 +40,6 @@ export function TeamHeroHeader({
                 </span>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{team.name}</h1>
             <p className="text-xs text-muted-foreground">
               Đội trưởng: <strong>{team.captain?.fullName || 'Trần Đức'}</strong> · {team.members?.length || 1} Thành viên
             </p>
@@ -50,7 +50,7 @@ export function TeamHeroHeader({
           <Button
             onClick={onOpenInviteModal}
             size="sm"
-            className="text-xs font-bold gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+            className="text-xs font-bold gap-1.5 shadow-md cursor-pointer"
           >
             <UserPlus className="h-4 w-4" />
             <span>Mời Cầu Thủ</span>

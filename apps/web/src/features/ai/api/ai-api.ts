@@ -40,16 +40,16 @@ export async function sendAiChatApi(payload: AiChatPayload): Promise<AiChatRespo
     let reply = '';
     if (q.includes('bóng đá') || q.includes('sân 7') || q.includes('cầu giấy')) {
       reply =
-        'SanGo AI tìm thấy **Sân Thể Thao Cao Cấp Ngọc Khánh** và **Cụm Sân Đại Học Sư Phạm** tại Cầu Giấy đang có khung giờ 19:00 - 20:30 tối nay còn trống với mức giá ưu đãi từ 250.000 đ/giờ. Bạn có muốn giữ chỗ ngay không?';
+        'Tại Cầu Giấy còn trống **Sân Ngọc Khánh** và **ĐH Sư Phạm**, giờ 19:00–20:30 tối nay, từ 250.000đ/h. Giữ chỗ ngay?';
     } else if (q.includes('pickleball') || q.includes('ba đình')) {
       reply =
-        'Khu vực Ba Đình hiện có **Sân Pickleball Pro Court** với 4 sân mái che chuẩn thi đấu quốc tế, khung giờ vàng 17:30 - 19:00 ngày mai đang mở đăng ký. Giá đặt chỉ từ 180.000 đ/slot!';
+        '**Sân Pickleball Pro Court** (Ba Đình) có 4 sân mái che, giờ vàng 17:30–19:00 ngày mai, từ 180.000đ/slot.';
     } else if (q.includes('cầu lông') || q.includes('badminton')) {
       reply =
-        'SanGo hiện có nhiều cụm sân cầu lông sàn thảm tiêu chuẩn BWF tại Đống Đa và Nam Từ Liêm, mở cửa từ 06:00 đến 23:00. Bạn muốn tìm sân vào thời gian nào?';
+        'Sân cầu lông thảm BWF ở Đống Đa, Nam Từ Liêm mở 06:00–23:00. Bạn muốn chơi lúc nào?';
     } else {
       reply =
-        'Xin chào! Tôi là Trợ Lý AI của SanGo Sports. Tôi có thể hỗ trợ bạn:\n\n1. 🔍 **Tìm sân thể thao trống** theo vị trí GPS, quận huyện và loại sân.\n2. ⭐ **Gợi ý khung giờ vàng** và sân có giá ưu đãi nhất.\n3. ⚡ **Tạo giữ chỗ 10 phút tự động** để bạn đặt cọc nhanh chóng.\n\nBạn đang tìm sân cho môn thể thao nào?';
+        'Chào bạn! Tôi có thể hỗ trợ:\n- Tìm sân trống theo khu vực\n- Gợi ý giờ vàng giá tốt\n- Giữ chỗ 10 phút\n\nBạn đang tìm sân môn nào?';
     }
     return { reply };
   }

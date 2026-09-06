@@ -46,7 +46,7 @@ export function PublicLayout(): React.ReactElement {
       {/* Mobile Bottom Navigation Bar with Safe Area Insets */}
       <nav
         aria-label="Thanh điều hướng di động"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-border/80 bg-card/95 backdrop-blur-xl px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-border/80 bg-card px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg"
       >
         {bottomNavItems.map((item) => (
           <NavLink
