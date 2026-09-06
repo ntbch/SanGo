@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppRoutes } from '../src/app/routes';
@@ -7,6 +7,14 @@ import { VenueDetailPage } from '../src/features/venues/pages';
 import { TournamentsPage } from '../src/features/tournaments/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { SportType } from '../src/lib/constants';
+
+vi.mock('../src/features/tournaments/api/tournaments-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/features/tournaments/api/tournaments-api')>();
+  return {
+    ...actual,
+    listTournamentsApi: vi.fn().mockResolvedValue([]),
+  };
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

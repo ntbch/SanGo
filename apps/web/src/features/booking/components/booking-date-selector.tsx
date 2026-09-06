@@ -117,7 +117,7 @@ export function BookingDateSelector({
                   <span
                     className={cn(
                       'h-1.5 w-1.5 rounded-full',
-                      isSelected ? 'bg-white' : 'bg-primary animate-pulse',
+                      isSelected ? 'bg-white' : 'bg-primary',
                     )}
                   />
                 )}

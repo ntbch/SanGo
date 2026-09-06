@@ -77,10 +77,10 @@ export function HomeHero(): React.ReactElement {
       <div className="lg:col-span-7 space-y-6">
         <div className="space-y-3.5">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.15] max-w-xl">
-            Đặt sân thể thao &amp; ghép kèo trong 10 phút
+            Đặt Sân Thể Thao &amp; Ghép Kèo Nhanh
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-            Tra cứu lịch trống thời gian thực ở hơn 250 cụm sân tại Hà Nội và TP. Hồ Chí Minh, khóa chỗ 10 phút chống trùng ca và nhận mã QR check-in ngay tại quầy.
+            250+ Cụm sân hoạt động trực tuyến tại Hà Nội và TP. Hồ Chí Minh, khóa chỗ 10 phút chống trùng ca và nhận mã QR check-in ngay tại quầy.
           </p>
         </div>
 

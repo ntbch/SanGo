@@ -337,7 +337,7 @@ export const VenueMapView = React.memo(function VenueMapView({
 
                 {/* Status Pill */}
                 <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-0.5 text-[10px] font-bold text-white border border-white/10">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   <span>Đang mở cửa</span>
                 </div>
 

@@ -46,6 +46,7 @@ vi.mock('../src/features/teams/api/teams-api', async (importOriginal) => {
   };
   return {
     ...actual,
+    listMyTeamsApi: vi.fn().mockResolvedValue([]),
     getTeamApi: vi.fn().mockResolvedValue(mockTeam),
     getTeamExpensesApi: vi.fn().mockResolvedValue([]),
     getTreasuryOverviewApi: vi.fn().mockResolvedValue({

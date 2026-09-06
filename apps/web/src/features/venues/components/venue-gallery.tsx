@@ -124,7 +124,7 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
             <div className="flex items-center gap-1.5 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white border border-white/10">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                  isOpen ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}
               />
               <span>{isOpen ? 'Đang mở cửa' : 'Đã đóng cửa'}</span>
@@ -160,7 +160,7 @@ export function VenueGallery({ venue }: VenueGalleryProps): React.ReactElement {
               className={`relative aspect-[16/10] w-20 sm:w-24 rounded-xl overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
                 activeIndex === idx
                   ? 'border-primary ring-2 ring-primary/30 scale-105'
-                  : 'border-transparent opacity-60 hover:opacity-100'
+                  : 'border-border/60 hover:border-primary/80'
               }`}
             >
               <img src={img} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />

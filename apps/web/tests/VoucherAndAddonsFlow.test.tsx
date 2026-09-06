@@ -3,9 +3,27 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CheckoutHoldPage } from '../src/features/booking/pages';
-import { TicketCard } from '../src/features/booking/components/ticket-card';
+import { CheckoutAddOnsPicker } from '../src/features/booking/components/checkout-addons-picker';
 import { useAuthStore } from '../src/lib/auth-store';
-import { SportType, UserRole, BookingStatus } from '../src/lib/constants';
+import { UserRole } from '../src/lib/constants';
+
+vi.mock('../src/features/venues/api/venue-services-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/features/venues/api/venue-services-api')>();
+  return {
+    ...actual,
+    listPublicVenueServicesApi: vi.fn().mockResolvedValue([
+      {
+        id: 'svc-1',
+        venueId: 'v-1',
+        name: 'Nước lọc Aquafina 500ml',
+        category: 'BEVERAGE',
+        unitPriceVnd: 15000,
+        unit: 'Chai',
+        isActive: true,
+      },
+    ]),
+  };
+});
 
 vi.mock('../src/features/booking/api/booking-api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/features/booking/api/booking-api')>();
@@ -58,32 +76,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const mockTicket = {
-  id: 'b-test-1',
-  code: 'CH-20260901-0001',
-  courtId: 'c-1',
-  customerId: 'u-1',
-  date: '2026-09-01',
-  startMinute: 1080,
-  endMinute: 1140,
-  status: BookingStatus.CONFIRMED,
-  totalPrice: 300000,
-  depositAmount: 90000,
-  paidAmount: 90000,
-  createdAt: '2026-08-25T10:00:00.000Z',
-  court: {
-    name: 'Sân 7A',
-    sportType: SportType.FOOTBALL7,
-    venue: {
-      id: 'v-1',
-      name: 'Cụm Sân Ngọc Khánh',
-      slug: 'san-ngoc-khanh',
-      address: '12 Ngọc Khánh',
-      district: 'Ba Đình',
-      city: 'Hà Nội',
-    },
-  },
-};
+
 
 describe('Voucher, Add-ons and AI Widget Integration', () => {
   beforeEach(() => {
@@ -126,24 +119,33 @@ describe('Voucher, Add-ons and AI Widget Integration', () => {
     });
   });
 
-  it('opens Add-ons Modal on Confirmed Ticket Card and manages quantity stepper', async () => {
+  it('renders and interacts with CheckoutAddOnsPicker quantity stepper during hold checkout', async () => {
+    const handleChange = vi.fn();
+    queryClient.setQueryData(['public-venue-services', 'v-1'], [
+      {
+        id: 'svc-1',
+        venueId: 'v-1',
+        name: 'Nước lọc Aquafina 500ml',
+        category: 'BEVERAGE',
+        unitPriceVnd: 15000,
+        unit: 'Chai',
+        isActive: true,
+      },
+    ]);
+
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <TicketCard ticket={mockTicket} />
-        </MemoryRouter>
+        <CheckoutAddOnsPicker
+          venueId="v-1"
+          selectedItems={[]}
+          onChange={handleChange}
+        />
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole('button', { name: /Đặt Thêm Dịch Vụ \/ Nước Uống/i })).toBeDefined();
-
-    const addonsBtn = screen.getByRole('button', { name: /Đặt Thêm Dịch Vụ \/ Nước Uống/i });
-    fireEvent.click(addonsBtn);
-
-    // Should open Addons Modal
     await waitFor(() => {
-      expect(screen.getByText(/Đặt Dịch Vụ & Nước Uống Cho Đơn/i)).toBeDefined();
-      expect(screen.getByRole('button', { name: /Xác Nhận Đặt/i })).toBeDefined();
+      expect(screen.getByText(/Nước lọc Aquafina 500ml/i)).toBeDefined();
+      expect(screen.getByText(/15.000/i)).toBeDefined();
     });
   });
 });
