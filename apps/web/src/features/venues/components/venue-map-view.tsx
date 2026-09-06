@@ -37,24 +37,24 @@ function getOrCreatePriceIcon(priceFrom?: number, isSelected = false, isDark = f
   }
 
   const html = `
-    <div class="relative flex items-center justify-center cursor-pointer group transition-transform duration-150 ${
-      isSelected ? 'scale-110 z-50 ring-2 ring-amber-400/80 rounded-full' : 'hover:scale-105'
+    <div class="relative flex items-center justify-center cursor-pointer group transition-all duration-200 ${
+      isSelected ? 'z-50 scale-110' : 'hover:scale-105'
     }">
-      <div class="px-2.5 py-1 rounded-full text-xs font-black shadow-md border ${
+      <div class="px-2.5 py-1 rounded-full text-xs font-black shadow-md border tracking-tight ${
         isSelected
-          ? 'bg-amber-400 text-black border-amber-300 shadow-amber-950/40'
+          ? 'bg-primary text-primary-foreground border-primary shadow-primary/30 ring-2 ring-primary/40'
           : isDark
-          ? 'bg-emerald-500 text-slate-950 border-emerald-300/80 shadow-black/60 hover:bg-emerald-400 font-bold'
-          : 'bg-emerald-600 text-white border-emerald-400/60 shadow-emerald-950/40 hover:bg-emerald-500'
+          ? 'bg-card text-foreground border-border/90 shadow-black/80 font-bold hover:border-primary'
+          : 'bg-white text-foreground border-border shadow-md font-bold hover:border-primary'
       }">
         ${priceText}
       </div>
       <div class="absolute -bottom-1 w-2 h-2 rotate-45 ${
         isSelected
-          ? 'bg-amber-400 border-r border-b border-amber-300'
+          ? 'bg-primary border-r border-b border-primary'
           : isDark
-          ? 'bg-emerald-500 border-r border-b border-emerald-300/80'
-          : 'bg-emerald-600 border-r border-b border-emerald-400/60'
+          ? 'bg-card border-r border-b border-border/90'
+          : 'bg-white border-r border-b border-border'
       }"></div>
     </div>
   `;
@@ -190,6 +190,7 @@ export interface VenueMapViewProps {
   onBoundsChange: (bbox: string) => void;
   center?: [number, number];
   zoom?: number;
+  hoveredVenueId?: string | null;
 }
 
 export type GoogleMapLayerType = 'google-street' | 'google-satellite' | 'google-terrain';
@@ -226,6 +227,7 @@ export const VenueMapView = React.memo(function VenueMapView({
   onBoundsChange,
   center = [21.028511, 105.854444], // Mặc định Hà Nội
   zoom = 13,
+  hoveredVenueId,
 }: VenueMapViewProps): React.ReactElement {
   const isDarkMode = useIsDarkMode();
   const [selectedVenue, setSelectedVenue] = React.useState<VenueItem | null>(null);
@@ -289,7 +291,7 @@ export const VenueMapView = React.memo(function VenueMapView({
           <VenueMarker
             key={venue.id}
             venue={venue}
-            isSelected={selectedVenue?.id === venue.id}
+            isSelected={selectedVenue?.id === venue.id || hoveredVenueId === venue.id}
             isDark={isDarkMode}
             onClick={handleMarkerClick}
           />

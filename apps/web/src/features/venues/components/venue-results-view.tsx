@@ -14,6 +14,8 @@ export interface VenueResultsViewProps {
   onPageChange: (newPage: number) => void;
   onFilterChange: (newFilters: VenueFilters) => void;
   onRefetch: () => void;
+  hoveredVenueId?: string | null;
+  onHoverVenue?: (id: string | null) => void;
 }
 
 export function VenueResultsView({
@@ -25,6 +27,8 @@ export function VenueResultsView({
   onPageChange,
   onFilterChange,
   onRefetch,
+  hoveredVenueId,
+  onHoverVenue,
 }: VenueResultsViewProps): React.ReactElement {
   if (isLoading) {
     return (
@@ -62,7 +66,12 @@ export function VenueResultsView({
       {/* High-density horizontal row cards in vertical stack */}
       <div className="flex flex-col gap-4">
         {items.map((venue) => (
-          <VenueCard key={venue.id} venue={venue} />
+          <VenueCard
+            key={venue.id}
+            venue={venue}
+            isHovered={hoveredVenueId === venue.id}
+            onHover={onHoverVenue}
+          />
         ))}
       </div>
 

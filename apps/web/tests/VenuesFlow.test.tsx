@@ -219,4 +219,20 @@ describe('Venues Flow Components & Redesigned Filters', () => {
     fireEvent.click(applyBtn);
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('triggers onHover callbacks on VenueCard for bidirectional map sync', () => {
+    const onHover = vi.fn();
+    const { container } = render(
+      <BrowserRouter>
+        <VenueCard venue={mockVenue} onHover={onHover} />
+      </BrowserRouter>,
+    );
+
+    const cardEl = container.firstChild as HTMLElement;
+    fireEvent.mouseEnter(cardEl);
+    expect(onHover).toHaveBeenCalledWith('ven-1');
+
+    fireEvent.mouseLeave(cardEl);
+    expect(onHover).toHaveBeenCalledWith(null);
+  });
 });

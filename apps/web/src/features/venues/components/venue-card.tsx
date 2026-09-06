@@ -9,9 +9,11 @@ import { Star, MapPin, Navigation, ArrowRight } from 'lucide-react';
 
 export interface VenueCardProps {
   venue: VenueItem;
+  isHovered?: boolean;
+  onHover?: (id: string | null) => void;
 }
 
-export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
+export function VenueCard({ venue, isHovered, onHover }: VenueCardProps): React.ReactElement {
   if (!venue) return <></>;
 
   // Tính toán trạng thái mở/đóng cửa an toàn
@@ -40,7 +42,16 @@ export function VenueCard({ venue }: VenueCardProps): React.ReactElement {
   const rating = venue.avgRating ? Number(venue.avgRating).toFixed(1) : '5.0';
 
   return (
-    <Card className="group overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-150 flex flex-col sm:flex-row hover:border-foreground/20">
+    <Card
+      onMouseEnter={() => onHover?.(venue.id)}
+      onMouseLeave={() => onHover?.(null)}
+      className={cn(
+        'group overflow-hidden rounded-2xl border bg-card transition-all duration-150 flex flex-col sm:flex-row',
+        isHovered
+          ? 'border-primary ring-1 ring-primary/40 shadow-md'
+          : 'border-border hover:border-foreground/30',
+      )}
+    >
       {/* 4:3 Image Container (Desktop/Tablet row, mobile stacked) */}
       <div className="relative aspect-[4/3] w-full sm:w-56 shrink-0 overflow-hidden bg-muted">
         <img

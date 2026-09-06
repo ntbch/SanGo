@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { VenueFilters } from '../api/venues-api';
-import { SportType } from '../../../lib/constants';
+import { SportType, DISTRICTS_BY_CITY } from '../../../lib/constants';
 import {
   Search,
   SlidersHorizontal,
@@ -70,9 +70,10 @@ export function VenueTopSortBar({
 
   return (
     <div className="w-full space-y-3">
-      {/* Mobile Sport Pills + Filter Drawer Trigger (Hidden on Desktop) */}
-      <div className="flex lg:hidden items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      {/* Top Sports Selector Pills & Filter Trigger (Available on all screens) */}
+      <div className="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pb-1">
+        <span className="sr-only">Bộ Lọc Nâng Cao</span>
+        <div className="flex items-center gap-1.5 shrink-0">
           {sports.map((s) => {
             const isActive = (!filters.sportType && !s.type) || filters.sportType === s.type;
             return (
@@ -81,10 +82,10 @@ export function VenueTopSortBar({
                 type="button"
                 onClick={() => handleSportSelect(s.type)}
                 className={cn(
-                  'whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer',
+                  'whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-[0.98] border',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'bg-secondary/70 text-muted-foreground hover:text-foreground border border-border/40',
+                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    : 'bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 border-border',
                 )}
               >
                 {s.label}
@@ -97,9 +98,9 @@ export function VenueTopSortBar({
           variant="outline"
           size="sm"
           onClick={onOpenMobileDrawer}
-          className="h-8 gap-1 text-xs font-bold shrink-0 border-primary/40 text-primary"
+          className="h-8 gap-1.5 text-xs font-bold shrink-0 border-border bg-card text-foreground hover:bg-secondary active:scale-[0.98]"
         >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
           <span>Lọc {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
         </Button>
       </div>
@@ -117,8 +118,21 @@ export function VenueTopSortBar({
           />
         </div>
 
-        {/* Right Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* District & Price & Right Action Controls */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* District Select */}
+          <select
+            value={filters.district || ''}
+            onChange={(e) => onFilterChange({ ...filters, district: e.target.value || undefined })}
+            className="flex h-9 rounded-xl border border-input bg-background/80 px-2.5 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+          >
+            <option value="">Khu vực: Tất cả quận</option>
+            {((DISTRICTS_BY_CITY[filters.city === 'TP. Hồ Chí Minh' ? 'TP. Hồ Chí Minh' : 'Hà Nội'] || []) as readonly string[]).map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
           {/* GPS Button */}
           <Button
             type="button"
