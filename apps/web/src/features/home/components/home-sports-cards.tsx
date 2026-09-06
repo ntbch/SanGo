@@ -62,7 +62,7 @@ export function HomeSportsCards(): React.ReactElement {
         </div>
         <Link
           to="/venues"
-          className="text-xs font-semibold text-foreground hover:text-primary flex items-center gap-1 group transition-colors"
+          className="text-xs font-semibold text-foreground hover:text-primary flex items-center gap-1 group transition-colors active:scale-[0.98]"
         >
           <span>Xem tất cả sân</span>
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -72,15 +72,19 @@ export function HomeSportsCards(): React.ReactElement {
       {/* Sports Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {SPORTS_DATA.map((sport) => (
-          <Link key={sport.type} to={`/venues?sportType=${sport.type}`} className="group block">
-            <Card className="overflow-hidden rounded-2xl border border-border bg-card hover:shadow-md transition-shadow flex flex-col justify-between h-full">
+          <Link
+            key={sport.type}
+            to={`/venues?sportType=${sport.type}`}
+            className="group block active:scale-[0.98] transition-transform"
+          >
+            <Card className="overflow-hidden rounded-2xl border border-border bg-card group-hover:border-primary transition-colors flex flex-col justify-between h-full shadow-xs">
               <div>
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
                   <img
                     src={sport.image}
                     alt={sport.name}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-102"
+                    className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/40" />
 
@@ -93,7 +97,7 @@ export function HomeSportsCards(): React.ReactElement {
                   )}
 
                   <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
-                    <span className="text-xs font-mono-num font-semibold text-zinc-100">
+                    <span className="text-xs font-mono-num font-bold text-white">
                       {sport.courts}
                     </span>
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white transition-colors group-hover:bg-primary group-hover:text-primary-foreground">

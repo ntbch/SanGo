@@ -61,8 +61,8 @@ export function HomeTechPillars(): React.ReactElement {
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-mono-num text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Cơ chế {p.number}
+                <span className="font-mono-num text-2xl font-black text-foreground/40">
+                  {p.number}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-secondary text-foreground text-[10px] font-mono-num font-bold border border-border">
                   {p.tag}

@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HomePage } from '../src/features/home/pages/home-page';
 import { HomeFeaturedVenues } from '../src/features/home/components/home-featured-venues';
+import { HomeSportsCards } from '../src/features/home/components/home-sports-cards';
+import { HomeTechPillars } from '../src/features/home/components/home-tech-pillars';
 import * as venuesApi from '../src/features/venues/api/venues-api';
 
 vi.mock('../src/features/matches/api/matches-api', async (importOriginal) => {
@@ -226,6 +228,92 @@ describe('Home Page Flow Components', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Duyệt tất cả sân' })).toBeDefined();
+  });
+
+  it('renders Sports Cards with real venue counts and tabular pricing', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <HomeSportsCards />
+      </BrowserRouter>,
+    );
+
+    // 1. Heading & description
+    const heading = screen.getByRole('heading', { level: 2, name: 'Khám phá theo môn thể thao' });
+    expect(heading).toBeDefined();
+    expect(heading.className).toContain('text-2xl');
+    expect(heading.className).toContain('font-extrabold');
+
+    // 2. Action link to /venues
+    const actionLink = screen.getByRole('link', { name: /Xem tất cả sân/i });
+    expect(actionLink).toBeDefined();
+    expect(actionLink.getAttribute('href')).toBe('/venues');
+    expect(actionLink.className).toContain('active:scale-[0.98]');
+    expect(actionLink.className).not.toContain('hover:opacity');
+
+    // 3. 4 sports cards with real counts and tabular pricing
+    expect(screen.getByText('Bóng Đá Sân 5 & 7')).toBeDefined();
+    expect(screen.getByText('140+ Cụm sân')).toBeDefined();
+    expect(screen.getByText(/Từ 250.000đ/)).toBeDefined();
+
+    expect(screen.getByText('Pickleball Trong Nhà & Mái Che')).toBeDefined();
+    expect(screen.getByText('60+ Cụm sân')).toBeDefined();
+    expect(screen.getByText(/Từ 120.000đ/)).toBeDefined();
+
+    expect(screen.getByText('Cầu Lông')).toBeDefined();
+    expect(screen.getByText('95+ Cụm sân')).toBeDefined();
+    expect(screen.getByText(/Từ 80.000đ/)).toBeDefined();
+
+    expect(screen.getByText('Tennis Sân Cứng')).toBeDefined();
+    expect(screen.getByText('40+ Cụm sân')).toBeDefined();
+    expect(screen.getByText(/Từ 180.000đ/)).toBeDefined();
+
+    // 4. Ensure no decorative image scale zoom (group-hover:scale-102)
+    const images = container.querySelectorAll('img');
+    images.forEach((img) => {
+      expect(img.className).not.toContain('group-hover:scale-102');
+    });
+  });
+
+  it('renders Tech Pillars operational mechanics with 01-04 tabular numbers and badges', () => {
+    render(<HomeTechPillars />);
+
+    // 1. Title & description
+    const heading = screen.getByRole('heading', { level: 2, name: 'Công nghệ vận hành thể thao SanGo' });
+    expect(heading).toBeDefined();
+    expect(heading.className).toContain('text-2xl');
+    expect(heading.className).toContain('font-extrabold');
+
+    expect(
+      screen.getByText('Các tính năng cốt lõi giúp xử lý đồng bộ lịch trống, thanh toán cọc và check-in tại sân.'),
+    ).toBeDefined();
+
+    // 2. 4 pillars with 01-04 tabular numbers, semantic badges, titles, and notes
+    expect(screen.getByText('01')).toBeDefined();
+    expect(screen.getByText('01').className).toContain('font-mono-num');
+    expect(screen.getByText('01').className).toContain('text-2xl');
+    expect(screen.getByText('01').className).toContain('font-black');
+    expect(screen.getByText('01').className).toContain('text-foreground/40');
+    expect(screen.getByText('100% Chống trùng')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 3, name: 'Khóa slot 10 phút' })).toBeDefined();
+    expect(screen.getByText('Tự động giải phóng khi hết thời gian giữ chỗ')).toBeDefined();
+
+    expect(screen.getByText('02')).toBeDefined();
+    expect(screen.getByText('02').className).toContain('font-mono-num');
+    expect(screen.getByText('Tự động hóa')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 3, name: 'Chia tiền quỹ trận đấu' })).toBeDefined();
+    expect(screen.getByText('Hỗ trợ VietQR và thanh toán tức thì')).toBeDefined();
+
+    expect(screen.getByText('03')).toBeDefined();
+    expect(screen.getByText('03').className).toContain('font-mono-num');
+    expect(screen.getByText('Nhận sân nhanh')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 3, name: 'Vé điện tử mã QR' })).toBeDefined();
+    expect(screen.getByText('Đối soát chính xác tại quầy lễ tân')).toBeDefined();
+
+    expect(screen.getByText('04')).toBeDefined();
+    expect(screen.getByText('04').className).toContain('font-mono-num');
+    expect(screen.getByText('Minh bạch')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 3, name: 'Điểm tín nhiệm và đánh giá' })).toBeDefined();
+    expect(screen.getByText('Xây dựng môi trường thể thao văn minh')).toBeDefined();
   });
 
   it('renders all Home page sections successfully without emojis', () => {
