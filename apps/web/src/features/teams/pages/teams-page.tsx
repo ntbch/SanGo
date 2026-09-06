@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Users } from 'lucide-react';
+import { EmptyState } from '../../../components/feedback';
 import {
   listMyTeamsApi,
   createTeamApi,
@@ -77,36 +76,36 @@ export function TeamsPage(): React.ReactElement {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="p-6 space-y-4 animate-pulse">
-              <div className="h-12 w-12 rounded-2xl bg-muted" />
-              <div className="h-4 w-3/4 bg-muted rounded" />
-              <div className="h-3 w-1/2 bg-muted rounded" />
+            <Card key={i} className="p-6 space-y-4 border border-border bg-card rounded-2xl">
+              <div className="h-12 w-12 rounded-xl bg-muted/60" />
+              <div className="h-4 w-3/4 bg-muted/60 rounded-md" />
+              <div className="h-3 w-1/2 bg-muted/40 rounded-md" />
+              <div className="pt-4 border-t border-border/50 grid grid-cols-2 gap-2">
+                <div className="h-10 bg-secondary/40 rounded-xl" />
+                <div className="h-10 bg-secondary/40 rounded-xl" />
+              </div>
             </Card>
           ))}
         </div>
       ) : filteredMemberships.length === 0 ? (
-        <Card className="p-12 text-center border-dashed border-2 border-border/80 space-y-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary mx-auto">
-            <Users className="h-7 w-7" />
-          </div>
-          <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-base font-bold text-foreground">
-              {memberships.length === 0
-                ? 'Chưa tham gia đội thể thao nào'
-                : 'Không tìm thấy đội phù hợp với bộ lọc'}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {memberships.length === 0
-                ? 'Tạo đội để quản lý quỹ, lịch thi đấu và chia tiền.'
-                : 'Thử chuyển sang bộ môn khác hoặc xóa từ khóa tìm kiếm.'}
-            </p>
-          </div>
-          {memberships.length === 0 && (
-            <Button onClick={() => setShowCreateModal(true)} size="sm" className="font-bold text-xs">
-              Tạo Đội Đầu Tiên
-            </Button>
-          )}
-        </Card>
+        memberships.length === 0 ? (
+          <EmptyState
+            title="Chưa tham gia đội thể thao nào"
+            description="Tạo đội mới để cùng quản lý quỹ, đặt lịch và chia tiền trận đấu."
+            actionLabel="Tạo Đội Đầu Tiên"
+            onAction={() => setShowCreateModal(true)}
+          />
+        ) : (
+          <EmptyState
+            title="Không tìm thấy đội phù hợp với bộ lọc"
+            description="Thử chuyển sang bộ môn khác hoặc xóa từ khóa tìm kiếm."
+            actionLabel="Xóa bộ lọc"
+            onAction={() => {
+              setSportFilter('ALL');
+              setSearchQuery('');
+            }}
+          />
+        )
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredMemberships.map((m) => (

@@ -206,9 +206,23 @@ export function TeamDetailPage(): React.ReactElement {
 
   if (isLoading || !team) {
     return (
-      <div className="w-full max-w-7xl mx-auto px-4 py-12 text-center space-y-3">
-        <div className="h-8 w-48 bg-muted rounded mx-auto animate-pulse" />
-        <p className="text-xs text-muted-foreground">Đang nạp dữ liệu phòng đội...</p>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-10 space-y-6">
+        <div className="h-32 rounded-2xl bg-card border border-border p-6 flex flex-col justify-center space-y-3">
+          <div className="h-6 w-56 bg-muted/60 rounded-md" />
+          <div className="h-4 w-80 bg-muted/40 rounded-md" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-64 rounded-2xl bg-card border border-border p-6 space-y-4">
+            <div className="h-5 w-32 bg-muted/60 rounded-md" />
+            <div className="h-10 w-full bg-muted/40 rounded-md" />
+            <div className="h-10 w-full bg-muted/40 rounded-md" />
+          </div>
+          <div className="md:col-span-2 h-64 rounded-2xl bg-card border border-border p-6 space-y-4">
+            <div className="h-5 w-40 bg-muted/60 rounded-md" />
+            <div className="h-8 w-full bg-muted/40 rounded-md" />
+            <div className="h-8 w-full bg-muted/40 rounded-md" />
+          </div>
+        </div>
       </div>
     );
   }

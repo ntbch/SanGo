@@ -21,22 +21,42 @@ export function TeamTreasuryTab({
   fundMsg,
   onSubmitContribute,
 }: TeamTreasuryTabProps): React.ReactElement {
+  // Compute running balance for General Ledger Table
+  const transactionsWithBalance = React.useMemo(() => {
+    if (!treasury?.recentTransactions || treasury.recentTransactions.length === 0) {
+      return [];
+    }
+    let currentBalance = treasury.balance;
+    return treasury.recentTransactions.map((tx) => {
+      const balance = tx.balanceAfter ?? currentBalance;
+      // Step backwards for subsequent rows if reverse-chronological
+      currentBalance =
+        tx.type === 'INCOME'
+          ? currentBalance - tx.amount
+          : currentBalance + tx.amount;
+      return {
+        ...tx,
+        balance,
+      };
+    });
+  }, [treasury]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Left Column: Balance & Contribute */}
-      <Card className="lg:col-span-5 p-6 border border-border/80 bg-card shadow-md space-y-6">
-        <div className="p-6 rounded-3xl bg-primary/10 border border-primary/20 space-y-2 text-center">
-          <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+      <Card className="lg:col-span-5 p-6 border border-border bg-card space-y-6 rounded-2xl">
+        <div className="p-6 rounded-xl bg-secondary/30 border border-border space-y-2 text-center">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
             Số Dư Quỹ Đội Hiện Tại
           </span>
-          <p className="font-mono-num font-black text-3xl sm:text-4xl text-primary">
+          <p className="font-mono-num font-black text-3xl sm:text-4xl text-primary tabular-nums">
             {formatVND(treasury?.balance || 0)}
           </p>
           <p className="text-[11px] text-muted-foreground">Thu chi công khai trong đội</p>
         </div>
 
         {fundMsg && (
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{fundMsg}</span>
           </div>
@@ -61,44 +81,78 @@ export function TeamTreasuryTab({
             </div>
           </div>
 
-          <Button type="submit" className="w-full font-bold text-xs shadow-md cursor-pointer">
+          <Button
+            type="submit"
+            className="w-full font-bold text-xs cursor-pointer active:scale-[0.98] transition-transform"
+          >
             Xác Nhận Đóng Quỹ
           </Button>
         </form>
       </Card>
 
-      {/* Right Column: Treasury Transaction History */}
-      <Card className="lg:col-span-7 p-6 border border-border/80 bg-card shadow-md space-y-4">
-        <h3 className="text-base font-black text-foreground pb-2 border-b border-border/50">
-          Lịch Sử Thu Chi Quỹ Đội
-        </h3>
+      {/* Right Column: Financial General Ledger Table */}
+      <Card className="lg:col-span-7 p-6 border border-border bg-card space-y-4 rounded-2xl">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <h3 className="text-base font-bold text-foreground">
+            Sổ Cái Thu Chi Quỹ Đội
+          </h3>
+          <span className="text-xs font-mono-num text-muted-foreground">
+            {transactionsWithBalance.length} giao dịch
+          </span>
+        </div>
 
-        <div className="space-y-3">
-          {treasury?.recentTransactions?.map((t) => (
-            <div
-              key={t.id}
-              className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 flex items-center justify-between gap-3"
-            >
-              <div>
-                <p className="text-xs font-bold text-foreground">{t.description}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date(t.createdAt).toLocaleDateString('vi-VN')} · Bởi: {t.createdByName || 'Thành viên'}
-                </p>
-              </div>
-
-              <span
-                className={cn(
-                  'font-mono-num font-black text-xs',
-                  t.type === 'INCOME'
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-500',
-                )}
-              >
-                {t.type === 'INCOME' ? '+' : '-'}
-                {formatVND(t.amount)}
-              </span>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-border text-[11px] text-muted-foreground font-semibold">
+                <th className="py-2.5 px-3 text-left">Thời gian</th>
+                <th className="py-2.5 px-3 text-left">Khoản mục diễn giải</th>
+                <th className="py-2.5 px-3 text-left">Người thực hiện</th>
+                <th className="py-2.5 px-3 text-right">Số tiền</th>
+                <th className="py-2.5 px-3 text-right">Số dư</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactionsWithBalance.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-xs text-muted-foreground">
+                    Chưa có giao dịch thu chi nào trong quỹ đội.
+                  </td>
+                </tr>
+              ) : (
+                transactionsWithBalance.map((t) => (
+                  <tr
+                    key={t.id}
+                    className="border-b border-border/40 hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="py-3 px-3 text-xs font-mono-num text-muted-foreground whitespace-nowrap">
+                      {new Date(t.createdAt).toLocaleDateString('vi-VN')}
+                    </td>
+                    <td className="py-3 px-3 text-xs font-medium text-foreground">
+                      {t.description}
+                    </td>
+                    <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {t.createdByName || 'Thành viên'}
+                    </td>
+                    <td
+                      className={cn(
+                        'py-3 px-3 text-xs font-mono-num font-bold tabular-nums text-right whitespace-nowrap',
+                        t.type === 'INCOME'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-foreground',
+                      )}
+                    >
+                      {t.type === 'INCOME' ? '+' : '-'}
+                      {formatVND(t.amount)}
+                    </td>
+                    <td className="py-3 px-3 text-xs font-mono-num font-bold tabular-nums text-right text-foreground whitespace-nowrap">
+                      {formatVND(t.balance)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </Card>
     </div>

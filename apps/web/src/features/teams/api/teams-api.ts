@@ -89,6 +89,7 @@ export interface TreasuryOverview {
     description: string;
     createdAt: string;
     createdByName?: string;
+    balanceAfter?: number;
   }>;
 }
 
