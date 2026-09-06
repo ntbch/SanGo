@@ -18,6 +18,8 @@ export interface VenueTopSortBarProps {
   onFilterChange: (newFilters: VenueFilters) => void;
   onOpenMobileDrawer: () => void;
   totalCount?: number;
+  showMap?: boolean;
+  onToggleMap?: () => void;
 }
 
 export function VenueTopSortBar({
@@ -25,6 +27,8 @@ export function VenueTopSortBar({
   onFilterChange,
   onOpenMobileDrawer,
   totalCount,
+  showMap,
+  onToggleMap,
 }: VenueTopSortBarProps): React.ReactElement {
   const sports = [
     { type: '', label: 'Tất cả môn' },
@@ -149,17 +153,30 @@ export function VenueTopSortBar({
             <option value="price_desc">Giá: Cao đến thấp</option>
           </select>
 
-          {/* Switch to Map View Link */}
-          <Link to="/map">
+          {/* Toggle Map View or Link to Map */}
+          {onToggleMap ? (
             <Button
-              variant="outline"
+              type="button"
+              variant={showMap ? 'secondary' : 'outline'}
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold border-border/80 hover:border-primary/40 hover:text-primary"
+              onClick={onToggleMap}
+              className="h-9 gap-1.5 text-xs font-bold border-border/80 active:scale-[0.98]"
             >
               <Map className="h-4 w-4 text-primary" />
-              <span className="hidden sm:inline">Bản đồ</span>
+              <span className="hidden sm:inline">{showMap ? 'Ẩn bản đồ' : 'Xem bản đồ'}</span>
             </Button>
-          </Link>
+          ) : (
+            <Link to="/map">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-bold border-border/80 hover:border-primary/40 hover:text-primary active:scale-[0.98]"
+              >
+                <Map className="h-4 w-4 text-primary" />
+                <span className="hidden sm:inline">Bản đồ</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

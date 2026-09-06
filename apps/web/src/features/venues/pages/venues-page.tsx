@@ -6,10 +6,12 @@ import { VenueFilterSidebar } from '../components/venue-filter-sidebar';
 import { VenueMobileFilterDrawer } from '../components/venue-mobile-filter-drawer';
 import { VenueTopSortBar } from '../components/venue-top-sort-bar';
 import { VenueResultsView } from '../components/venue-results-view';
+import { VenueMapView } from '../components/venue-map-view';
 
 export function VenuesPage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
+  const [showMap, setShowMap] = React.useState(true);
 
   const filters: VenueFilters = {
     sportType: searchParams.get('sportType') || undefined,
@@ -83,18 +85,47 @@ export function VenuesPage(): React.ReactElement {
               onFilterChange={handleFilterChange}
               onOpenMobileDrawer={() => setMobileDrawerOpen(true)}
               totalCount={data?.total}
+              showMap={showMap}
+              onToggleMap={() => setShowMap((prev) => !prev)}
             />
 
-            <VenueResultsView
-              items={data?.items}
-              isLoading={isLoading}
-              isError={isError}
-              page={page}
-              totalPages={data?.totalPages || 1}
-              onPageChange={handlePageChange}
-              onFilterChange={handleFilterChange}
-              onRefetch={refetch}
-            />
+            {/* Split-View Layout: 60% Left List / 40% Right Sticky Map */}
+            {showMap ? (
+              <div className="lg:flex lg:gap-6 items-start">
+                <div className="w-full lg:w-[60%] min-w-0">
+                  <VenueResultsView
+                    items={data?.items}
+                    isLoading={isLoading}
+                    isError={isError}
+                    page={page}
+                    totalPages={data?.totalPages || 1}
+                    onPageChange={handlePageChange}
+                    onFilterChange={handleFilterChange}
+                    onRefetch={refetch}
+                  />
+                </div>
+
+                <div className="hidden lg:block lg:w-[40%] shrink-0 sticky top-20 h-[calc(100vh-6rem)] rounded-2xl border border-border overflow-hidden bg-card shadow-xs">
+                  <VenueMapView
+                    venues={data?.items || []}
+                    onBoundsChange={() => {}}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="w-full">
+                <VenueResultsView
+                  items={data?.items}
+                  isLoading={isLoading}
+                  isError={isError}
+                  page={page}
+                  totalPages={data?.totalPages || 1}
+                  onPageChange={handlePageChange}
+                  onFilterChange={handleFilterChange}
+                  onRefetch={refetch}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
