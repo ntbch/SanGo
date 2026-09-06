@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HomePage } from '../src/features/home/pages/home-page';
+import { HomeFeaturedVenues } from '../src/features/home/components/home-featured-venues';
+import * as venuesApi from '../src/features/venues/api/venues-api';
 
 vi.mock('../src/features/matches/api/matches-api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/features/matches/api/matches-api')>();
@@ -28,6 +30,62 @@ vi.mock('../src/features/matches/api/matches-api', async (importOriginal) => {
   };
 });
 
+vi.mock('../src/features/venues/api/venues-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/features/venues/api/venues-api')>();
+  return {
+    ...actual,
+    getVenuesListApi: vi.fn().mockResolvedValue({
+      items: [
+        {
+          id: 'venue-1',
+          name: 'Cụm Sân Pickleball D-Sport',
+          slug: 'cum-san-pickleball-d-sport',
+          address: '123 Hoàng Đạo Thúy, Cầu Giấy, Hà Nội',
+          city: 'Hà Nội',
+          district: 'Cầu Giấy',
+          lat: 21.01,
+          lng: 105.80,
+          openMinute: 360,
+          closeMinute: 1380,
+          depositPercent: 30,
+          images: ['/sample-court.svg'],
+          amenities: ['PARKING', 'WIFI'],
+          priceFrom: 150000,
+          priceTo: 250000,
+          sportTypes: ['PICKLEBALL'],
+          availableSports: ['PICKLEBALL'],
+          totalCourts: 6,
+          avgRating: 4.9,
+          reviewsCount: 128,
+        },
+        {
+          id: 'venue-2',
+          name: 'Sân Bóng Đá Chu Văn An',
+          slug: 'san-bong-da-chu-van-an',
+          address: '10 Thụy Khuê, Tây Hồ, Hà Nội',
+          city: 'Hà Nội',
+          district: 'Tây Hồ',
+          lat: 21.04,
+          lng: 105.83,
+          openMinute: 360,
+          closeMinute: 1380,
+          depositPercent: 30,
+          images: ['/sample-court.svg'],
+          amenities: ['PARKING', 'SHOWER'],
+          priceFrom: 300000,
+          priceTo: 500000,
+          sportTypes: ['FOOTBALL5', 'FOOTBALL7'],
+          availableSports: ['FOOTBALL5', 'FOOTBALL7'],
+          totalCourts: 4,
+          avgRating: 4.8,
+          reviewsCount: 95,
+        },
+      ],
+      total: 2,
+    }),
+  };
+});
+
 function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -39,6 +97,10 @@ function createTestQueryClient() {
 }
 
 describe('Home Page Flow Components', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders Hero Command Center with integrated search and tabular open matches ticker', async () => {
     const queryClient = createTestQueryClient();
     render(
@@ -85,6 +147,85 @@ describe('Home Page Flow Components', () => {
     const matchesLinks = screen.getAllByRole('link', { name: /Xem danh sách kèo thi đấu/i });
     expect(matchesLinks.length).toBeGreaterThan(0);
     expect(matchesLinks[0].getAttribute('href')).toBe('/matches');
+  });
+
+  it('renders Featured Venues in 2-column horizontal card grid with VenueCard', async () => {
+    const queryClient = createTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <HomeFeaturedVenues />
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    // 1. Header with title, description, and action link
+    const heading = screen.getByRole('heading', { level: 2, name: 'Cụm sân tiêu biểu được yêu thích' });
+    expect(heading).toBeDefined();
+    expect(heading.className).toContain('text-2xl');
+    expect(heading.className).toContain('font-extrabold');
+
+    expect(
+      screen.getByText('Các cụm sân đạt tiêu chuẩn thi đấu với mặt sân chất lượng và đầy đủ tiện ích.'),
+    ).toBeDefined();
+
+    const link = screen.getByRole('link', { name: 'Xem tất cả 250+ sân' });
+    expect(link).toBeDefined();
+    expect(link.getAttribute('href')).toBe('/venues');
+    expect(link.className).toContain('active:scale-[0.98]');
+    expect(link.className).not.toContain('hover:opacity');
+
+    // 2. Venues rendered in 2-column grid
+    await waitFor(() => {
+      expect(screen.getByText('Cụm Sân Pickleball D-Sport')).toBeDefined();
+      expect(screen.getByText('Sân Bóng Đá Chu Văn An')).toBeDefined();
+    });
+
+    // Check grid layout container
+    const gridContainer = screen.getByText('Cụm Sân Pickleball D-Sport').closest('.grid');
+    expect(gridContainer).toBeDefined();
+    expect(gridContainer?.className).toContain('grid-cols-1');
+    expect(gridContainer?.className).toContain('lg:grid-cols-2');
+    expect(gridContainer?.className).toContain('gap-4');
+  });
+
+  it('renders Featured Venues loading skeletons in 2-column grid', () => {
+    vi.mocked(venuesApi.getVenuesListApi).mockImplementationOnce(() => new Promise(() => {}));
+
+    const queryClient = createTestQueryClient();
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <HomeFeaturedVenues />
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    const skeletonGrid = container.querySelector('.grid.grid-cols-1.lg\\:grid-cols-2.gap-4');
+    expect(skeletonGrid).not.toBeNull();
+    expect(skeletonGrid?.children.length).toBe(4);
+  });
+
+  it('renders Featured Venues empty state when no venues returned', async () => {
+    vi.mocked(venuesApi.getVenuesListApi).mockResolvedValueOnce({
+      items: [],
+      total: 0,
+    });
+
+    const queryClient = createTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <HomeFeaturedVenues />
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Chưa có cụm sân nào được giới thiệu')).toBeDefined();
+    });
+
+    expect(screen.getByRole('button', { name: 'Duyệt tất cả sân' })).toBeDefined();
   });
 
   it('renders all Home page sections successfully without emojis', () => {

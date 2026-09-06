@@ -1,12 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getVenuesListApi } from '../../venues/api/venues-api';
 import { VenueCard } from '../../venues/components/venue-card';
-import { Skeleton } from '../../../components/ui/skeleton';
+import { VenueCardSkeleton, EmptyState } from '../../../components/feedback';
 import { ArrowRight } from 'lucide-react';
 
 export function HomeFeaturedVenues(): React.ReactElement {
+  const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ['featured-venues'],
     queryFn: () => getVenuesListApi({ limit: 4 }),
@@ -16,58 +17,43 @@ export function HomeFeaturedVenues(): React.ReactElement {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             Cụm sân tiêu biểu được yêu thích
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Các cụm sân đạt tiêu chuẩn thi đấu với mặt sân chất lượng và đầy đủ tiện ích.
           </p>
         </div>
-        <Link to="/venues" className="text-xs font-semibold text-foreground hover:text-primary flex items-center gap-1 group transition-colors">
-          <span>Xem tất cả sân</span>
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        <Link
+          to="/venues"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground hover:text-primary transition-all duration-150 active:scale-[0.98] group shrink-0"
+        >
+          <span>Xem tất cả 250+ sân</span>
+          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-border/80 bg-card overflow-hidden">
-              <Skeleton className="aspect-[16/9] w-full" />
-              <div className="p-4 space-y-2">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-                <div className="pt-2 flex justify-between">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-7 w-16" />
-                </div>
-              </div>
-            </div>
+            <VenueCardSkeleton key={i} />
           ))}
         </div>
       ) : venuesToDisplay.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {venuesToDisplay.map((venue: any) => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {venuesToDisplay.map((venue) => (
             <VenueCard key={venue.id} venue={venue} />
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center bg-card/40">
-          <h3 className="text-sm font-semibold text-foreground">Chưa có cụm sân nào được giới thiệu</h3>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-            Hệ thống đang đồng bộ dữ liệu sân thi đấu. Duyệt danh sách sân hoặc đăng ký tạo cụm sân mới.
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <Link
-              to="/venues"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Duyệt tất cả sân
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          title="Chưa có cụm sân nào được giới thiệu"
+          description="Hệ thống đang đồng bộ dữ liệu sân thi đấu. Duyệt danh sách sân hoặc đăng ký tạo cụm sân mới."
+          actionLabel="Duyệt tất cả sân"
+          onAction={() => navigate('/venues')}
+        />
       )}
     </section>
   );
