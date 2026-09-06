@@ -84,8 +84,12 @@ export function WalletReceiptModal({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => alert('Đang in biên lai điện tử...')}
-              className="text-xs font-bold gap-1"
+              onClick={() => {
+                if (typeof window !== 'undefined' && typeof window.print === 'function') {
+                  window.print();
+                }
+              }}
+              className="text-xs font-bold gap-1 active:scale-[0.98] transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Tải Biên Lai</span>
@@ -94,7 +98,7 @@ export function WalletReceiptModal({
               type="button"
               size="sm"
               onClick={onClose}
-              className="text-xs font-bold"
+              className="text-xs font-bold active:scale-[0.98] transition-colors"
             >
               Đóng
             </Button>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { EmptyState } from '../../../components/feedback';
 import {
   Receipt,
   RotateCcw,
@@ -85,7 +86,7 @@ export function WalletLedgerTable({
                 size="sm"
                 variant="outline"
                 onClick={onResetFilters}
-                className="h-8.5 text-xs font-bold gap-1 px-2.5 shrink-0 cursor-pointer"
+                className="h-8.5 text-xs font-bold gap-1 px-2.5 shrink-0 cursor-pointer active:scale-[0.98] transition-colors"
                 title="Đặt lại toàn bộ bộ lọc"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -113,7 +114,7 @@ export function WalletLedgerTable({
                 type="button"
                 onClick={() => setTypeFilter(tab.key)}
                 className={cn(
-                  'px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  'px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-[0.98] cursor-pointer',
                   typeFilter === tab.key
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground',
@@ -146,7 +147,7 @@ export function WalletLedgerTable({
                     setEndDate('');
                   }}
                   className={cn(
-                    'px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
+                    'px-2 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-[0.98] cursor-pointer',
                     timePreset === tp.key && !startDate && !endDate
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground',
@@ -206,14 +207,13 @@ export function WalletLedgerTable({
             Đang tải danh sách giao dịch...
           </div>
         ) : filteredLedger.length === 0 ? (
-          <div className="p-12 text-center space-y-2">
-            <div className="h-10 w-10 rounded-2xl bg-secondary/80 flex items-center justify-center mx-auto text-muted-foreground">
-              <Receipt className="h-5 w-5" />
-            </div>
-            <p className="text-xs font-bold text-foreground">Không có giao dịch nào phù hợp</p>
-            <p className="text-[11px] text-muted-foreground">
-              Bạn chưa có biến động số dư nào trong khoảng tìm kiếm này.
-            </p>
+          <div className="p-6 sm:p-8">
+            <EmptyState
+              title="Không có giao dịch nào"
+              description="Không tìm thấy biến động số dư nào trong khoảng thời gian đã chọn."
+              actionLabel="Đặt lại bộ lọc"
+              onAction={onResetFilters}
+            />
           </div>
         ) : (
           <div className="divide-y divide-border/60">
@@ -247,7 +247,7 @@ export function WalletLedgerTable({
                 <div
                   key={item.id}
                   onClick={() => onSelectReceipt(item)}
-                  className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-secondary/30 transition-colors cursor-pointer"
+                  className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-secondary/30 active:scale-[0.99] transition-transform cursor-pointer"
                 >
                   {/* Left Icon & Info */}
                   <div className="flex items-center gap-3.5 min-w-0">
@@ -278,13 +278,13 @@ export function WalletLedgerTable({
                   <div className="text-right shrink-0 space-y-0.5">
                     <div
                       className={cn(
-                        'text-sm sm:text-base font-mono-num font-black',
-                        isCredit ? 'text-emerald-500' : 'text-rose-500',
+                        'text-sm sm:text-base font-mono-num font-bold tabular-nums',
+                        isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground',
                       )}
                     >
                       {isCredit ? '+' : '-'}{formatVND(item.amount)}
                     </div>
-                    <span className="text-[11px] font-mono-num text-muted-foreground block">
+                    <span className="text-[11px] font-mono-num tabular-nums text-muted-foreground block">
                       Số dư sau GD: <strong className="text-foreground">{formatVND(item.balanceAfter)}</strong>
                     </span>
                   </div>
@@ -306,7 +306,7 @@ export function WalletLedgerTable({
                 variant="outline"
                 disabled={currentPage <= 1}
                 onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                className="h-8 px-2.5"
+                className="h-8 px-2.5 active:scale-[0.98] transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -315,7 +315,7 @@ export function WalletLedgerTable({
                 variant="outline"
                 disabled={currentPage >= totalPages}
                 onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                className="h-8 px-2.5"
+                className="h-8 px-2.5 active:scale-[0.98] transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

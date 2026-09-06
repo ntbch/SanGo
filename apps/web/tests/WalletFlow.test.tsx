@@ -58,7 +58,7 @@ describe('Wallet Flow Integration', () => {
   });
 
   it('renders WalletPage with balance, stats, actions and ledger items', async () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/wallet']}>
         <Routes>
           <Route path="/wallet" element={<WalletPage />} />
@@ -69,14 +69,45 @@ describe('Wallet Flow Integration', () => {
     expect(screen.getByRole('heading', { name: /Quản Lý Ví & Biến Động Số Dư/i })).toBeDefined();
     expect(screen.getByText(/SanGo Platinum Wallet/i)).toBeDefined();
 
+    // Cliché checks: no opacity-70, hover:opacity, gradients, blur, pulse
+    expect(container.innerHTML).not.toContain('opacity-70');
+    expect(container.innerHTML).not.toContain('hover:opacity');
+    expect(container.innerHTML).not.toContain('bg-gradient');
+    expect(container.innerHTML).not.toContain('backdrop-blur');
+    expect(container.querySelector('.animate-pulse')).toBeNull();
+
     // Verify Quick action buttons
     expect(screen.getAllByRole('button', { name: /Nạp Tiền/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /Rút Tiền/i }).length).toBeGreaterThan(0);
 
-    // Wait for ledger items to load
+    // Wait for ledger items and wallet balance to load
     await waitFor(() => {
       expect(screen.getAllByText(/Nạp Tiền Vào Ví SanGo/i).length).toBeGreaterThan(0);
     });
+
+    // Verify big balance typography
+    const balanceText = screen.getAllByText(/2.500.000/i)[0];
+    expect(balanceText.className).toContain('font-mono-num');
+    expect(balanceText.className).toContain('font-black');
+    expect(balanceText.className).toContain('tabular-nums');
+
+    // Verify ledger row amounts: font-mono-num font-bold tabular-nums
+    const creditAmounts = screen.getAllByText(/\+1\.000\.000/i);
+    const ledgerCredit = creditAmounts.find((el) => el.classList.contains('tabular-nums')) ?? creditAmounts[0];
+    expect(ledgerCredit.className).toContain('font-mono-num');
+    expect(ledgerCredit.className).toContain('font-bold');
+    expect(ledgerCredit.className).toContain('tabular-nums');
+
+    const debitAmounts = screen.getAllByText(/-300\.000/i);
+    const ledgerDebit = debitAmounts.find((el) => el.classList.contains('tabular-nums')) ?? debitAmounts[0];
+    expect(ledgerDebit.className).toContain('font-mono-num');
+    expect(ledgerDebit.className).toContain('font-bold');
+    expect(ledgerDebit.className).toContain('tabular-nums');
+
+    // Verify row has active:scale-[0.99] and transition-transform
+    const row = ledgerCredit.closest('.cursor-pointer');
+    expect(row?.className).toContain('active:scale-[0.99]');
+    expect(row?.className).toContain('transition-transform');
 
     // Open Topup Modal
     const topupBtn = screen.getByRole('button', { name: /Nạp Tiền Vào Ví/i });
@@ -144,5 +175,53 @@ describe('Wallet Flow Integration', () => {
     await waitFor(() => {
       expect(screen.getAllByText(/TOPUP-001/i).length).toBeGreaterThan(0);
     });
+  });
+
+  it('displays empty state with 3-line formula when no transactions match', async () => {
+    render(
+      <MemoryRouter initialEntries={['/wallet']}>
+        <Routes>
+          <Route path="/wallet" element={<WalletPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Nạp Tiền Vào Ví SanGo/i).length).toBeGreaterThan(0);
+    });
+
+    const searchInput = screen.getByPlaceholderText(/Tìm mã giao dịch \/ số tiền/i);
+    fireEvent.change(searchInput, { target: { value: 'NON_EXISTENT_TXN_REF_12345' } });
+
+    expect(screen.getByText('Không có giao dịch nào')).toBeDefined();
+    expect(
+      screen.getByText('Không tìm thấy biến động số dư nào trong khoảng thời gian đã chọn.'),
+    ).toBeDefined();
+    const resetBtn = screen.getByRole('button', { name: 'Đặt lại bộ lọc' });
+    expect(resetBtn).toBeDefined();
+
+    fireEvent.click(resetBtn);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Nạp Tiền Vào Ví SanGo/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('triggers calm statement export notice without blocking alert', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    render(
+      <MemoryRouter initialEntries={['/wallet']}>
+        <Routes>
+          <Route path="/wallet" element={<WalletPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const exportBtn = screen.getByRole('button', { name: /Xuất Sao Kê/i });
+    expect(exportBtn.className).toContain('active:scale-[0.98]');
+    fireEvent.click(exportBtn);
+
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(screen.getByText(/Đang xuất sao kê định dạng PDF\/Excel/i)).toBeDefined();
+    alertSpy.mockRestore();
   });
 });

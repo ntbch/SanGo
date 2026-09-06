@@ -134,7 +134,7 @@ export function WalletPage(): React.ReactElement {
             <p className="font-bold">
               {topupResult.ok ? 'Nạp ví thành công!' : 'Nạp ví không thành công'}
             </p>
-            <p className="text-xs opacity-90">
+            <p className="text-xs text-muted-foreground">
               {topupResult.ok && topupResult.balance != null
                 ? `Số dư mới: ${formatVND(topupResult.balance)}`
                 : 'Giao dịch chưa được xác nhận. Bạn thử lại.'}
@@ -145,7 +145,7 @@ export function WalletPage(): React.ReactElement {
             type="button"
             onClick={() => setTopupResult(null)}
             aria-label="Đóng thông báo"
-            className="shrink-0 rounded-md p-1 opacity-70 hover:opacity-100 hover:bg-secondary transition-colors"
+            className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors active:scale-[0.98]"
           >
             <X className="h-4 w-4" />
           </button>
