@@ -192,7 +192,7 @@ export function AiChatWidget(): React.ReactElement {
                             <span>Mở danh sách sân</span>
                           </Link>
                           <Link
-                            to="/map"
+                            to="/venues"
                             onClick={() => setIsOpen(false)}
                             className="inline-flex items-center gap-1 text-[10px] font-bold text-foreground hover:underline bg-secondary px-2 py-0.5 rounded-lg border border-border"
                           >

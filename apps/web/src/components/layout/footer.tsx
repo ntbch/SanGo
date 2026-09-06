@@ -41,7 +41,7 @@ export function Footer(): React.ReactElement {
               <li><Link to="/matches" className="hover:text-foreground transition-colors">Ghép trận</Link></li>
               <li><Link to="/tournaments" className="hover:text-foreground transition-colors">Giải đấu</Link></li>
               <li><Link to="/ranking" className="hover:text-foreground transition-colors">Bảng xếp hạng</Link></li>
-              <li><Link to="/map" className="hover:text-foreground transition-colors">Bản đồ sân</Link></li>
+              <li><Link to="/venues" className="hover:text-foreground transition-colors">Bản đồ sân</Link></li>
             </ul>
           </div>
 

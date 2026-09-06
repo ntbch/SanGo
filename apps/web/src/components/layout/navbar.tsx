@@ -5,7 +5,6 @@ import {
   Compass,
   LayoutDashboard,
   LogOut,
-  MapPin,
   Menu,
   ShieldCheck,
   Swords,
@@ -78,7 +77,6 @@ export function Navbar(): React.ReactElement {
 
   const navLinks = [
     { to: '/venues', label: 'Tìm sân', icon: Compass },
-    { to: '/map', label: 'Bản đồ', icon: MapPin },
     { to: '/matches', label: 'Ghép trận', icon: Swords },
     { to: '/tournaments', label: 'Giải đấu', icon: Trophy },
     { to: '/ranking', label: 'Xếp hạng', icon: ShieldCheck },

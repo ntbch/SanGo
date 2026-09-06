@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './navbar';
 import { Footer } from './footer';
-import { Calendar, Compass, Home, MapPin, Swords } from 'lucide-react';
+import { Calendar, Compass, Home, Swords, ShieldCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AiChatWidget } from '../ai/ai-chat-widget';
 
@@ -17,8 +17,8 @@ export function PublicLayout(): React.ReactElement {
   const bottomNavItems = [
     { to: '/', label: 'Trang chủ', icon: Home },
     { to: '/venues', label: 'Tìm sân', icon: Compass },
-    { to: '/map', label: 'Bản đồ', icon: MapPin },
     { to: '/matches', label: 'Ghép trận', icon: Swords },
+    { to: '/ranking', label: 'Xếp hạng', icon: ShieldCheck },
     { to: '/bookings', label: 'Đơn sân', icon: Calendar },
   ];
 

@@ -11,7 +11,6 @@ import { HomePage } from '../features/home/pages/home-page';
 // Feature Pages - Lazy Loaded for route-level code-splitting
 const VenuesPage = lazy(() => import('../features/venues/pages/venues-page').then((m) => ({ default: m.VenuesPage })));
 const VenueDetailPage = lazy(() => import('../features/venues/pages/venue-detail-page').then((m) => ({ default: m.VenueDetailPage })));
-const MapPage = lazy(() => import('../features/venues/pages/map-page').then((m) => ({ default: m.MapPage })));
 const BookingCalendarPage = lazy(() => import('../features/booking/pages/booking-calendar-page').then((m) => ({ default: m.BookingCalendarPage })));
 const CheckoutHoldPage = lazy(() => import('../features/booking/pages/checkout-hold-page').then((m) => ({ default: m.CheckoutHoldPage })));
 const PaymentPendingPage = lazy(() => import('../features/booking/pages/payment-pending-page').then((m) => ({ default: m.PaymentPendingPage })));
@@ -62,7 +61,7 @@ export function AppRoutes(): React.ReactElement {
           <Route index element={<HomePage />} />
           <Route path="venues" element={<VenuesPage />} />
           <Route path="venues/:slug" element={<VenueDetailPage />} />
-          <Route path="map" element={<MapPage />} />
+          <Route path="map" element={<Navigate to="/venues" replace />} />
           <Route path="matches" element={<MatchesPage />} />
           <Route path="matches/:id" element={<MatchDetailPage />} />
           <Route path="tournaments" element={<TournamentsPage />} />

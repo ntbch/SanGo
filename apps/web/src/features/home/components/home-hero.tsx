@@ -35,7 +35,7 @@ export function HomeHero(): React.ReactElement {
           Đặt Sân Thể Thao &amp; Ghép Kèo Nhanh
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-          250+ Cụm sân hoạt động trực tuyến tại Hà Nội và TP. Hồ Chí Minh, khóa chỗ 10 phút chống trùng ca và nhận mã QR check-in ngay tại quầy.
+          250+ Cụm sân hoạt động trực tuyến tại Hà Nội và TP. Hồ Chí Minh.
         </p>
       </div>
 
