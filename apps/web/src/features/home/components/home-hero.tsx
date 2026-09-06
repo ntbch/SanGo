@@ -1,60 +1,15 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Button, buttonVariants } from '../../../components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Skeleton } from '../../../components/ui/skeleton';
 import { SportType } from '../../../lib/constants';
-import { listOpenMatchesApi, OpenMatch } from '../../matches/api/matches-api';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-
-function formatCost(vnd: number): string {
-  if (!Number.isFinite(vnd)) return '-';
-  return `${vnd.toLocaleString('vi-VN')}đ`;
-}
-
-function formatDay(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-}
-
-function OpenMatchRow({ match }: { match: OpenMatch }): React.ReactElement {
-  const missing = Math.max(match.totalSlots - match.filledSlots, 0);
-  return (
-    <li className="py-3 border-b border-border/40 last:border-0 last:pb-0 first:pt-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[10px] font-mono-num font-bold text-muted-foreground uppercase tracking-wider">
-            {formatDay(match.date)} · {match.startTime}–{match.endTime}
-          </div>
-          <div className="text-xs font-bold text-foreground truncate mt-1">{match.title}</div>
-          <div className="text-[11px] text-muted-foreground truncate mt-0.5">{match.venueName}</div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="font-mono-num text-xs font-bold text-foreground">{formatCost(match.costPerPerson)}</div>
-          <div className="text-[10px] text-muted-foreground mt-1">
-            Thiếu <span className="font-mono-num">{missing}</span> người
-          </div>
-        </div>
-      </div>
-    </li>
-  );
-}
 
 export function HomeHero(): React.ReactElement {
   const [selectedSport, setSelectedSport] = React.useState<string>('');
-  const [city, setCity] = React.useState<string>('Hà Nội');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const navigate = useNavigate();
-
-  const { data: matches, isLoading } = useQuery({
-    queryKey: ['hero-open-matches'],
-    queryFn: () => listOpenMatchesApi(),
-    staleTime: 60_000,
-  });
-  const openMatches = (matches ?? []).slice(0, 3);
 
   const sports = [
     { type: '', label: 'Tất cả' },
@@ -68,188 +23,84 @@ export function HomeHero(): React.ReactElement {
     e.preventDefault();
     const params = new URLSearchParams();
     if (selectedSport) params.set('sportType', selectedSport);
-    if (city) params.set('city', city);
     if (searchQuery) params.set('q', searchQuery);
     navigate(`/venues?${params.toString()}`);
   };
 
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-      {/* Left: headline + unified command bar (7/12) */}
-      <div className="lg:col-span-7 space-y-6">
-        <div className="space-y-3.5">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.15] max-w-2xl">
-            Đặt Sân Thể Thao<br className="hidden sm:inline" /> &amp; Ghép Kèo Nhanh
-          </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-            250+ Cụm sân hoạt động trực tuyến tại Hà Nội và TP. Hồ Chí Minh, khóa chỗ 10 phút chống trùng ca và nhận mã QR check-in ngay tại quầy.
-          </p>
-        </div>
+    <section className="w-full max-w-4xl mx-auto text-center py-6 sm:py-12 space-y-6 sm:space-y-8">
+      {/* 1. Main Headline & Subtitle */}
+      <div className="space-y-3">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.12]">
+          Đặt Sân Thể Thao &amp; Ghép Kèo Nhanh
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+          250+ Cụm sân hoạt động trực tuyến tại Hà Nội và TP. Hồ Chí Minh, khóa chỗ 10 phút chống trùng ca và nhận mã QR check-in ngay tại quầy.
+        </p>
+      </div>
 
-        {/* Unified Command Bar form */}
+      {/* 2. Centered Unified Search Bar Form */}
+      <div className="max-w-2xl mx-auto space-y-4">
         <form
           onSubmit={handleSearch}
-          className="bg-card border border-border p-4 sm:p-5 rounded-2xl shadow-sm space-y-4"
+          className="relative flex items-center bg-card border border-border/80 rounded-2xl shadow-sm p-1.5 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all"
         >
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            {sports.map((s) => {
-              const isActive = (!selectedSport && !s.type) || selectedSport === s.type;
-              return (
-                <button
-                  key={s.type || 'all'}
-                  type="button"
-                  onClick={() => setSelectedSport(s.type)}
-                  className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer active:scale-[0.98]',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary/60 text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
+          <div className="pl-3.5 pr-2 text-muted-foreground shrink-0">
+            <Search className="h-5 w-5" />
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div className="sm:col-span-12 md:col-span-4 lg:col-span-4 space-y-1 text-left">
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Tên sân / Khu vực
-              </label>
-              <Input
-                placeholder="VD: Ngọc Khánh, Cầu Giấy, Thảo Điền..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                prefixIcon={<Search className="h-4 w-4 text-muted-foreground" />}
-                className="h-10 text-xs bg-card border-input text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
-              />
-            </div>
-
-            <div className="sm:col-span-6 md:col-span-3 lg:col-span-3 space-y-1 text-left">
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Khu vực
-              </label>
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-              >
-                <option value="Hà Nội">Hà Nội (140+ sân)</option>
-                <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh (110+ sân)</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-6 md:col-span-3 lg:col-span-3 space-y-1 text-left">
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Khung giờ &amp; Ngày
-              </label>
-              <select
-                defaultValue="today"
-                className="flex h-10 w-full rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-              >
-                <option value="today">Hôm nay (Tìm slot)</option>
-                <option value="tomorrow">Ngày mai</option>
-                <option value="weekend">Cuối tuần này</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-12 md:col-span-2 lg:col-span-2 flex items-end">
-              <Button
-                type="submit"
-                size="default"
-                aria-label="Tìm kiếm sân ngay"
-                className="w-full h-10 text-xs font-bold shadow-xs active:scale-[0.98] cursor-pointer"
-              >
-                Tìm kiếm sân ngay
-              </Button>
-            </div>
-          </div>
+          <Input
+            placeholder="VD: Ngọc Khánh, Cầu Giấy, Thảo Điền..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-11 sm:h-12 border-0 bg-transparent shadow-none text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 px-2"
+          />
+          <Button
+            type="submit"
+            size="default"
+            aria-label="Tìm kiếm sân ngay"
+            className="h-10 sm:h-11 px-5 sm:px-6 rounded-xl text-xs sm:text-sm font-bold shadow-xs active:scale-[0.98] shrink-0 cursor-pointer"
+          >
+            Tìm kiếm sân ngay
+          </Button>
         </form>
 
-        {/* Stat strip: mono numerals, meta separators */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
-          <span>
-            <span className="font-mono-num font-bold text-foreground">250+</span> cụm sân trực tuyến
-          </span>
-          <span aria-hidden className="text-border select-none">·</span>
-          <span>
-            <span className="font-mono-num font-bold text-foreground">10 phút</span> giữ chỗ chống trùng ca
-          </span>
-          <span aria-hidden className="text-border select-none">·</span>
-          <span>
-            <span className="font-mono-num font-bold text-foreground">QR</span> check-in tại quầy
-          </span>
+        {/* 3. Quick Sports Selector Chips */}
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+          {sports.map((s) => {
+            const isActive = (!selectedSport && !s.type) || selectedSport === s.type;
+            return (
+              <button
+                key={s.type || 'all'}
+                type="button"
+                onClick={() => setSelectedSport(s.type)}
+                className={cn(
+                  'px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors shrink-0 cursor-pointer active:scale-[0.98] border',
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    : 'bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60 border-border',
+                )}
+              >
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Right: live open matches panel (5/12) — athletic command ticker */}
-      <aside className="lg:col-span-5 rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col justify-between self-start space-y-4">
-        <div>
-          <div className="flex items-center justify-between pb-3 border-b border-border/60">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-foreground">Kèo ghép đang mở</h2>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary text-foreground">
-                  Thời gian thực
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground">Trận đấu đang thiếu người hôm nay</p>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            {isLoading ? (
-              <ul className="divide-y divide-border/40">
-                {[0, 1, 2].map((i) => (
-                  <li key={i} className="py-3 first:pt-0 last:pb-0">
-                    <Skeleton className="h-3 w-24 mb-2" />
-                    <Skeleton className="h-3.5 w-3/4 mb-1.5" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </li>
-                ))}
-              </ul>
-            ) : openMatches.length === 0 ? (
-              <div className="py-6 px-4 text-center space-y-3 bg-secondary/30 rounded-xl border border-dashed border-border/80 my-1">
-                <p className="text-xs font-bold text-foreground">
-                  Chưa có kèo nào đang tìm đối thủ hôm nay
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                  Bạn có thể mở một kèo mới hoặc tìm kiếm lịch thi đấu trong tuần tại trung tâm ghép trận.
-                </p>
-                <div className="pt-1">
-                  <Link
-                    to="/matches"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors active:scale-[0.98]"
-                  >
-                    <span>Mở trung tâm ghép trận</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <ul>
-                {openMatches.map((match) => (
-                  <OpenMatchRow key={match.id} match={match} />
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        <div className="pt-3 mt-3 border-t border-border/60">
-          <Link
-            to="/matches"
-            className={cn(
-              buttonVariants({ variant: 'outline', size: 'default' }),
-              'w-full text-xs font-semibold justify-center cursor-pointer',
-            )}
-          >
-            Xem danh sách kèo thi đấu
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </aside>
+      {/* 4. Trust Metric Strip */}
+      <div className="pt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <span>
+          <strong className="font-mono-num font-bold text-foreground">250+</strong> cụm sân trực tuyến
+        </span>
+        <span aria-hidden className="text-border select-none">·</span>
+        <span>
+          <strong className="font-mono-num font-bold text-foreground">10 phút</strong> giữ chỗ chống trùng ca
+        </span>
+        <span aria-hidden className="text-border select-none">·</span>
+        <span>
+          <strong className="font-mono-num font-bold text-foreground">QR</strong> check-in tại quầy
+        </span>
+      </div>
     </section>
   );
 }
