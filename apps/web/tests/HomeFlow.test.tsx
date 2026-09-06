@@ -351,4 +351,63 @@ describe('Home Page Flow Components', () => {
     // 7. Partner CTA
     expect(screen.getByRole('heading', { name: /Số Hóa Quản Lý Sân & Tối Đa Doanh Thu Với SanGo OS/i })).toBeDefined();
   });
+
+  it('structures Home Page with 5 rhythmic full-bleed sections and primary action links', () => {
+    const queryClient = createTestQueryClient();
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <HomePage />
+        </BrowserRouter>
+      </QueryClientProvider>,
+    );
+
+    // Outer container: w-full without box borders or card constraints
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toBeDefined();
+    expect(root.className).toBe('w-full');
+
+    // 5 Direct child sections
+    const topSections = Array.from(root.children).filter((el) => el.tagName.toLowerCase() === 'section');
+    expect(topSections.length).toBe(5);
+
+    // Section 1: Hero Command Center (w-full border-b)
+    expect(topSections[0].className).toContain('w-full');
+    expect(topSections[0].className).toContain('border-b');
+    expect(topSections[0].className).not.toContain('bg-secondary');
+
+    // Section 2: Featured Venues (bg-secondary/40 border-b)
+    expect(topSections[1].className).toContain('bg-secondary/40');
+    expect(topSections[1].className).toContain('border-b');
+
+    // Section 3: Sports Cards (w-full border-b)
+    expect(topSections[2].className).toContain('w-full');
+    expect(topSections[2].className).toContain('border-b');
+    expect(topSections[2].className).not.toContain('bg-secondary');
+
+    // Section 4: Tech Pillars (bg-secondary/40 border-b)
+    expect(topSections[3].className).toContain('bg-secondary/40');
+    expect(topSections[3].className).toContain('border-b');
+
+    // Section 5: Map Banner, Community Features, FAQ, Partner CTA
+    expect(topSections[4].className).toContain('w-full');
+    expect(topSections[4].className).toContain('space-y-12');
+    expect(topSections[4].className).not.toContain('bg-secondary');
+
+    // Verify key action links
+    // 1. Primary search & venues links
+    const venueLinks = screen.getAllByRole('link', { name: /Xem tất cả.*sân/i });
+    expect(venueLinks.length).toBeGreaterThan(0);
+    expect(venueLinks.some((l) => l.getAttribute('href') === '/venues')).toBe(true);
+
+    // 2. Open matches action links
+    const matchesLinks = screen.getAllByRole('link', { name: /Xem danh sách kèo thi đấu/i });
+    expect(matchesLinks.length).toBeGreaterThan(0);
+    expect(matchesLinks.some((l) => l.getAttribute('href') === '/matches')).toBe(true);
+
+    // 3. Partner registration link
+    const partnerLink = screen.getByRole('link', { name: /Đăng ký đối tác chủ sân/i });
+    expect(partnerLink).toBeDefined();
+    expect(partnerLink.getAttribute('href')).toBe('/partner');
+  });
 });
