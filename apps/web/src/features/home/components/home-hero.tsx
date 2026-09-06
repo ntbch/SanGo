@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '../../../components/ui/button';
+import { Button, buttonVariants } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { SportType } from '../../../lib/constants';
@@ -34,7 +34,9 @@ function OpenMatchRow({ match }: { match: OpenMatch }): React.ReactElement {
         </div>
         <div className="text-right shrink-0">
           <div className="font-mono-num text-xs font-bold text-foreground">{formatCost(match.costPerPerson)}</div>
-          <div className="text-[10px] text-muted-foreground mt-1">Thiếu {missing} người</div>
+          <div className="text-[10px] text-muted-foreground mt-1">
+            Thiếu <span className="font-mono-num">{missing}</span> người
+          </div>
         </div>
       </div>
     </li>
@@ -55,7 +57,7 @@ export function HomeHero(): React.ReactElement {
   const openMatches = (matches ?? []).slice(0, 3);
 
   const sports = [
-    { type: '', label: 'Tất cả môn' },
+    { type: '', label: 'Tất cả' },
     { type: SportType.FOOTBALL5, label: 'Bóng đá 5 & 7' },
     { type: SportType.PICKLEBALL, label: 'Pickleball' },
     { type: SportType.BADMINTON, label: 'Cầu lông' },
@@ -73,7 +75,7 @@ export function HomeHero(): React.ReactElement {
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-      {/* Left: headline + search (7/12) */}
+      {/* Left: headline + unified command bar (7/12) */}
       <div className="lg:col-span-7 space-y-6">
         <div className="space-y-3.5">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.15] max-w-xl">
@@ -84,24 +86,24 @@ export function HomeHero(): React.ReactElement {
           </p>
         </div>
 
-        {/* Search hub */}
+        {/* Unified Command Bar form */}
         <form
           onSubmit={handleSearch}
-          className="space-y-4 bg-secondary/50 border border-border p-4 sm:p-5 rounded-xl shadow-xs"
+          className="bg-card border border-border p-4 sm:p-5 rounded-2xl shadow-sm space-y-4"
         >
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             {sports.map((s) => {
               const isActive = (!selectedSport && !s.type) || selectedSport === s.type;
               return (
                 <button
-                  key={s.type}
+                  key={s.type || 'all'}
                   type="button"
                   onClick={() => setSelectedSport(s.type)}
                   className={cn(
                     'px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer active:scale-[0.98]',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'bg-card text-muted-foreground hover:text-foreground hover:bg-secondary border border-border',
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary/60 text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {s.label}
@@ -113,7 +115,7 @@ export function HomeHero(): React.ReactElement {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="space-y-1 text-left">
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Tên sân / Địa điểm
+                Tên sân / Khu vực
               </label>
               <Input
                 placeholder="VD: Ngọc Khánh, Cầu Giấy, Thảo Điền..."
@@ -155,6 +157,8 @@ export function HomeHero(): React.ReactElement {
             <div className="flex items-end">
               <Button
                 type="submit"
+                size="default"
+                aria-label="Tìm kiếm sân ngay"
                 className="w-full h-10 text-xs font-bold shadow-xs active:scale-[0.98] cursor-pointer"
               >
                 Tìm kiếm sân ngay
@@ -179,46 +183,62 @@ export function HomeHero(): React.ReactElement {
         </div>
       </div>
 
-      {/* Right: live open matches panel (5/12) — real data */}
-      <aside className="lg:col-span-5 rounded-2xl border border-border bg-card shadow-xs p-5 flex flex-col">
-        <div className="flex items-center justify-between pb-3 border-b border-border/60">
-          <h2 className="text-sm font-bold text-foreground">Kèo ghép đang mở</h2>
-          <Link
-            to="/matches"
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            Xem tất cả
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+      {/* Right: live open matches panel (5/12) — athletic command ticker */}
+      <aside className="lg:col-span-5 rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between pb-3 border-b border-border/60">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-foreground">Kèo ghép đang mở</h2>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary text-foreground">
+                  Thời gian thực
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Trận đấu đang thiếu người hôm nay</p>
+            </div>
+          </div>
+
+          <div className="pt-1">
+            {isLoading ? (
+              <ul className="divide-y divide-border/40">
+                {[0, 1, 2].map((i) => (
+                  <li key={i} className="py-3 first:pt-0 last:pb-0">
+                    <Skeleton className="h-3 w-24 mb-2" />
+                    <Skeleton className="h-3.5 w-3/4 mb-1.5" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </li>
+                ))}
+              </ul>
+            ) : openMatches.length === 0 ? (
+              <div className="py-6 text-center space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Chưa có kèo nào đang tìm đối thủ.
+                </p>
+                <Link to="/matches" className="inline-block text-xs font-bold text-primary hover:underline">
+                  Mở trung tâm ghép trận
+                </Link>
+              </div>
+            ) : (
+              <ul>
+                {openMatches.map((match) => (
+                  <OpenMatchRow key={match.id} match={match} />
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        <div className="pt-1">
-          {isLoading ? (
-            <ul className="divide-y divide-border/40">
-              {[0, 1, 2].map((i) => (
-                <li key={i} className="py-3 first:pt-0 last:pb-0">
-                  <Skeleton className="h-3 w-24 mb-2" />
-                  <Skeleton className="h-3.5 w-3/4 mb-1.5" />
-                  <Skeleton className="h-3 w-1/2" />
-                </li>
-              ))}
-            </ul>
-          ) : openMatches.length === 0 ? (
-            <div className="py-6 text-center space-y-2">
-              <p className="text-xs text-muted-foreground">
-                Chưa có kèo nào đang tìm đối thủ.
-              </p>
-              <Link to="/matches" className="inline-block text-xs font-bold text-primary hover:underline">
-                Mở trung tâm ghép trận
-              </Link>
-            </div>
-          ) : (
-            <ul>
-              {openMatches.map((match) => (
-                <OpenMatchRow key={match.id} match={match} />
-              ))}
-            </ul>
-          )}
+        <div className="pt-3 mt-3 border-t border-border/60">
+          <Link
+            to="/matches"
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'default' }),
+              'w-full text-xs font-semibold justify-center cursor-pointer',
+            )}
+          >
+            Xem danh sách kèo thi đấu
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
         </div>
       </aside>
     </section>
