@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from '../../../components/ui/card';
 import {
   listTournamentsApi,
   createTournamentApi,
@@ -7,6 +6,7 @@ import {
 } from '../api/tournaments-api';
 import { useAuthStore } from '../../../lib/auth-store';
 import { AuthModal } from '../../../components/auth/auth-modal';
+import { EmptyState } from '../../../components/feedback';
 import { TournamentHeader } from '../components/tournament-header';
 import { TournamentFilterBar } from '../components/tournament-filter-bar';
 import { TournamentCard } from '../components/tournament-card';
@@ -103,22 +103,46 @@ export function TournamentsPage(): React.ReactElement {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="p-6 space-y-4 animate-pulse">
-              <div className="h-6 w-1/3 bg-muted rounded" />
-              <div className="h-4 w-3/4 bg-muted rounded" />
-              <div className="h-10 bg-muted rounded-xl" />
-            </Card>
+        <div
+          data-testid="tournaments-skeleton-list"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          aria-busy="true"
+          aria-label="Đang tải danh sách giải đấu"
+        >
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="p-6 rounded-2xl border border-border bg-card space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="h-5 w-20 bg-muted rounded" />
+                <div className="h-5 w-24 bg-muted rounded" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 w-3/4 bg-muted rounded" />
+                <div className="h-4 w-1/2 bg-muted rounded" />
+              </div>
+              <div className="pt-2 border-t border-border/50 space-y-2">
+                <div className="h-4 w-40 bg-muted rounded" />
+                <div className="h-4 w-32 bg-muted rounded" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="h-12 bg-muted rounded-xl" />
+                <div className="h-12 bg-muted rounded-xl" />
+              </div>
+            </div>
           ))}
         </div>
       ) : filteredTournaments.length === 0 ? (
-        <Card className="p-12 text-center border-dashed border-2 border-border/80 space-y-3">
-          <p className="text-sm font-bold text-foreground">Không tìm thấy giải đấu phù hợp</p>
-          <p className="text-xs text-muted-foreground">Thử đổi môn, thành phố hoặc bộ lọc.</p>
-        </Card>
+        <EmptyState
+          title="Không tìm thấy giải đấu nào"
+          description="Thử thay đổi bộ môn thể thao hoặc địa điểm để khám phá các giải đấu khác."
+          actionLabel="Đặt lại bộ lọc"
+          onAction={() => {
+            setSportFilter('ALL');
+            setCityFilter('ALL');
+            setStatusFilter('ALL');
+          }}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="tournaments-list">
           {filteredTournaments.map((t) => (
             <TournamentCard key={t.id} tournament={t} />
           ))}

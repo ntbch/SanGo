@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Swords } from 'lucide-react';
 import { TournamentMatch } from '../api/tournaments-api';
@@ -19,11 +18,11 @@ export function TournamentBracketTree({
   onSelectMatchToScore,
 }: TournamentBracketTreeProps): React.ReactElement {
   return (
-    <Card className="p-6 border border-border/80 bg-card shadow-md space-y-6 overflow-x-auto">
-      <div className="flex items-center justify-between pb-3 border-b border-border/50">
+    <div className="p-6 rounded-2xl border border-border bg-card space-y-6 overflow-x-auto">
+      <div className="flex items-center justify-between pb-4 border-b border-border">
         <div>
           <h3 className="text-base font-black text-foreground">Sơ Đồ Cây Loại Trực Tiếp</h3>
-          <p className="text-xs text-muted-foreground">Đội thắng vào vòng sau.</p>
+          <p className="text-xs text-muted-foreground">Đội thắng vào vòng sau theo nhánh thi đấu phẳng.</p>
         </div>
       </div>
 
@@ -31,11 +30,11 @@ export function TournamentBracketTree({
         <div className="py-12 text-center text-xs text-muted-foreground space-y-2">
           <Swords className="h-8 w-8 mx-auto text-muted-foreground/40" />
           <p className="font-bold text-foreground">Chưa sinh nhánh đấu</p>
-          <p>BTC bốc thăm sinh nhánh sau hạn đăng ký.</p>
+          <p>BTC sẽ tiến hành bốc thăm và tạo nhánh thi đấu sau khi kết thúc đăng ký.</p>
         </div>
       ) : (
-        <div className="flex gap-8 min-w-[700px] py-4">
-          {rounds.map((r) => {
+        <div className="flex gap-8 min-w-[720px] py-4 items-stretch">
+          {rounds.map((r, rIdx) => {
             const roundMatches = matchesByRound[r] || [];
             const roundTitle =
               r === 1 && rounds.length === 3
@@ -46,53 +45,75 @@ export function TournamentBracketTree({
                 ? 'Chung Kết'
                 : `Vòng ${r}`;
 
+            const isLastRound = rIdx === rounds.length - 1;
+
             return (
-              <div key={r} className="flex-1 space-y-4">
-                <div className="text-center p-2 rounded-xl bg-secondary/60 border border-border/60">
-                  <span className="text-xs font-black uppercase text-foreground">{roundTitle}</span>
+              <div key={r} className="flex-1 flex flex-col space-y-4">
+                <div className="text-center py-2 px-3 rounded-lg bg-secondary text-secondary-foreground border border-border mb-2">
+                  <span className="text-xs font-mono-num font-bold uppercase tracking-wider">{roundTitle}</span>
                 </div>
 
-                <div className="space-y-4">
-                  {roundMatches.map((m) => (
-                    <div
-                      key={m.id}
-                      className="p-3 rounded-2xl bg-secondary/30 border border-border/60 space-y-2 text-xs"
-                    >
-                      {/* Home Team */}
-                      <div
-                        className={cn(
-                          'flex items-center justify-between p-2 rounded-xl',
-                          m.winnerTeamId && m.winnerTeamId === m.homeTeamId
-                            ? 'bg-emerald-500/15 text-emerald-600 font-black'
-                            : 'text-foreground font-semibold',
-                        )}
-                      >
-                        <span className="truncate">{m.homeTeam?.name || 'Chờ xác định'}</span>
-                        <span className="font-mono-num font-bold">{m.homeScore ?? '-'}</span>
-                      </div>
+                <div className="flex-1 flex flex-col justify-around space-y-6">
+                  {roundMatches.map((m, mIdx) => (
+                    <div key={m.id} className="relative flex items-center">
+                      <div className="w-full p-3.5 rounded-xl bg-card border border-border space-y-2 text-xs">
+                        {/* Match metadata */}
+                        <div className="flex items-center justify-between text-[10px] font-mono-num text-muted-foreground border-b border-border/40 pb-1.5">
+                          <span className="font-semibold text-foreground/70">Trận #{m.position ?? mIdx + 1}</span>
+                          {m.matchTime && (
+                            <span>
+                              {new Date(m.matchTime).toLocaleTimeString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Away Team */}
-                      <div
-                        className={cn(
-                          'flex items-center justify-between p-2 rounded-xl',
-                          m.winnerTeamId && m.winnerTeamId === m.awayTeamId
-                            ? 'bg-emerald-500/15 text-emerald-600 font-black'
-                            : 'text-foreground font-semibold',
-                        )}
-                      >
-                        <span className="truncate">{m.awayTeam?.name || 'Chờ xác định'}</span>
-                        <span className="font-mono-num font-bold">{m.awayScore ?? '-'}</span>
-                      </div>
-
-                      {isManager && m.status !== 'DONE' && m.homeTeamId && m.awayTeamId && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onSelectMatchToScore(m)}
-                          className="w-full text-[10px] font-bold h-7 mt-1 cursor-pointer"
+                        {/* Home Team */}
+                        <div
+                          className={cn(
+                            'flex items-center justify-between p-2 rounded-lg border transition-colors',
+                            m.winnerTeamId && m.winnerTeamId === m.homeTeamId
+                              ? 'bg-secondary text-foreground font-black border-primary/40'
+                              : 'bg-secondary/40 text-foreground/85 font-medium border-border',
+                          )}
                         >
-                          Cập nhật tỷ số
-                        </Button>
+                          <span className="truncate pr-2">{m.homeTeam?.name || 'Chờ xác định'}</span>
+                          <span className="font-mono-num font-extrabold tabular-nums shrink-0">{m.homeScore ?? '-'}</span>
+                        </div>
+
+                        {/* Away Team */}
+                        <div
+                          className={cn(
+                            'flex items-center justify-between p-2 rounded-lg border transition-colors',
+                            m.winnerTeamId && m.winnerTeamId === m.awayTeamId
+                              ? 'bg-secondary text-foreground font-black border-primary/40'
+                              : 'bg-secondary/40 text-foreground/85 font-medium border-border',
+                          )}
+                        >
+                          <span className="truncate pr-2">{m.awayTeam?.name || 'Chờ xác định'}</span>
+                          <span className="font-mono-num font-extrabold tabular-nums shrink-0">{m.awayScore ?? '-'}</span>
+                        </div>
+
+                        {isManager && m.status !== 'DONE' && m.homeTeamId && m.awayTeamId && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onSelectMatchToScore(m)}
+                            className="w-full text-[10px] font-bold h-7 mt-1 border-border active:scale-[0.98] cursor-pointer"
+                          >
+                            Cập nhật tỷ số
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Straight connecting lineage branch line */}
+                      {!isLastRound && (
+                        <div
+                          className="hidden sm:block absolute -right-8 top-1/2 w-8 border-t border-border"
+                          aria-hidden="true"
+                        />
                       )}
                     </div>
                   ))}
@@ -102,6 +123,6 @@ export function TournamentBracketTree({
           })}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

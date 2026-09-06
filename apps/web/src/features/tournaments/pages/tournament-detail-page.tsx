@@ -136,7 +136,7 @@ export function TournamentDetailPage(): React.ReactElement {
   if (isLoading || !tournament) {
     return (
       <div className="w-full max-w-7xl mx-auto px-4 py-12 text-center space-y-3">
-        <div className="h-8 w-48 bg-muted rounded mx-auto animate-pulse" />
+        <div className="h-8 w-48 bg-muted rounded mx-auto" />
         <p className="text-xs text-muted-foreground">Đang tải thông tin giải đấu...</p>
       </div>
     );

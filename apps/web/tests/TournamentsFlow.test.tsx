@@ -97,6 +97,42 @@ describe('Tournaments Flow Integration', () => {
     expect(screen.getByRole('button', { name: /Bóng Đá/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Pickleball/i })).toBeDefined();
 
+    // Verify tournament card renders with tabular monospace prize and team count
+    await waitFor(() => {
+      expect(screen.getByText(/SanGo Championship 2026/i)).toBeDefined();
+    });
+
+    const prizeElement = screen.getByText(/50.000.000/i);
+    expect(prizeElement.className).toContain('font-mono-num');
+    expect(prizeElement.className).toContain('font-black');
+    expect(prizeElement.className).toContain('tabular-nums');
+
+    const teamCountElement = screen.getByText(/1 \/ 16 Đội/i);
+    expect(teamCountElement.className).toContain('font-mono-num');
+    expect(teamCountElement.className).toContain('font-black');
+    expect(teamCountElement.className).toContain('tabular-nums');
+
+    // Verify flat status badge tokens
+    const statusBadges = screen.getAllByText(/Đang diễn ra/i);
+    const statusBadge = statusBadges.find((el) => el.tagName.toLowerCase() === 'span');
+    expect(statusBadge).toBeDefined();
+    expect(statusBadge?.className).toContain('bg-secondary');
+    expect(statusBadge?.className).toContain('text-secondary-foreground');
+    expect(statusBadge?.className).toContain('border-border');
+
+    // Test empty state when filter matches no tournaments
+    const pickleballBtn = screen.getByRole('button', { name: /Pickleball/i });
+    fireEvent.click(pickleballBtn);
+
+    expect(screen.getByText(/Không tìm thấy giải đấu nào/i)).toBeDefined();
+    expect(
+      screen.getByText(/Thử thay đổi bộ môn thể thao hoặc địa điểm để khám phá các giải đấu khác./i),
+    ).toBeDefined();
+
+    const resetFilterBtn = screen.getByRole('button', { name: /Đặt lại bộ lọc/i });
+    fireEvent.click(resetFilterBtn);
+    expect(screen.getByText(/SanGo Championship 2026/i)).toBeDefined();
+
     // Open create tournament modal
     const createBtn = screen.getByRole('button', { name: /Tạo Giải Đấu/i });
     fireEvent.click(createBtn);
@@ -118,6 +154,17 @@ describe('Tournaments Flow Integration', () => {
 
     // Check bracket tab
     expect(screen.getByRole('heading', { name: /Sơ Đồ Cây Loại Trực Tiếp/i })).toBeDefined();
+
+    // Check tabular scores in flat lineage bracket tree
+    const homeScoreEl = screen.getByText('2');
+    expect(homeScoreEl.className).toContain('font-mono-num');
+    expect(homeScoreEl.className).toContain('font-extrabold');
+    expect(homeScoreEl.className).toContain('tabular-nums');
+
+    const awayScoreEl = screen.getByText('1');
+    expect(awayScoreEl.className).toContain('font-mono-num');
+    expect(awayScoreEl.className).toContain('font-extrabold');
+    expect(awayScoreEl.className).toContain('tabular-nums');
 
     // Switch to Teams tab
     const teamsTabBtn = screen.getByRole('button', { name: /Danh Sách Đội Tham Gia/i });
