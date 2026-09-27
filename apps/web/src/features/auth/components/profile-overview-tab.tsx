@@ -33,7 +33,7 @@ export function ProfileOverviewTab({
                 SanGo Athlete Passport
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-foreground">{user.fullName}</h2>
-              <p className="text-xs text-muted-foreground font-mono-num">{user.email} · {phone || '0987654321'}</p>
+              <p className="text-xs text-muted-foreground font-mono-num">{user.email}{phone ? ` · ${phone}` : ''}</p>
             </div>
           </div>
 
@@ -44,11 +44,7 @@ export function ProfileOverviewTab({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 pt-6 text-center">
-          <div className="p-3 rounded-2xl bg-secondary/40 border border-border/50">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Uy Tín</span>
-            <span className="font-mono-num font-black text-base sm:text-lg text-primary">100%</span>
-          </div>
+        <div className="grid grid-cols-2 gap-3 pt-6 text-center">
           <div className="p-3 rounded-2xl bg-secondary/40 border border-border/50">
             <span className="text-[10px] uppercase font-bold text-muted-foreground block">Số Trận Đã Đấu</span>
             <span className="font-mono-num font-black text-base sm:text-lg text-foreground">12 Trận</span>

@@ -9,8 +9,10 @@ export interface User {
   phone?: string | null;
   role: UserRole;
   avatarUrl?: string | null;
+  bio?: string | null;
+  notifyEmail?: boolean;
+  notifyInApp?: boolean;
   status?: string;
-  reputationScore?: number;
 }
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
@@ -21,7 +23,8 @@ interface AuthState {
   status: AuthStatus;
   setSession: (user: User, accessToken: string, refreshToken?: string) => void;
   setStatus: (status: AuthStatus) => void;
-  logout: () => void;
+  logout: () => Promise<boolean>;
+  logoutError: string | null;
   restoreSession: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
 }
@@ -52,6 +55,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     user: initial.user,
     accessToken: initial.accessToken,
     status: initial.status,
+    logoutError: null,
 
     setSession: (user, accessToken, refreshToken) => {
       localStorage.setItem('sango_access_token', accessToken);
@@ -59,16 +63,24 @@ export const useAuthStore = create<AuthState>((set, get) => {
         localStorage.setItem('sango_refresh_token', refreshToken);
       }
       localStorage.setItem('sango_user', JSON.stringify(user));
-      set({ user, accessToken, status: 'authenticated' });
+      set({ user, accessToken, status: 'authenticated', logoutError: null });
     },
 
     setStatus: (status) => set({ status }),
 
-    logout: () => {
+    logout: async () => {
+      set({ logoutError: null });
+      try {
+        await apiClient('/auth/logout', { method: 'POST', skipAuth: true });
+      } catch {
+        set({ logoutError: 'Chưa thể thu hồi phiên đăng nhập. Kiểm tra kết nối và thử đăng xuất lại.' });
+        return false;
+      }
       localStorage.removeItem('sango_access_token');
       localStorage.removeItem('sango_refresh_token');
       localStorage.removeItem('sango_user');
-      set({ user: null, accessToken: null, status: 'unauthenticated' });
+      set({ user: null, accessToken: null, status: 'unauthenticated', logoutError: null });
+      return true;
     },
 
     updateUser: (partialUser) => {
@@ -85,7 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       const cachedUserStr = localStorage.getItem('sango_user');
 
       if (!token || !cachedUserStr) {
-        set({ user: null, accessToken: null, status: 'unauthenticated' });
+        set({ user: null, accessToken: null, status: 'unauthenticated', logoutError: null });
         return;
       }
 
@@ -93,7 +105,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const user = JSON.parse(cachedUserStr);
         set({ user, accessToken: token, status: 'authenticated' });
       } catch {
-        set({ user: null, accessToken: null, status: 'unauthenticated' });
+        set({ user: null, accessToken: null, status: 'unauthenticated', logoutError: null });
         return;
       }
 
@@ -113,10 +125,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('sango_auth_change', () => {
-    const token = localStorage.getItem('sango_access_token');
-    const userStr = localStorage.getItem('sango_user');
-    if (!token || !userStr) {
-      useAuthStore.setState({ user: null, accessToken: null, status: 'unauthenticated' });
-    }
+    // logoutError chỉ có nghĩa khi phiên vẫn còn hiệu lực; khi phiên đã chết thì phải xoá để không bị treo thông báo.
+    useAuthStore.setState({ ...getInitialAuthState(), logoutError: null });
   });
 }

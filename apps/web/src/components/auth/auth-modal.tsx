@@ -32,7 +32,6 @@ export function AuthModal({
   const [phoneNumber, setPhoneNumber] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [registerPassword, setRegisterPassword] = React.useState('');
-  const [role, setRole] = React.useState<UserRole>(UserRole.CUSTOMER);
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -60,16 +59,15 @@ export function AuthModal({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !phoneNumber || !registerPassword) return;
+    if (!fullName || !email || !registerPassword) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
       const res = await registerApi({
         fullName,
-        phone: phoneNumber,
-        email: email || `${phoneNumber}@sango.vn`,
+        phone: phoneNumber || undefined,
+        email,
         password: registerPassword,
-        role,
       });
       setSession(res.user, res.accessToken);
       onClose();
@@ -162,12 +160,13 @@ export function AuthModal({
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">
-                  Số điện thoại hoặc Email
+                  Email
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="VD: 0912345678 hoặc player1@sango.vn"
+                    type="email"
+                    placeholder="name@example.com"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     required
@@ -245,7 +244,7 @@ export function AuthModal({
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground block">
-                    Số điện thoại <span className="text-destructive">*</span>
+                    Số điện thoại (tùy chọn)
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -253,7 +252,6 @@ export function AuthModal({
                       placeholder="0912345678"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      required
                       className="h-9 pl-8 text-xs font-mono-num"
                     />
                   </div>
@@ -261,12 +259,13 @@ export function AuthModal({
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground block">
-                    Email
+                    Email <span className="text-destructive">*</span>
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       type="email"
+                      required
                       placeholder="a@gmail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -294,39 +293,13 @@ export function AuthModal({
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground block">Vai trò</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRole(UserRole.CUSTOMER)}
-                    className={cn(
-                      'p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center',
-                      role === UserRole.CUSTOMER
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border/60 bg-secondary/30 text-muted-foreground',
-                    )}
-                  >
-                    Người chơi (Đặt sân)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole(UserRole.OWNER)}
-                    className={cn(
-                      'p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center',
-                      role === UserRole.OWNER
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border/60 bg-secondary/30 text-muted-foreground',
-                    )}
-                  >
-                    Chủ sân thể thao
-                  </button>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Đăng ký tài khoản người chơi. Liên hệ quản trị viên để được xét duyệt và cấp quyền chủ sân.
+              </p>
 
               <Button
                 type="submit"
-                disabled={isLoading || !fullName || !phoneNumber || !registerPassword}
+                disabled={isLoading || !fullName || !email || !registerPassword}
                 className="w-full h-10 font-bold text-xs shadow-md mt-2"
               >
                 {isLoading ? 'Đang tạo tài khoản...' : 'Đăng Ký & Đăng Nhập Ngay'}

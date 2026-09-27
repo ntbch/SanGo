@@ -60,14 +60,6 @@ export function TournamentBracketTree({
                         {/* Match metadata */}
                         <div className="flex items-center justify-between text-[10px] font-mono-num text-muted-foreground border-b border-border/40 pb-1.5">
                           <span className="font-semibold text-foreground/70">Trận #{m.position ?? mIdx + 1}</span>
-                          {m.matchTime && (
-                            <span>
-                              {new Date(m.matchTime).toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          )}
                         </div>
 
                         {/* Home Team */}

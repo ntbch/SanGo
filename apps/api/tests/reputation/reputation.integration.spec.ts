@@ -103,7 +103,7 @@ describe('Reputation compute-on-read (integration)', () => {
   /** Tạo nhanh một booking với trạng thái/thời điểm tuỳ chọn. */
   async function mkBooking(opts: {
     userId?: string;
-    status: 'CANCELLED' | 'CHECKED_IN' | 'COMPLETED';
+    status: 'CANCELLED' | 'CHECKED_IN' | 'COMPLETED' | 'NO_SHOW';
     daysFromNow: number;
     startMinute: number;
     checkedInOffsetMin?: number;
@@ -132,6 +132,19 @@ describe('Reputation compute-on-read (integration)', () => {
       },
     });
   }
+
+  it('NO_SHOW trừ đúng một lần và đưa người chơi vào leaderboard', async () => {
+    if (!dbUp) return;
+    const user = await prisma.user.create({
+      data: { email: `itrep-noshow-${SUFFIX}@sango.vn`, passwordHash: cust.passwordHash, fullName: 'No Show' },
+    });
+    await mkBooking({ userId: user.id, status: 'NO_SHOW', daysFromNow: -20, startMinute: 600 });
+    const rep = await reputation.getMyReputation(user.id);
+    expect(rep.score).toBe(30);
+    expect(rep.breakdown).toEqual({ onTimeCheckIns: 0, lateCancels: 0, noShows: 1 });
+    const board = await reputation.getLeaderboard(1000);
+    expect(board.items.find((item) => item.userId === user.id)).toMatchObject({ score: 30, noShow: 1 });
+  });
 
   it('SCORE-1: chưa có đơn chấm điểm -> score = BASE, mọi badge khoá', async () => {
     if (!dbUp) return;

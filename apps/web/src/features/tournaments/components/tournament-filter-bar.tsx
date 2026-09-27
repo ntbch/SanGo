@@ -1,5 +1,4 @@
 import React from 'react';
-import { CITIES } from '../../../lib/constants';
 import { cn } from '../../../lib/utils';
 
 export interface SportFilterItem {
@@ -18,8 +17,6 @@ export const DEFAULT_TOURNAMENT_SPORTS: SportFilterItem[] = [
 interface TournamentFilterBarProps {
   sportFilter: string;
   onSportFilterChange: (sport: string) => void;
-  cityFilter: string;
-  onCityFilterChange: (city: string) => void;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
   sports?: SportFilterItem[];
@@ -28,8 +25,6 @@ interface TournamentFilterBarProps {
 export function TournamentFilterBar({
   sportFilter,
   onSportFilterChange,
-  cityFilter,
-  onCityFilterChange,
   statusFilter,
   onStatusFilterChange,
   sports = DEFAULT_TOURNAMENT_SPORTS,
@@ -58,20 +53,8 @@ export function TournamentFilterBar({
         })}
       </div>
 
-      {/* City & Status Selectors */}
+      {/* Status Selector */}
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={cityFilter}
-          onChange={(e) => onCityFilterChange(e.target.value)}
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer shadow-xs"
-        >
-          <option value="ALL">Tất cả Thành phố</option>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
 
         <select
           value={statusFilter}

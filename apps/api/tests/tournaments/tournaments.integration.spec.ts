@@ -71,6 +71,19 @@ describe('Tournaments single-elimination bracket (integration)', () => {
     return team.id;
   }
 
+  it('Không đăng ký đội khác môn vào giải', async () => {
+    if (!dbUp) return;
+    const tour = await tournaments.createTournament(admin, {
+      name: 'Badminton Cup ' + SUFFIX,
+      sportType: SportType.BADMINTON,
+    });
+    const teamId = await mkTeam(1);
+    await expect(tournaments.registerTeam(captains[0], tour.id, { teamId })).rejects.toMatchObject({
+      response: { code: 'TEAM_SPORT_MISMATCH' },
+    });
+    expect((await tournaments.getTournament(tour.id)).teams).toHaveLength(0);
+  });
+
   it('Giải đủ 8 đội: bracket chuẩn, winner propagate tới chung kết, champion + broadcast', async () => {
     if (!dbUp) return;
 
@@ -141,11 +154,13 @@ describe('Tournaments single-elimination bracket (integration)', () => {
       tournaments.updateMatchScore(admin, qf[0].id, { homeScore: 1, awayScore: 1 }),
     ).rejects.toMatchObject({ response: { code: 'MATCH_REQUIRES_WINNER' } });
 
-    // 8. Chơi 4 QF: thắng lần lượt seed 1, 5, 2, 6
-    await tournaments.updateMatchScore(admin, qf[0].id, { homeScore: 3, awayScore: 1 });
-    await tournaments.updateMatchScore(admin, qf[1].id, { homeScore: 1, awayScore: 2 });
-    await tournaments.updateMatchScore(admin, qf[2].id, { homeScore: 2, awayScore: 0 });
-    await tournaments.updateMatchScore(admin, qf[3].id, { homeScore: 0, awayScore: 2 });
+    // Chấm đồng thời các feeder: không mất đội ở hai trận đích.
+    await Promise.all([
+      tournaments.updateMatchScore(admin, qf[0].id, { homeScore: 3, awayScore: 1 }),
+      tournaments.updateMatchScore(admin, qf[1].id, { homeScore: 1, awayScore: 2 }),
+      tournaments.updateMatchScore(admin, qf[2].id, { homeScore: 2, awayScore: 0 }),
+      tournaments.updateMatchScore(admin, qf[3].id, { homeScore: 0, awayScore: 2 }),
+    ]);
 
     // Winner đã đẩy sang SF đúng slot home/away
     const afterQf = await tournaments.getTournament(tour.id);
@@ -162,7 +177,14 @@ describe('Tournaments single-elimination bracket (integration)', () => {
     ).rejects.toMatchObject({ response: { code: 'MATCH_ALREADY_DONE' } });
 
     // 10. SF: team 1 và team 2 (đội thứ nhất & nhì đăng ký) vào chung kết
-    await tournaments.updateMatchScore(admin, sfReady[0].id, { homeScore: 2, awayScore: 1 });
+    const submissions = await Promise.allSettled([
+      tournaments.updateMatchScore(admin, sfReady[0].id, { homeScore: 2, awayScore: 1 }),
+      tournaments.updateMatchScore(admin, sfReady[0].id, { homeScore: 2, awayScore: 1 }),
+    ]);
+    expect(submissions.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(submissions.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: { response: { code: 'MATCH_ALREADY_DONE' } },
+    });
     await tournaments.updateMatchScore(admin, sfReady[1].id, { homeScore: 1, awayScore: 3 });
     const preFinal = await tournaments.getTournament(tour.id);
     const fm = preFinal.matches.find((m) => m.round === 3)!;
@@ -195,7 +217,7 @@ describe('Tournaments single-elimination bracket (integration)', () => {
     // Owner tạo giải (không phải admin) — đúng quyền manager
     const tour = await tournaments.createTournament(owner, {
       name: 'Bye Cup IT ' + SUFFIX,
-      sportType: SportType.PICKLEBALL,
+      sportType: SportType.FOOTBALL5,
     });
 
     const teamIds: string[] = [];

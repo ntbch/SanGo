@@ -124,6 +124,12 @@ export class TournamentsService {
             code: 'REGISTRATION_CLOSED',
           });
         }
+        if (team.sportType !== tour.sportType) {
+          throw new BadRequestException({
+            message: 'Môn thể thao của đội không phù hợp với giải đấu',
+            code: 'TEAM_SPORT_MISMATCH',
+          });
+        }
         // Đăng ký trùng ưu tiên báo đúng ALREADY_REGISTERED kể cả khi giải đã đủ đội.
         const existing = await tx.tournamentTeam.findUnique({
           where: { tournamentId_teamId: { tournamentId, teamId: dto.teamId } },
@@ -255,28 +261,6 @@ export class TournamentsService {
    * chung kết set champion + FINISHED + broadcast thông báo TOURNAMENT cho các đội.
    */
   async updateMatchScore(user: ManagerUser, matchId: string, dto: UpdateMatchScoreDto) {
-    const match = await this.prisma.tournamentMatch.findUnique({
-      where: { id: matchId },
-      include: { tournament: true },
-    });
-    if (!match) {
-      throw new NotFoundException({ message: 'Không tìm thấy trận đấu', code: 'MATCH_NOT_FOUND' });
-    }
-    if (!this.isManager(match.tournament.createdBy, user)) {
-      throw new ForbiddenException({
-        message: 'Chỉ người tạo giải hoặc admin mới được nhập điểm',
-        code: 'MATCH_FORBIDDEN',
-      });
-    }
-    if (match.status === TournamentMatchStatus.DONE) {
-      throw new ConflictException({ message: 'Trận đã có kết quả', code: 'MATCH_ALREADY_DONE' });
-    }
-    if (match.status !== TournamentMatchStatus.READY || !match.homeTeamId || !match.awayTeamId) {
-      throw new ConflictException({
-        message: 'Trận chưa sẵn sàng để nhập điểm',
-        code: 'MATCH_NOT_READY',
-      });
-    }
     if (dto.homeScore === dto.awayScore) {
       throw new BadRequestException({
         message: 'Loại trực tiếp phải có thắng/thua, không chấp nhận hòa',
@@ -284,10 +268,31 @@ export class TournamentsService {
       });
     }
 
-    const winnerTeamId = dto.homeScore > dto.awayScore ? match.homeTeamId : match.awayTeamId;
-    const isFinal = !match.nextMatchId;
-
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const { done, match, winnerTeamId } = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "tournament_matches" WHERE id = ${matchId}::uuid FOR UPDATE`;
+      const match = await tx.tournamentMatch.findUnique({
+        where: { id: matchId },
+        include: { tournament: true },
+      });
+      if (!match) {
+        throw new NotFoundException({ message: 'Không tìm thấy trận đấu', code: 'MATCH_NOT_FOUND' });
+      }
+      if (!this.isManager(match.tournament.createdBy, user)) {
+        throw new ForbiddenException({
+          message: 'Chỉ người tạo giải hoặc admin mới được nhập điểm',
+          code: 'MATCH_FORBIDDEN',
+        });
+      }
+      if (match.status === TournamentMatchStatus.DONE) {
+        throw new ConflictException({ message: 'Trận đã có kết quả', code: 'MATCH_ALREADY_DONE' });
+      }
+      if (match.status !== TournamentMatchStatus.READY || !match.homeTeamId || !match.awayTeamId) {
+        throw new ConflictException({
+          message: 'Trận chưa sẵn sàng để nhập điểm',
+          code: 'MATCH_NOT_READY',
+        });
+      }
+      const winnerTeamId = dto.homeScore > dto.awayScore ? match.homeTeamId : match.awayTeamId;
       const done = await tx.tournamentMatch.update({
         where: { id: match.id },
         data: {
@@ -297,41 +302,34 @@ export class TournamentsService {
           status: TournamentMatchStatus.DONE,
         },
       });
-
-      if (!isFinal) {
-        const next = await tx.tournamentMatch.findUnique({ where: { id: match.nextMatchId! } });
-        if (next) await this.placeIntoSlotInTx(tx, next, winnerTeamId, match.position);
+      if (match.nextMatchId) {
+        await this.placeIntoSlotInTx(tx, match.nextMatchId, winnerTeamId, match.position);
       } else {
         await tx.tournament.update({
           where: { id: match.tournamentId },
           data: { championTeamId: winnerTeamId, status: TournamentStatus.FINISHED },
         });
       }
-      return done;
+      return { done, match, winnerTeamId };
     });
 
-    if (isFinal) {
-      // Broadcast SAU khi commit — best-effort, không chặn response.
+    if (!match.nextMatchId) {
       const entries = await this.prisma.tournamentTeam.findMany({
         where: { tournamentId: match.tournamentId },
         include: { team: { select: { captainId: true, name: true } } },
       });
-      const championName =
-        entries.find((t) => t.teamId === winnerTeamId)?.team.name ?? 'Đội vô địch';
-      await this.notify
-        .dispatchBroadcast(
-          entries.map((t) => t.team.captainId),
-          {
-            type: NotificationType.TOURNAMENT,
-            title: 'Kết quả giải đấu',
-            body: `Giải "${match.tournament.name}" đã kết thúc — nhà vô địch: ${championName}.`,
-            link: '/tournaments',
-          },
-        )
-        .catch(() => undefined);
+      const championName = entries.find((t) => t.teamId === winnerTeamId)?.team.name ?? 'Đội vô địch';
+      await this.notify.dispatchBroadcast(
+        entries.map((t) => t.team.captainId),
+        {
+          type: NotificationType.TOURNAMENT,
+          title: 'Kết quả giải đấu',
+          body: `Giải "${match.tournament.name}" đã kết thúc — nhà vô địch: ${championName}.`,
+          link: '/tournaments',
+        },
+      ).catch(() => undefined);
     }
-
-    return updated;
+    return done;
   }
 
   private isManager(createdBy: string, user: ManagerUser): boolean {
@@ -345,10 +343,12 @@ export class TournamentsService {
    */
   private async placeIntoSlotInTx(
     tx: Prisma.TransactionClient,
-    target: { id: string; homeTeamId: string | null; awayTeamId: string | null },
+    targetId: string,
     winnerTeamId: string,
     feederPosition: number,
   ) {
+    await tx.$queryRaw`SELECT id FROM "tournament_matches" WHERE id = ${targetId}::uuid FOR UPDATE`;
+    const target = await tx.tournamentMatch.findUniqueOrThrow({ where: { id: targetId } });
     const isHome = feederPosition % 2 === 1;
     const occupied = isHome ? target.homeTeamId : target.awayTeamId;
     if (occupied && occupied !== winnerTeamId) {
@@ -386,8 +386,7 @@ export class TournamentsService {
       data: { homeTeamId: winnerTeamId, winnerTeamId, status: TournamentMatchStatus.DONE },
     });
     if (current.nextMatchId) {
-      const next = await tx.tournamentMatch.findUnique({ where: { id: current.nextMatchId } });
-      if (next) await this.placeIntoSlotInTx(tx, next, winnerTeamId, feederPosition);
+      await this.placeIntoSlotInTx(tx, current.nextMatchId, winnerTeamId, feederPosition);
     }
   }
 }

@@ -152,7 +152,6 @@ export interface OwnerAnalyticsSeriesItem {
 export interface OwnerAnalyticsTopCourt {
   courtId: string;
   courtName: string;
-  sportType: SportType;
   bookings: number;
   revenueVnd: number;
 }
@@ -185,7 +184,9 @@ export interface OwnerBookingCourt {
 export interface OwnerBookingItem {
   id: string;
   code: string;
-  customerId: string;
+  customerId: string | null;
+  guestName?: string | null;
+  guestPhone?: string | null;
   courtId: string;
   date: string;
   startMinute: number;
@@ -196,7 +197,7 @@ export interface OwnerBookingItem {
   teamId?: string | null;
   isPublicMatch?: boolean;
   court: OwnerBookingCourt;
-  customer: OwnerBookingCustomer;
+  customer: OwnerBookingCustomer | null;
   payments?: Array<{
     id: string;
     amount: number;
@@ -307,7 +308,7 @@ export async function replaceCourtPricingRulesApi(
 
 /** Lấy menu dịch vụ của cụm sân */
 export async function getVenueServicesApi(venueId: string): Promise<VenueService[]> {
-  return apiClient<VenueService[]>(`/venues/${venueId}/services`);
+  return apiClient<VenueService[]>(`/owner/venues/${venueId}/services`);
 }
 
 /** Thêm dịch vụ tiện ích mới */
@@ -380,12 +381,31 @@ export async function deleteOwnerVoucherApi(id: string): Promise<void> {
 export async function getOwnerAnalyticsApi(venueId?: string, days = 30): Promise<OwnerAnalyticsResponse> {
   const query = new URLSearchParams({ days: String(days) });
   if (venueId) query.append('venueId', venueId);
-  return apiClient<OwnerAnalyticsResponse>(`/owner/analytics?${query.toString()}`);
+  const response = await apiClient<{
+    meta: { days: number };
+    summary: Pick<OwnerAnalyticsResponse, 'revenueConfirmed' | 'totalBookings' | 'cancelledCount' | 'noShowCount' | 'cancelRate'>;
+    series: Array<{ date: string; bookings: number; revenue: number }>;
+    topCourts: Array<{ courtId: string; courtName: string; bookings: number; revenue: number }>;
+  }>(`/owner/analytics?${query.toString()}`);
+  return {
+    periodDays: response.meta.days, ...response.summary,
+    series: response.series.map(({ revenue, ...point }) => ({ ...point, revenueVnd: revenue })),
+    topCourts: response.topCourts.map(({ revenue, ...court }) => ({ ...court, revenueVnd: revenue })),
+  };
 }
 
 /* =========================================================================
  * 6. OWNER BOOKINGS & CHECK-IN & NO-SHOW
  * ========================================================================= */
+
+export async function createWalkInBookingApi(payload: {
+  courtId: string; date: string; startMinute: number; endMinute: number;
+  guestName: string; guestPhone?: string;
+}): Promise<OwnerBookingItem> {
+  return apiClient<OwnerBookingItem>('/owner/bookings/walk-in', {
+    method: 'POST', body: JSON.stringify(payload),
+  });
+}
 
 /** Danh sách đơn đặt theo cụm sân của Owner */
 export async function getOwnerBookingsApi(params: {

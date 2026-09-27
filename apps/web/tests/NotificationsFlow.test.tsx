@@ -79,10 +79,16 @@ vi.mock('../src/lib/socket', () => ({
 describe('Notifications Flow & Quick Read Popup Integration', () => {
   beforeEach(() => {
     localStorage.clear();
-    // Seed store trực tiếp: dropdown chỉ render từ store (fetch chỉ chạy ở trang đầy đủ)
+    // Inbox session is normally established by the socket/auth binding.
     useNotificationsStore.setState({
       notifications: seedNotifications,
       loaded: true,
+      sessionUserId: 'u-1',
+      total: seedNotifications.length,
+      unreadTotal: seedNotifications.filter((n) => !n.isRead).length,
+      page: 1,
+      loading: false,
+      error: null,
       filterType: 'ALL',
       filterUnreadOnly: false,
     });

@@ -5,7 +5,6 @@ export interface ClubRankingItem {
   teamId: string;
   teamName: string;
   sportType: string;
-  city: string;
   eloScore: number;
   matchesPlayed: number;
   wins: number;
@@ -21,16 +20,13 @@ export interface AthleteRankingItem {
   fullName: string;
   avatarUrl?: string | null;
   sportType: string;
-  city: string;
   reputationScore: number;
   matchesPlayed: number;
-  mvpCount: number;
   fairPlayBadge: string;
 }
 
 export interface RankingFilterParams {
   sportType?: string;
-  city?: string;
 }
 
 export async function getClubRankingsApi(params?: RankingFilterParams): Promise<ClubRankingItem[]> {

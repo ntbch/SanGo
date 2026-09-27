@@ -32,10 +32,6 @@ export function OwnerDashboardPage(): React.ReactElement {
         setWalkInCustomerName={d.setWalkInCustomerName}
         walkInCustomerPhone={d.walkInCustomerPhone}
         setWalkInCustomerPhone={d.setWalkInCustomerPhone}
-        walkInDeposit={d.walkInDeposit}
-        setWalkInDeposit={d.setWalkInDeposit}
-        walkInTotal={d.walkInTotal}
-        setWalkInTotal={d.setWalkInTotal}
         walkInSubmitting={d.walkInSubmitting}
         onWalkInSubmit={d.handleWalkInSubmit}
       />

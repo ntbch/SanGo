@@ -168,6 +168,19 @@ describe('AgentChatService (spec 2026-08-26 §3.2)', () => {
     });
     expect(res.intent).toBe('HOLD_REQUEST');
     expect(res.data.suggestions?.[0]?.label).toBe('17:00–18:30');
+    expect(res.data.dateHint).toBe('2026-08-26');
+  });
+
+  it('does not attach old suggestions to another court/date slot result', async () => {
+    const llm = fakeLlm([
+      { toolCalls: [{ id: 'a', name: 'getSuggestedSlots', args: { courtId: COURT_ID } }] },
+      { toolCalls: [{ id: 'b', name: 'checkSlots', args: { courtId: COURT_ID, date: '2026-08-26' } }] },
+      { text: 'Các giờ trống' },
+    ]);
+    const response = await makeAgent(llm).chat('Giờ trống ngày khác');
+    expect(response.data.suggestions).toBeUndefined();
+    expect(response.data.slots?.date).toBe('2026-08-26');
+    expect(response.data.dateHint).toBe('2026-08-26');
   });
 
   it('(h) US-AI-02: history vào messages dạng khối nhãn, chỉ giữ 8 lượt gần nhất', async () => {

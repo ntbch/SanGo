@@ -152,9 +152,8 @@ export function DashboardLayout({
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    if (await logout()) navigate('/');
   };
 
   return (

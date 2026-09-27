@@ -13,8 +13,11 @@ export const UpdateTeamSchema = CreateTeamSchema.partial();
 export type UpdateTeamDto = z.infer<typeof UpdateTeamSchema>;
 
 export const InviteMemberSchema = z.object({
-  userId: z.string().uuid('userId phải là UUID'),
-  role: z.enum(['CAPTAIN', 'MEMBER']).default('MEMBER'),
+  userId: z.string().uuid('userId phải là UUID').optional(),
+  email: z.string().trim().toLowerCase().email('Email không hợp lệ').optional(),
+  role: z.literal('MEMBER').default('MEMBER'),
+}).refine((dto) => Boolean(dto.userId) !== Boolean(dto.email), {
+  message: 'Cung cấp userId hoặc email của người được mời',
 });
 export type InviteMemberDto = z.infer<typeof InviteMemberSchema>;
 
@@ -32,11 +35,14 @@ export const CreateExpenseShareSchema = z.object({
 export type CreateExpenseShareDto = z.infer<typeof CreateExpenseShareSchema>;
 
 export const SplitBookingExpenseSchema = z.object({
-  bookingId: z.string().uuid('bookingId phải là UUID'),
+  bookingId: z.string().uuid('bookingId phải là UUID').optional(),
+  bookingCode: z.string().trim().min(1).max(100).optional(),
   memberIds: z
     .array(z.string().uuid('memberId phải là UUID'))
     .min(1, 'Chọn ít nhất 1 thành viên để chia tiền'),
   note: z.string().trim().max(200).optional(),
+}).refine((dto) => Boolean(dto.bookingId) !== Boolean(dto.bookingCode), {
+  message: 'Cung cấp bookingId hoặc bookingCode',
 });
 export type SplitBookingExpenseDto = z.infer<typeof SplitBookingExpenseSchema>;
 

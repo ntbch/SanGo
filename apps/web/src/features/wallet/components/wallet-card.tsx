@@ -11,10 +11,13 @@ import {
 } from 'lucide-react';
 import { formatVND } from '../../../lib/utils';
 import { User } from '../../../lib/auth-store';
+import { Button } from '../../../components/ui/button';
 
 export interface WalletCardProps {
   user: User | null;
-  balance: number;
+  balance: number | null;
+  status: 'loading' | 'error' | 'success';
+  onRetry: () => void;
   showBalance: boolean;
   onToggleBalance: () => void;
   onOpenTopup: () => void;
@@ -25,6 +28,8 @@ export interface WalletCardProps {
 export function WalletCard({
   user,
   balance,
+  status,
+  onRetry,
   showBalance,
   onToggleBalance,
   onOpenTopup,
@@ -76,11 +81,20 @@ export function WalletCard({
             {showBalance ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="font-mono-num font-black text-3xl sm:text-4xl text-primary tracking-tight tabular-nums">
-            {showBalance ? formatVND(balance) : '•••••••• đ'}
-          </span>
-        </div>
+        {status === 'loading' ? (
+          <p role="status" className="text-sm text-muted-foreground">Đang tải số dư...</p>
+        ) : status === 'error' ? (
+          <div role="alert" className="space-y-2">
+            <p className="text-sm text-destructive">Không thể tải số dư ví. Vui lòng thử lại.</p>
+            <Button size="sm" variant="outline" onClick={onRetry}>Thử lại</Button>
+          </div>
+        ) : balance !== null ? (
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono-num font-black text-3xl sm:text-4xl text-primary tracking-tight tabular-nums">
+              {showBalance ? formatVND(balance) : '•••••••• đ'}
+            </span>
+          </div>
+        ) : null}
 
       </div>
 

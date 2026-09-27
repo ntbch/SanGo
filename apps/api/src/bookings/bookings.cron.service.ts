@@ -85,6 +85,7 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
     const upcoming = await this.prisma.booking.findMany({
       where: {
         status: BookingStatus.CONFIRMED,
+        customerId: { not: null },
         date: { gte: new Date(now - 48 * HOUR_MS) },
       },
       select: {
@@ -119,7 +120,7 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
     booking: {
       id: string;
       code: string;
-      customerId: string;
+      customerId: string | null;
       date: Date;
       startMinute: number;
       endMinute: number;
@@ -128,6 +129,7 @@ export class BookingsCronService implements OnModuleInit, OnModuleDestroy {
     startAt: number,
     mark: (typeof REMINDER_MARKS)[number],
   ): Promise<void> {
+    if (!booking.customerId) return;
     const now = new Date();
     const claim =
       mark.label === 'T-24h'

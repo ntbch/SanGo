@@ -11,6 +11,11 @@ interface MatchJoinRequestCardProps {
   joinNote: string;
   onJoinNoteChange: (note: string) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
+  /** Kèo đã kín slot — nhãn nút bám theo cờ này. */
+  disabled?: boolean;
+  /** Đang gửi yêu cầu — khoá nút chống bấm nhiều lần tạo nhiều yêu cầu. */
+  isSubmitting?: boolean;
+  allowedPositions?: string[];
 }
 
 export function MatchJoinRequestCard({
@@ -20,6 +25,9 @@ export function MatchJoinRequestCard({
   joinNote,
   onJoinNoteChange,
   onSubmit,
+  disabled = false,
+  isSubmitting = false,
+  allowedPositions,
 }: MatchJoinRequestCardProps): React.ReactElement {
   return (
     <Card className="p-6 border border-border/80 bg-card shadow-md space-y-5">
@@ -45,11 +53,21 @@ export function MatchJoinRequestCard({
             onChange={(e) => onPreferredPositionChange(e.target.value)}
             className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer"
           >
-            <option value="Tiền đạo">Tiền đạo / Tấn công</option>
-            <option value="Tiền vệ">Tiền vệ / Phân phối bóng</option>
-            <option value="Hậu vệ">Hậu vệ / Phòng ngự</option>
-            <option value="Thủ môn">Thủ môn</option>
-            <option value="Tự do">Tự do / Vị trí nào cũng được</option>
+            {allowedPositions && allowedPositions.length > 0 ? (
+              allowedPositions.map((pos) => (
+                <option key={pos} value={pos}>
+                  {pos}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value="Tiền đạo">Tiền đạo / Tấn công</option>
+                <option value="Tiền vệ">Tiền vệ / Phân phối bóng</option>
+                <option value="Hậu vệ">Hậu vệ / Phòng ngự</option>
+                <option value="Thủ môn">Thủ môn</option>
+                <option value="Tự do">Tự do / Vị trí nào cũng được</option>
+              </>
+            )}
           </select>
         </div>
 
@@ -63,8 +81,8 @@ export function MatchJoinRequestCard({
           />
         </div>
 
-        <Button type="submit" className="w-full font-bold text-xs shadow-md cursor-pointer">
-          Gửi Yêu Cầu Xin Slot
+        <Button type="submit" disabled={disabled || isSubmitting} className="w-full font-bold text-xs shadow-md cursor-pointer">
+          {disabled ? 'Kèo đã kín slot' : isSubmitting ? 'Đang gửi...' : 'Gửi Yêu Cầu Xin Slot'}
         </Button>
       </form>
     </Card>

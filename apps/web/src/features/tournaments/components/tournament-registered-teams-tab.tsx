@@ -31,7 +31,7 @@ export function TournamentRegisteredTeamsTab({
               <div>
                 <p className="text-xs font-bold text-foreground">{tt.team?.name}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Đội trưởng: {tt.team?.captain?.fullName || 'Trần Đức'}
+                  {tt.seed ? `Hạt giống số ${tt.seed}` : 'Chưa xếp hạt giống'}
                 </p>
               </div>
             </div>

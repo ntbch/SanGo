@@ -10,19 +10,13 @@ import { cn } from '../../../lib/utils';
 
 export function MyBookingsPage(): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<'UPCOMING' | 'COMPLETED' | 'CANCELLED'>('UPCOMING');
+
+  const activeFilter = activeTab === 'UPCOMING' ? 'upcoming' : activeTab === 'COMPLETED' ? 'history' : 'cancelled';
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['my-bookings', activeTab],
-    queryFn: () =>
-      getMyBookingsApi({
-        status:
-          activeTab === 'UPCOMING'
-            ? 'CONFIRMED'
-            : activeTab === 'COMPLETED'
-            ? 'COMPLETED'
-            : 'CANCELLED',
-      }),
+    queryKey: ['my-bookings', activeFilter],
+    queryFn: () => getMyBookingsApi({ filter: activeFilter }),
   });
 
   const cancelMutation = useMutation({
@@ -62,9 +56,9 @@ export function MyBookingsPage(): React.ReactElement {
       <div className="flex items-center gap-2 border-b border-border/60 pb-2">
         {(
           [
-            { id: 'UPCOMING', label: 'Sắp tới & Chờ check-in' },
-            { id: 'COMPLETED', label: 'Đã hoàn thành' },
-            { id: 'CANCELLED', label: 'Đã hủy' },
+            { id: 'UPCOMING', label: 'Sắp tới' },
+            { id: 'COMPLETED', label: 'Lịch sử' },
+            { id: 'CANCELLED', label: 'Đã hủy & Không đến' },
           ] as const
         ).map((tab) => (
           <button

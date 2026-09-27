@@ -3,8 +3,9 @@ import { Card } from '../../../components/ui/card';
 import { Camera, ChevronRight, LogOut, Sparkles } from 'lucide-react';
 import { UserRole } from '../../../lib/constants';
 import { cn } from '../../../lib/utils';
-import { User } from '../../../lib/auth-store';
+import { User, useAuthStore } from '../../../lib/auth-store';
 import { ProfileTab } from '../pages/profile-page';
+import { apiClient } from '../../../lib/api-client';
 
 interface ProfileSidebarProps {
   user: User;
@@ -26,6 +27,17 @@ export function ProfileSidebar({
   sideNavItems,
 }: ProfileSidebarProps): React.ReactElement {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const logoutError = useAuthStore((state) => state.logoutError);
+  const [reputation, setReputation] = React.useState<{ score: number | null; error: boolean }>({ score: null, error: false });
+  React.useEffect(() => {
+    let cancelled = false;
+    setReputation({ score: null, error: false });
+    apiClient<{ score: number }>('/reputation/me').then(
+      (result) => { if (!cancelled) setReputation({ score: result.score, error: false }); },
+      () => { if (!cancelled) setReputation({ score: null, error: true }); },
+    );
+    return () => { cancelled = true; };
+  }, [user.id]);
 
   return (
     <aside className="lg:col-span-4 xl:col-span-3 space-y-4 sticky top-20">
@@ -59,7 +71,7 @@ export function ProfileSidebar({
               type="file"
               ref={fileInputRef}
               onChange={onAvatarFileChange}
-              accept="image/*"
+              accept="image/jpeg,image/png"
               className="hidden"
             />
           </div>
@@ -75,7 +87,9 @@ export function ProfileSidebar({
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary/80 border border-border/80 text-[10px] font-bold">
                 <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
                 <span className="text-muted-foreground">Uy Tín:</span>
-                <span className="font-mono-num text-primary font-black">{user.reputationScore ?? 100}/100</span>
+                <span className="font-mono-num text-primary font-black">
+                  {reputation.error ? 'Không tải được điểm' : reputation.score === null ? 'Đang tải...' : `${reputation.score}/100`}
+                </span>
               </div>
             </div>
           </div>
@@ -117,6 +131,7 @@ export function ProfileSidebar({
             <LogOut className="h-4 w-4" />
             <span>Đăng xuất tài khoản</span>
           </button>
+          {logoutError && <p role="alert" className="text-xs text-destructive">{logoutError}</p>}
         </div>
       </Card>
     </aside>

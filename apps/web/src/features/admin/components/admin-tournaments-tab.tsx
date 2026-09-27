@@ -11,11 +11,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../../../components/ui/dialog';
-import { formatVND, cn } from '../../../lib/utils';
-import * as adminApi from '../api/admin-api';
+import { cn } from '../../../lib/utils';
+import { listTournamentsApi, createTournamentApi, startTournamentApi, type Tournament } from '../../tournaments/api/tournaments-api';
 import { SportType } from '@sango/shared';
 
-const SPORT_TYPE_LABELS: Record<SportType, string> = {
+const SPORT_TYPE_LABELS: Record<string, string> = {
   FOOTBALL5: 'Bóng đá 5',
   FOOTBALL7: 'Bóng đá 7',
   PICKLEBALL: 'Pickleball',
@@ -24,19 +24,18 @@ const SPORT_TYPE_LABELS: Record<SportType, string> = {
 };
 
 export function AdminTournamentsTab(): React.ReactElement {
-  const [tournaments, setTournaments] = React.useState<adminApi.AdminTournament[]>([]);
+  const [tournaments, setTournaments] = React.useState<Tournament[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
   const [name, setName] = React.useState('');
   const [sportType, setSportType] = React.useState<SportType>(SportType.FOOTBALL5);
-  const [maxTeams, setMaxTeams] = React.useState(8);
-  const [prizePoolVnd, setPrizePoolVnd] = React.useState(5000000);
   const [actionLoading, setActionLoading] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   const fetchTournaments = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await adminApi.getAdminTournaments();
+      const data = await listTournamentsApi();
       setTournaments(data);
     } catch (err) {
       console.error('Failed to load tournaments:', err);
@@ -53,30 +52,32 @@ export function AdminTournamentsTab(): React.ReactElement {
     e.preventDefault();
     if (!name.trim()) return;
     setActionLoading(true);
+    setActionError(null);
+    setActionLoading(true);
     try {
-      await adminApi.createAdminTournament({
+      await createTournamentApi({
         name: name.trim(),
         sportType,
-        maxTeams,
-        prizePoolVnd,
       });
       setCreateModalOpen(false);
       setName('');
       await fetchTournaments();
     } catch (err) {
       console.error('Failed to create tournament:', err);
-    } finally {
+      setActionError(err instanceof Error ? err.message : 'Không thể tạo giải đấu.');
       setActionLoading(false);
     }
   };
 
   const handleStart = async (id: string) => {
     setActionLoading(true);
+    setActionError(null);
     try {
-      await adminApi.startAdminTournament(id);
+      await startTournamentApi(id);
       await fetchTournaments();
     } catch (err) {
       console.error('Start tournament failed:', err);
+      setActionError(err instanceof Error ? err.message : 'Không thể khóa đăng ký và chia bảng.');
     } finally {
       setActionLoading(false);
     }
@@ -103,6 +104,10 @@ export function AdminTournamentsTab(): React.ReactElement {
         </div>
       </div>
 
+      {actionError && (
+        <p role="alert" className="text-xs text-destructive">{actionError}</p>
+      )}
+
       {/* Tournaments Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
@@ -126,7 +131,7 @@ export function AdminTournamentsTab(): React.ReactElement {
                 </div>
                 <Badge
                   variant={
-                    t.status === 'COMPLETED'
+                    t.status === 'FINISHED'
                       ? 'outline'
                       : t.status === 'ONGOING'
                       ? 'available'
@@ -134,7 +139,7 @@ export function AdminTournamentsTab(): React.ReactElement {
                   }
                   className="text-[9px] shrink-0"
                 >
-                  {t.status === 'COMPLETED'
+                  {t.status === 'FINISHED'
                     ? 'Đã kết thúc'
                     : t.status === 'ONGOING'
                     ? 'Đang diễn ra'
@@ -144,14 +149,9 @@ export function AdminTournamentsTab(): React.ReactElement {
               <CardContent className="space-y-3 text-xs">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Quy mô:</span>
-                  <span className="font-bold text-foreground">{t.maxTeams} Đội</span>
+                  <span className="font-bold text-foreground">{t._count?.teams ?? 0} / {t.maxTeams} Đội</span>
                 </div>
-                {t.prizePoolVnd && (
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Tổng giải thưởng:</span>
-                    <span className="font-bold text-emerald-500">{formatVND(t.prizePoolVnd)}</span>
-                  </div>
-                )}
+                {t.status === 'FINISHED' && t.champion && <p>Quán quân: <strong>{t.champion.name}</strong></p>}
 
                 {t.status === 'REGISTRATION' && (
                   <Button
@@ -189,6 +189,8 @@ export function AdminTournamentsTab(): React.ReactElement {
                 <input
                   type="text"
                   required
+                  minLength={3}
+                  maxLength={120}
                   placeholder="VD: SanGo Champions Cup 2026"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -212,31 +214,9 @@ export function AdminTournamentsTab(): React.ReactElement {
                   </select>
                 </div>
 
-                <div>
-                  <label className="font-bold text-foreground block mb-1">Số đội tối đa</label>
-                  <select
-                    value={maxTeams}
-                    onChange={(e) => setMaxTeams(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-secondary/50 border border-border/80 text-foreground focus:outline-hidden focus:border-primary"
-                  >
-                    <option value={4}>4 Đội (Bán kết)</option>
-                    <option value={8}>8 Đội (Tứ kết)</option>
-                    <option value={16}>16 Đội (Vòng 16)</option>
-                    <option value={32}>32 Đội (Vòng 32)</option>
-                  </select>
-                </div>
+                <p className="text-muted-foreground">Tối đa 8 đội. Cần ít nhất 5 đội để khởi tranh.</p>
               </div>
 
-              <div>
-                <label className="font-bold text-foreground block mb-1">Tổng tiền thưởng (VND)</label>
-                <input
-                  type="number"
-                  step={500000}
-                  value={prizePoolVnd}
-                  onChange={(e) => setPrizePoolVnd(Number(e.target.value))}
-                  className="w-full p-2.5 rounded-xl bg-secondary/50 border border-border/80 text-foreground focus:outline-hidden focus:border-primary font-mono"
-                />
-              </div>
             </div>
 
             <DialogFooter className="gap-2">

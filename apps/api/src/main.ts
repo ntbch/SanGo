@@ -16,10 +16,30 @@ async function bootstrap(): Promise<void> {
 
   // Quy ước REST /api/v1 — đặc tả §4
   app.setGlobalPrefix('api/v1');
-  // QA-T4-P2-02: web fetch credentials:'include' -> ACAO:* bị browser chặn khi
-  // Vite port khác API (dev cross-origin). origin:true reflect request origin,
-  // credentials:true cho phép cookie refresh token qua CORS.
-  app.enableCors({ origin: true, credentials: true });
+  // Cấu hình CORS: Ở production siết chặt theo CORS_ORIGIN / FRONTEND_URL.
+  // Ở dev: cho phép localhost / 127.0.0.1 và reflect origin nếu chưa set CORS_ORIGIN.
+  const corsOriginEnv = process.env.CORS_ORIGIN;
+  const frontendUrl = process.env.FRONTEND_URL;
+  const allowedOrigins = corsOriginEnv
+    ? corsOriginEnv.split(',').map((o) => o.trim()).filter(Boolean)
+    : [frontendUrl ?? 'http://localhost:5173'];
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      if (process.env.NODE_ENV !== 'production' && !corsOriginEnv) {
+        return callback(null, true);
+      }
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+  });
 
   // Swagger là nguồn sự thật của contract API — đặc tả §4 (/api/docs)
   const config = new DocumentBuilder()

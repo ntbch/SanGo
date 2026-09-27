@@ -8,11 +8,12 @@ import type { MailContent } from './mail-templates';
 
 /** Dữ liệu đơn đã render sẵn cho email — caller lấy qua bookingMailData(). */
 export type BookingMailContext = {
-  customerId: string;
+  /** null khi là đơn quầy (khách vãng lai, không có tài khoản). */
+  customerId: string | null;
   venueOwnerId: string;
   code: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | null;
   courtName: string;
   venueName: string;
   venueAddress: string;
@@ -46,6 +47,7 @@ export class NotifyService {
       where: { id: bookingId },
       select: {
         customerId: true,
+        guestName: true,
         code: true,
         date: true,
         startMinute: true,
@@ -61,12 +63,15 @@ export class NotifyService {
         },
       },
     });
+    // Khách vãng lai không có tài khoản nhận inbox/email, nhưng dữ liệu cụm sân và
+    // chủ venue vẫn cần cho thông báo hủy đơn — nên KHÔNG trả null ở đây.
+    const guestName = b.guestName?.trim();
     return {
       customerId: b.customerId,
       venueOwnerId: b.court.venue.ownerId,
       code: b.code,
-      customerName: b.customer.fullName,
-      customerEmail: b.customer.email,
+      customerName: b.customer?.fullName ?? guestName ?? 'Khách',
+      customerEmail: b.customer?.email ?? null,
       courtName: b.court.name,
       venueName: b.court.venue.name,
       venueAddress: b.court.venue.address,
@@ -89,36 +94,36 @@ export class NotifyService {
     body: string;
     link?: string;
     mail?: SendMailInput | MailContent;
-  }): Promise<Notification> {
-    const created = await this.prisma.notification.create({
-      data: {
-        userId: input.userId,
-        type: input.type,
-        title: input.title,
-        body: input.body,
-        link: input.link,
-      },
+  }): Promise<Notification | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { email: true, notifyEmail: true, notifyInApp: true },
     });
-    // Phase 4: WS chỉ là gợi ý refetch (REST nguồn sự thật). dispatch luôn chạy SAU
-    // commit nghiệp vụ; emit fire-and-forget — lỗi WS nuốt trong emitToUser, không fail here.
-    this.realtime?.emitToUser(input.userId, 'notification:new', {
-      id: created.id,
-      type: created.type,
-      title: created.title,
-      body: created.body,
-      link: created.link,
-      readAt: created.readAt,
-      createdAt: created.createdAt,
-    });
-    if (input.mail) {
-      // Tra email người nhận tại chỗ — template chỉ trả subject/html/text.
-      const u = await this.prisma.user.findUnique({
-        where: { id: input.userId },
-        select: { email: true },
+    if (!user) return null;
+    let created: Notification | null = null;
+    if (user.notifyInApp) {
+      created = await this.prisma.notification.create({
+        data: {
+          userId: input.userId,
+          type: input.type,
+          title: input.title,
+          body: input.body,
+          link: input.link,
+        },
       });
-      if (u?.email) {
-        const out = { ...input.mail, to: u.email } as SendMailInput;
-        void this.sendMailSafe(out);
+      this.realtime?.emitToUser(input.userId, 'notification:new', {
+        id: created.id,
+        type: created.type,
+        title: created.title,
+        body: created.body,
+        link: created.link,
+        readAt: created.readAt,
+        createdAt: created.createdAt,
+      });
+    }
+    if (input.mail && user.notifyEmail) {
+      if (user.email) {
+        void this.sendMailSafe({ ...input.mail, to: user.email });
       } else this.logger.warn(`Không gửi được mail: user ${input.userId} thiếu email`);
     }
     return created;
@@ -159,8 +164,8 @@ export class NotifyService {
     let skipped = 0;
     for (const userId of [...new Set(userIds)]) {
       try {
-        await this.dispatch({ userId, ...payload });
-        created++;
+        if (await this.dispatch({ userId, ...payload })) created++;
+        else skipped++;
       } catch (e) {
         skipped++;
         this.logger.warn(`Broadcast tới user ${userId} thất bại (bỏ qua): ${(e as Error).message}`);

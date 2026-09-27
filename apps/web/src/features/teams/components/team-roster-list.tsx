@@ -8,7 +8,7 @@ interface TeamRosterListProps {
   team: Team;
   isCaptain: boolean;
   onOpenInviteModal: () => void;
-  onRemoveMember: (memberId: string) => Promise<void>;
+  onRemoveMember: (userId: string) => Promise<void>;
 }
 
 export function TeamRosterList({
@@ -22,8 +22,9 @@ export function TeamRosterList({
       <div className="flex items-center justify-between pb-3 border-b border-border/50">
         <div>
           <h3 className="text-base font-black text-foreground">Danh Sách Cầu Thủ Đội Hình</h3>
-          <p className="text-xs text-muted-foreground">Tất cả thành viên chính thức của {team.name}.</p>
+          <p className="text-xs text-muted-foreground">Thành viên và lời mời đang chờ của {team.name}.</p>
         </div>
+        {isCaptain && (
         <Button
           onClick={onOpenInviteModal}
           size="sm"
@@ -33,6 +34,7 @@ export function TeamRosterList({
           <Plus className="h-3.5 w-3.5" />
           <span>Thêm Thành Viên</span>
         </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,13 +58,14 @@ export function TeamRosterList({
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground font-mono-num">{m.user?.phone || m.user?.email}</p>
+                <p className="text-[11px] text-muted-foreground">{m.status === 'ACTIVE' ? 'Chính thức' : m.status === 'PENDING' ? 'Chờ chấp nhận lời mời' : 'Không hoạt động'}</p>
               </div>
             </div>
 
-            {isCaptain && m.role !== 'CAPTAIN' && (
+            {isCaptain && m.userId !== team.captainId && (
               <button
                 type="button"
-                onClick={() => onRemoveMember(m.id)}
+                onClick={() => onRemoveMember(m.userId)}
                 className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                 title="Xoá thành viên khỏi đội"
               >

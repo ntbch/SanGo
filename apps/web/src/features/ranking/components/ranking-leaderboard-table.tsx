@@ -33,7 +33,7 @@ export function RankingLeaderboardTable({
         {clubRankings.length === 0 ? (
           <EmptyState
             title="Chưa có dữ liệu bảng xếp hạng"
-            description="Hiện tại chưa có câu lạc bộ nào phù hợp với bộ lọc đã chọn. Hãy thử chọn môn thể thao hoặc thành phố khác."
+            description="Hiện tại chưa có câu lạc bộ nào phù hợp. Hãy thử chọn môn thể thao khác."
             actionLabel="Đặt lại bộ lọc"
             onAction={onResetFilters}
             className="border-border/60 my-2"
@@ -42,8 +42,7 @@ export function RankingLeaderboardTable({
           <div className="min-w-[650px]">
             <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-muted-foreground uppercase pb-2.5 border-b border-border/60">
               <span className="col-span-1 text-center">Hạng</span>
-              <span className="col-span-4">Câu Lạc Bộ</span>
-              <span className="col-span-2 text-center">Khu Vực</span>
+              <span className="col-span-6">Câu Lạc Bộ</span>
               <span className="col-span-2 text-center">Thắng - Hòa - Thua</span>
               <span className="col-span-1 text-center">Tỷ Lệ</span>
               <span className="col-span-2 text-right">Điểm ELO</span>
@@ -70,16 +69,13 @@ export function RankingLeaderboardTable({
                     </span>
                   </div>
 
-                  <div className="col-span-4 flex items-center gap-2.5 truncate">
+                  <div className="col-span-6 flex items-center gap-2.5 truncate">
                     <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 font-mono-num">
                       {c.teamName.charAt(0)}
                     </div>
                     <span className="font-bold text-foreground truncate">{c.teamName}</span>
                   </div>
 
-                  <span className="col-span-2 text-center text-muted-foreground text-xs truncate">
-                    {c.city}
-                  </span>
 
                   <span className="col-span-2 text-center font-mono-num text-xs tabular-nums text-muted-foreground">
                     {c.wins} - {c.draws} - {c.losses}
@@ -116,7 +112,7 @@ export function RankingLeaderboardTable({
       {athleteRankings.length === 0 ? (
         <EmptyState
           title="Chưa có dữ liệu bảng xếp hạng"
-          description="Hiện tại chưa có vận động viên nào phù hợp với bộ lọc đã chọn. Hãy thử chọn môn thể thao hoặc thành phố khác."
+          description="Hiện tại chưa có vận động viên nào phù hợp. Hãy thử chọn môn thể thao khác."
           actionLabel="Đặt lại bộ lọc"
           onAction={onResetFilters}
           className="border-border/60 my-2"
@@ -125,8 +121,7 @@ export function RankingLeaderboardTable({
         <div className="min-w-[650px]">
           <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-muted-foreground uppercase pb-2.5 border-b border-border/60">
             <span className="col-span-1 text-center">Hạng</span>
-            <span className="col-span-4">Vận Động Viên</span>
-            <span className="col-span-2 text-center">Khu Vực</span>
+            <span className="col-span-6">Vận Động Viên</span>
             <span className="col-span-2 text-center">Danh Hiệu</span>
             <span className="col-span-1 text-center">Số Trận</span>
             <span className="col-span-2 text-right">Điểm Uy Tín</span>
@@ -153,16 +148,13 @@ export function RankingLeaderboardTable({
                   </span>
                 </div>
 
-                <div className="col-span-4 flex items-center gap-2.5 truncate">
+                <div className="col-span-6 flex items-center gap-2.5 truncate">
                   <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 font-mono-num">
                     {a.fullName.charAt(0)}
                   </div>
                   <span className="font-bold text-foreground truncate">{a.fullName}</span>
                 </div>
 
-                <span className="col-span-2 text-center text-muted-foreground text-xs truncate">
-                  {a.city}
-                </span>
 
                 <span className="col-span-2 text-center text-xs font-semibold text-muted-foreground truncate">
                   {a.fairPlayBadge}

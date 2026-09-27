@@ -11,11 +11,11 @@ interface TeamCardProps {
 }
 
 const DEFAULT_SPORT_NAME_MAP: Record<string, string> = {
-  FOOTBALL: 'Bóng Đá',
+  FOOTBALL5: 'Bóng Đá Sân 5',
+  FOOTBALL7: 'Bóng Đá Sân 7',
   PICKLEBALL: 'Pickleball',
   BADMINTON: 'Cầu Lông',
   TENNIS: 'Tennis',
-  BASKETBALL: 'Bóng Rổ',
 };
 
 export function TeamCard({
@@ -48,7 +48,7 @@ export function TeamCard({
                   : 'bg-secondary text-muted-foreground border border-border',
               )}
             >
-              {m.role === 'CAPTAIN' ? 'Đội Trưởng' : 'Thành Viên'}
+              {m.status === 'PENDING' ? 'Lời mời đang chờ' : m.role === 'CAPTAIN' ? 'Đội Trưởng' : 'Thành Viên'}
             </span>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function TeamCard({
           to={`/teams/${t.id}`}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline active:scale-[0.98] transition-transform cursor-pointer"
         >
-          <span>Vào phòng đội</span>
+          <span>{m.status === 'PENDING' ? 'Xem lời mời' : 'Vào phòng đội'}</span>
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>

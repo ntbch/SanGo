@@ -54,8 +54,8 @@ export class TeamsController {
 
   @Get(':id')
   @ApiOperation({ summary: '[S2-F1] Chi tiết đội thể thao và danh sách thành viên' })
-  getTeam(@Param('id') id: string) {
-    return this.teamsService.getTeam(id);
+  getTeam(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.teamsService.getTeam(id, user);
   }
 
   @Patch(':id')

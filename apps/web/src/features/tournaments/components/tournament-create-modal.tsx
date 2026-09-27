@@ -11,20 +11,8 @@ interface TournamentCreateModalProps {
   onNameChange: (name: string) => void;
   sportType: string;
   onSportTypeChange: (sport: string) => void;
-  city: string;
-  onCityChange: (city: string) => void;
-  maxTeams: string;
-  onMaxTeamsChange: (max: string) => void;
-  prizePool: string;
-  onPrizePoolChange: (prize: string) => void;
-  entryFee: string;
-  onEntryFeeChange: (fee: string) => void;
-  registrationDeadline: string;
-  onRegistrationDeadlineChange: (date: string) => void;
-  startDate: string;
-  onStartDateChange: (date: string) => void;
-  rules: string;
-  onRulesChange: (rules: string) => void;
+  description: string;
+  onDescriptionChange: (description: string) => void;
   isSubmitting: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
 }
@@ -36,20 +24,8 @@ export function TournamentCreateModal({
   onNameChange,
   sportType,
   onSportTypeChange,
-  city,
-  onCityChange,
-  maxTeams,
-  onMaxTeamsChange,
-  prizePool,
-  onPrizePoolChange,
-  entryFee,
-  onEntryFeeChange,
-  registrationDeadline,
-  onRegistrationDeadlineChange,
-  startDate,
-  onStartDateChange,
-  rules,
-  onRulesChange,
+  description,
+  onDescriptionChange,
   isSubmitting,
   onSubmit,
 }: TournamentCreateModalProps): React.ReactElement | null {
@@ -79,6 +55,8 @@ export function TournamentCreateModal({
                 value={name}
                 onChange={(e) => onNameChange(e.target.value)}
                 required
+                minLength={3}
+                maxLength={120}
                 className="h-10 text-xs"
               />
             </div>
@@ -99,83 +77,12 @@ export function TournamentCreateModal({
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground block">Thành Phố</label>
-                <select
-                  value={city}
-                  onChange={(e) => onCityChange(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer"
-                >
-                  <option value="Hà Nội">Hà Nội</option>
-                  <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                </select>
-              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground block">Quy Mô Số Đội</label>
-                <select
-                  value={maxTeams}
-                  onChange={(e) => onMaxTeamsChange(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer"
-                >
-                  <option value="4">4 Đội (Bán Kết + Chung Kết)</option>
-                  <option value="8">8 Đội (Tứ Kết đến Chung Kết)</option>
-                  <option value="16">16 Đội (Vòng 1/8 đến Chung Kết)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground block">Lệ Phí Đội (VND)</label>
-                <Input
-                  type="number"
-                  value={entryFee}
-                  onChange={(e) => onEntryFeeChange(e.target.value)}
-                  className="h-10 text-xs font-mono-num"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground block">Tổng Giải Thưởng (VND)</label>
-                <Input
-                  type="number"
-                  value={prizePool}
-                  onChange={(e) => onPrizePoolChange(e.target.value)}
-                  className="h-10 text-xs font-mono-num"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground block">Hạn Chót Đăng Ký</label>
-                <Input
-                  type="date"
-                  value={registrationDeadline}
-                  onChange={(e) => onRegistrationDeadlineChange(e.target.value)}
-                  className="h-10 text-xs font-mono-num"
-                />
-              </div>
-            </div>
-
+            <p className="text-xs text-muted-foreground">Giải loại trực tiếp, tối đa 8 đội. Cần ít nhất 5 đội để khởi tranh.</p>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">Ngày Khai Mạc</label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => onStartDateChange(e.target.value)}
-                className="h-10 text-xs font-mono-num"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground block">Thể Thức &amp; Điều Lệ</label>
-              <Input
-                value={rules}
-                onChange={(e) => onRulesChange(e.target.value)}
-                className="h-10 text-xs"
-              />
+              <label className="text-xs font-bold text-foreground block">Mô tả giải đấu</label>
+              <Input value={description} onChange={(e) => onDescriptionChange(e.target.value)} maxLength={1000} className="h-10 text-xs" />
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">

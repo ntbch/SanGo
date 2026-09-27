@@ -227,7 +227,7 @@ export class AuthService {
     const webUrl = process.env.WEB_APP_URL ?? 'http://localhost:5173';
     await this.mailer.sendPasswordResetLink(
       user.email,
-      `${webUrl}/dat-lai-mat-khau?token=${token}`,
+      `${webUrl}/reset-password?token=${token}`,
     );
     return token;
   }

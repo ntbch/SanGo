@@ -121,9 +121,9 @@ export function OwnerBookingsTab({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="p-2.5 rounded-xl bg-card border border-border/60 space-y-1">
                   <span className="text-muted-foreground text-[10px] font-semibold uppercase">Khách Hàng</span>
-                  <p className="font-bold text-foreground">{checkInResult.booking.customer.fullName}</p>
+                  <p className="font-bold text-foreground">{checkInResult.booking.customer?.fullName ?? checkInResult.booking.guestName}</p>
                   <p className="text-muted-foreground flex items-center gap-1">
-                    <Phone className="h-3 w-3" /> {checkInResult.booking.customer.phone || 'Chưa cập nhật'}
+                    <Phone className="h-3 w-3" /> {checkInResult.booking.customer?.phone || checkInResult.booking.guestPhone || 'Chưa cập nhật'}
                   </p>
                 </div>
 
@@ -229,8 +229,8 @@ export function OwnerBookingsTab({
                         {b.code}
                       </td>
                       <td className="py-3 px-3">
-                        <div className="font-bold text-foreground">{b.customer.fullName}</div>
-                        <div className="text-[10px] text-muted-foreground">{b.customer.phone || b.customer.email}</div>
+                        <div className="font-bold text-foreground">{b.customer?.fullName ?? b.guestName}</div>
+                        <div className="text-[10px] text-muted-foreground">{b.customer?.phone || b.guestPhone || b.customer?.email}</div>
                       </td>
                       <td className="py-3 px-3">
                         <span className="font-semibold text-foreground">{b.court.name}</span>

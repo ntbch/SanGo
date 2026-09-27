@@ -76,17 +76,17 @@ describe('NotificationsService', () => {
   });
 
   describe('list()', () => {
-    it('phân trang mới nhất trước + kèm unreadCount và total', async () => {
+    it('truy vấn trang theo thứ tự mới nhất trước, tie-break bằng id để phân trang ổn định', async () => {
       const res = await service.list('u1', 2);
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(prisma.notification.findMany).toHaveBeenCalledWith({
         where: { userId: 'u1' },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: 10,
         take: 10,
       });
-      expect(res).toMatchObject({ page: 2, pageSize: 10, total: 3, unreadCount: 3 });
       expect(res.items).toHaveLength(1);
+      expect(res).toMatchObject({ page: 2, pageSize: 10, total: 3, unreadCount: 3 });
     });
 
     it('trang 1 -> skip = 0', async () => {

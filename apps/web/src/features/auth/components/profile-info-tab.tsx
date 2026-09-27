@@ -3,7 +3,6 @@ import { Card } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { CITIES, DISTRICTS_BY_CITY } from '../../../lib/constants';
 import { User } from '../../../lib/auth-store';
 import { cn } from '../../../lib/utils';
 
@@ -14,10 +13,6 @@ interface ProfileInfoTabProps {
   phone: string;
   onPhoneChange: (phone: string) => void;
   avatarUrl: string;
-  city: string;
-  onCityChange: (city: string) => void;
-  district: string;
-  onDistrictChange: (district: string) => void;
   bio: string;
   onBioChange: (bio: string) => void;
   isUpdating: boolean;
@@ -33,10 +28,6 @@ export function ProfileInfoTab({
   phone,
   onPhoneChange,
   avatarUrl,
-  city,
-  onCityChange,
-  district,
-  onDistrictChange,
   bio,
   onBioChange,
   isUpdating,
@@ -86,6 +77,7 @@ export function ProfileInfoTab({
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
+              disabled={isUpdating}
               className="text-xs font-bold gap-1.5 h-8 cursor-pointer"
             >
               <Upload className="h-3.5 w-3.5" />
@@ -94,8 +86,8 @@ export function ProfileInfoTab({
             <input
               type="file"
               ref={fileInputRef}
+              accept="image/jpeg,image/png"
               onChange={onAvatarFileChange}
-              accept="image/*"
               className="hidden"
             />
           </div>
@@ -125,58 +117,20 @@ export function ProfileInfoTab({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground block">Địa chỉ Email (Read-only)</label>
-            <Input value={user.email} disabled className="h-10 text-xs opacity-60 bg-muted/40 font-mono-num" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground block">Thành phố</label>
-            <select
-              value={city}
-              onChange={(e) => {
-                const newCity = e.target.value;
-                onCityChange(newCity);
-                const dists = DISTRICTS_BY_CITY[newCity as (typeof CITIES)[number]];
-                if (dists && dists.length > 0) onDistrictChange(dists[0]);
-              }}
-              className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer"
-            >
-              {CITIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground block">Địa chỉ Email (Read-only)</label>
+          <Input value={user.email} disabled className="h-10 text-xs opacity-60 bg-muted/40 font-mono-num" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground block">Quận / Huyện</label>
-            <select
-              value={district}
-              onChange={(e) => onDistrictChange(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer"
-            >
-              {(DISTRICTS_BY_CITY[city as (typeof CITIES)[number]] || DISTRICTS_BY_CITY['Hà Nội']).map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground block">Tiểu sử / Giới thiệu</label>
-            <Input
-              value={bio}
-              onChange={(e) => onBioChange(e.target.value)}
-              placeholder="Môn sở trường, vị trí thi đấu..."
-              className="h-10 text-xs"
-            />
-          </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground block">Tiểu sử / Giới thiệu</label>
+          <Input
+            value={bio}
+            maxLength={500}
+            onChange={(e) => onBioChange(e.target.value)}
+            placeholder="Môn sở trường, vị trí thi đấu..."
+            className="h-10 text-xs"
+          />
         </div>
 
         <Button type="submit" disabled={isUpdating} size="lg" className="font-bold text-xs shadow-md cursor-pointer">

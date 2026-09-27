@@ -24,7 +24,7 @@ export function RankingPodium({ type, clubs = [], athletes = [] }: RankingPodium
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-black text-foreground truncate">{top3[1].teamName}</h3>
-              <p className="text-xs text-muted-foreground">{top3[1].city} · {top3[1].sportType}</p>
+              <p className="text-xs text-muted-foreground">{top3[1].sportType}</p>
             </div>
             <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
               <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Điểm ELO</span>
@@ -45,7 +45,7 @@ export function RankingPodium({ type, clubs = [], athletes = [] }: RankingPodium
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-black text-foreground truncate">{top3[0].teamName}</h3>
-              <p className="text-xs text-muted-foreground">{top3[0].city} · {top3[0].sportType}</p>
+              <p className="text-xs text-muted-foreground">{top3[0].sportType}</p>
             </div>
             <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/20">
               <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Điểm ELO Vô Địch</span>
@@ -62,7 +62,7 @@ export function RankingPodium({ type, clubs = [], athletes = [] }: RankingPodium
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-black text-foreground truncate">{top3[2].teamName}</h3>
-              <p className="text-xs text-muted-foreground">{top3[2].city} · {top3[2].sportType}</p>
+              <p className="text-xs text-muted-foreground">{top3[2].sportType}</p>
             </div>
             <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
               <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Điểm ELO</span>
@@ -87,7 +87,7 @@ export function RankingPodium({ type, clubs = [], athletes = [] }: RankingPodium
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-black text-foreground truncate">{top3[1].fullName}</h3>
-            <p className="text-xs text-muted-foreground">{top3[1].city} · {top3[1].fairPlayBadge}</p>
+            <p className="text-xs text-muted-foreground">{top3[1].fairPlayBadge}</p>
           </div>
           <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Điểm Uy Tín</span>
@@ -108,7 +108,7 @@ export function RankingPodium({ type, clubs = [], athletes = [] }: RankingPodium
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-black text-foreground truncate">{top3[0].fullName}</h3>
-            <p className="text-xs text-muted-foreground">{top3[0].city} · {top3[0].fairPlayBadge}</p>
+            <p className="text-xs text-muted-foreground">{top3[0].fairPlayBadge}</p>
           </div>
           <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/20">
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Điểm Uy Tín Tuyệt Đối</span>
@@ -127,7 +127,7 @@ export function RankingPodium({ type, clubs = [], athletes = [] }: RankingPodium
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-black text-foreground truncate">{top3[2].fullName}</h3>
-            <p className="text-xs text-muted-foreground">{top3[2].city} · {top3[2].fairPlayBadge}</p>
+            <p className="text-xs text-muted-foreground">{top3[2].fairPlayBadge}</p>
           </div>
           <div className="p-3 rounded-2xl bg-secondary/50 border border-border/60">
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Điểm Uy Tín</span>

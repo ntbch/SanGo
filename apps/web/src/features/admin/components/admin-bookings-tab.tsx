@@ -187,7 +187,7 @@ export function AdminBookingsTab(): React.ReactElement {
                         </td>
                         <td className="p-3.5">
                           <div className="font-bold text-foreground">{b.customerName}</div>
-                          <div className="text-[10px] text-muted-foreground">{b.customerEmail}</div>
+                          <div className="text-[10px] text-muted-foreground">{b.customerEmail ?? b.guestPhone ?? 'Chưa có liên hệ'}</div>
                         </td>
                         <td className="p-3.5">
                           <div className="font-bold text-foreground">{b.venueName}</div>
@@ -219,6 +219,11 @@ export function AdminBookingsTab(): React.ReactElement {
           </div>
         </CardContent>
       </Card>
+      <nav aria-label="Phân trang đơn đặt" className="flex items-center justify-end gap-3 text-xs">
+        <Button variant="outline" size="sm" disabled={loading || page <= 1} onClick={() => setPage(page - 1)}>Trang trước</Button>
+        <span>Trang {page} / {Math.max(1, Math.ceil(total / 20))}</span>
+        <Button variant="outline" size="sm" disabled={loading || page * 20 >= total} onClick={() => setPage(page + 1)}>Trang sau</Button>
+      </nav>
     </div>
   );
 }

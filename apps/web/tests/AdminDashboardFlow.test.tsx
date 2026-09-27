@@ -1,9 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminDashboardPage } from '../src/features/admin/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import * as adminApi from '../src/features/admin/api/admin-api';
+import * as tournamentsApi from '../src/features/tournaments/api/tournaments-api';
 import { UserRole, UserStatus, VenueStatus, BookingStatus, SportType } from '@sango/shared';
 
 vi.mock('react-chartjs-2', () => ({
@@ -115,18 +116,18 @@ const mockBookings: adminApi.AdminBookingListResponse = {
   total: 1,
 };
 
-const mockTournaments: adminApi.AdminTournament[] = [
+const mockTournaments: tournamentsApi.Tournament[] = [
   {
     id: 't-1',
     name: 'SanGo Pickleball Open 2026',
     sportType: SportType.PICKLEBALL,
     maxTeams: 8,
-    prizePoolVnd: 10000000,
+    createdBy: 'admin-1',
+    _count: { teams: 0 },
     status: 'REGISTRATION',
   },
 ];
 
-describe('AdminDashboardPage Flow & Checklist Design Verification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -145,8 +146,10 @@ describe('AdminDashboardPage Flow & Checklist Design Verification', () => {
     vi.spyOn(adminApi, 'getAdminVenues').mockResolvedValue(mockVenues);
     vi.spyOn(adminApi, 'getAdminUsers').mockResolvedValue(mockUsers);
     vi.spyOn(adminApi, 'getAdminBookings').mockResolvedValue(mockBookings);
-    vi.spyOn(adminApi, 'getAdminTournaments').mockResolvedValue(mockTournaments);
+    vi.spyOn(tournamentsApi, 'listTournamentsApi').mockResolvedValue(mockTournaments);
   });
+
+describe('AdminDashboardPage Flow & Checklist Design Verification', () => {
 
   it('renders Overview tab with KPI metrics, chart, top venues and live activity', async () => {
     render(
@@ -212,6 +215,19 @@ describe('AdminDashboardPage Flow & Checklist Design Verification', () => {
       expect(screen.getByText('Quản Trị Người Dùng & Phân Quyền')).toBeDefined();
       expect(screen.getByText('Trần Khách Hàng')).toBeDefined();
     });
+
+    // Self-lock protection: the signed-in admin row is tagged and cannot be locked.
+    const usersTable = screen.getByRole('table');
+    const selfRow = within(usersTable).getByText('(Bạn)').closest('tr')!;
+    expect(selfRow.textContent).toContain('Admin Tổng SanGo');
+    const selfLock = within(selfRow).getByRole('button');
+    expect(selfLock.textContent).toContain('Khóa');
+    expect((selfLock as HTMLButtonElement).disabled).toBe(true);
+
+    const customerRow = within(usersTable).getByText('Trần Khách Hàng').closest('tr')!;
+    const customerLock = within(customerRow).getByRole('button');
+    expect(customerLock.textContent).toContain('Khóa');
+    expect((customerLock as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('navigates to Bookings audit tab and displays platform booking records', async () => {
@@ -252,5 +268,34 @@ describe('AdminDashboardPage Flow & Checklist Design Verification', () => {
       expect(screen.getByText('SanGo Pickleball Open 2026')).toBeDefined();
       expect(screen.getByText('Tạo Giải Đấu Mới')).toBeDefined();
     });
+  });
+});
+
+describe('admin users pagination', () => {
+  it('shows the next result page and disables next on the final page', async () => {
+    const first = { ...mockUsers, total: 16 };
+    const second = { items: [{ ...mockUsers.items[1], id: 'last-user', fullName: 'Người dùng trang hai' }], total: 16 };
+    vi.spyOn(adminApi, 'getAdminUsers').mockImplementation(async (params) => params?.page === 2 ? second : first);
+    render(<MemoryRouter><AdminDashboardPage /></MemoryRouter>);
+    fireEvent.click(screen.getByTestId('admin-tab-users'));
+    await screen.findByText('Trần Khách Hàng');
+    expect(adminApi.getAdminUsers).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, pageSize: 15 }));
+    expect(screen.getByText('Trang 1 / 2')).toBeDefined();
+    // header row + the two seeded users
+    expect(screen.getAllByRole('row')).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
+    await screen.findByText('Người dùng trang hai');
+    expect(screen.queryByText('Trần Khách Hàng')).toBeNull();
+    // header row + the single user of the second page
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+    expect(adminApi.getAdminUsers).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 15 }));
+    expect(screen.getByText('Trang 2 / 2')).toBeDefined();
+    expect((screen.getByRole('button', { name: 'Trang sau' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang trước' }));
+    await screen.findByText('Trần Khách Hàng');
+    expect(screen.getByText('Trang 1 / 2')).toBeDefined();
+    expect((screen.getByRole('button', { name: 'Trang trước' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

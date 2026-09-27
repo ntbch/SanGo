@@ -17,7 +17,7 @@ export function VenueBookingSidebar({ venue }: VenueBookingSidebarProps): React.
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = React.useState(false);
 
-  const priceFrom = venue.priceFrom ?? (venue.courts?.[0]?.defaultPricePerSlot || 250000);
+  const priceFrom = venue.priceFrom ?? venue.courts?.[0]?.defaultPricePerSlot;
   const priceTo = venue.priceTo ?? priceFrom;
   const bookingUrl = `/venues/${venue.slug || venue.id}/book`;
 
@@ -39,9 +39,9 @@ export function VenueBookingSidebar({ venue }: VenueBookingSidebarProps): React.
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl sm:text-2xl font-mono-num font-black text-primary">
-                {formatVND(priceFrom)}
+                {priceFrom ? formatVND(priceFrom) : 'Chưa cập nhật'}
               </span>
-              {priceTo > priceFrom && (
+              {priceFrom !== undefined && priceTo !== undefined && priceTo > priceFrom && (
                 <span className="text-xs font-mono-num text-muted-foreground font-semibold">
                   - {formatVND(priceTo)}
                 </span>

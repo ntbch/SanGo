@@ -242,7 +242,7 @@ export function BookingCalendarPage(): React.ReactElement {
         <SlotMatrix
           date={selectedDate}
           slots={fallbackTestSlots}
-          defaultPrice={currentCourt?.defaultPricePerSlot || 250000}
+          defaultPrice={currentCourt?.defaultPricePerSlot ?? 0}
           selectedSlot={selectedSlot}
           onSelectSlot={(slot) => {
             setSelectedSlot(slot);

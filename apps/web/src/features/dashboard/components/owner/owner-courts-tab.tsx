@@ -250,10 +250,8 @@ export function OwnerCourtsTab({
                   onChange={(e) => setNewCourtSlotMinutes(Number(e.target.value))}
                   className="w-full h-10 px-3 rounded-xl bg-card border border-border text-sm font-semibold"
                 >
-                  <option value={30}>30 phút</option>
                   <option value={60}>60 phút</option>
                   <option value={90}>90 phút</option>
-                  <option value={120}>120 phút</option>
                 </select>
               </div>
 

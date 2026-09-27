@@ -49,7 +49,7 @@ export function OwnerTabContent({ dashboard: d }: OwnerTabContentProps): React.R
     case 'checkin':
       return (
         <OwnerBookingsTab
-          bookings={d.bookings}
+          bookings={d.bookings.filter((booking) => d.bookingStatusFilter === 'ALL' || booking.status === d.bookingStatusFilter)}
           loadingBookings={d.loadingBookings}
           bookingDate={d.bookingDate}
           setBookingDate={d.setBookingDate}

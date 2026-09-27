@@ -12,6 +12,10 @@ export function NotificationsPage(): React.ReactElement {
     notifications,
     loading,
     fetchNotifications,
+    error,
+    total,
+    page,
+    pageSize,
     filterType,
     filterUnreadOnly,
     setFilterType,
@@ -31,7 +35,7 @@ export function NotificationsPage(): React.ReactElement {
   }, [fetchNotifications]);
 
   const count = unreadCount();
-  const totalCount = notifications.length;
+  const totalCount = total;
   const bookingCount = notifications.filter((n) => n.type === 'BOOKING').length;
   const matchCount = notifications.filter((n) => n.type === 'MATCH' || n.type === 'TOURNAMENT').length;
   const walletCount = notifications.filter((n) => n.type === 'WALLET').length;
@@ -80,8 +84,14 @@ export function NotificationsPage(): React.ReactElement {
           onResetFilters={handleResetFilters}
         />
 
+        {error && (
+          <div role="alert" className="p-4 text-sm text-destructive">
+            {error}
+            <button type="button" onClick={() => void fetchNotifications()} className="ml-2 underline">Thử lại</button>
+          </div>
+        )}
         <CardContent className="p-4 sm:p-6 space-y-3">
-          {loading ? (
+          {loading && notifications.length === 0 ? (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="h-16 rounded-lg bg-secondary/60 animate-pulse" />
@@ -103,6 +113,19 @@ export function NotificationsPage(): React.ReactElement {
                   compact={false}
                 />
               ))}
+            </div>
+          )}
+          {page * pageSize < total && (
+            <div className="pt-4 text-center">
+              <p className="mb-2 text-xs text-muted-foreground">Đã tải {notifications.length}/{total} thông báo. Bộ lọc và tìm kiếm áp dụng cho phần đã tải.</p>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void fetchNotifications(true)}
+                className="min-h-11 rounded-lg border border-border px-4 text-sm hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+              >
+                {loading ? 'Đang tải...' : 'Tải thêm thông báo'}
+              </button>
             </div>
           )}
         </CardContent>

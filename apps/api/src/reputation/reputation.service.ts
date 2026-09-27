@@ -6,14 +6,10 @@
  * Quy tắc tính (đặc tả charter S3-F2):
  *  - Check-in ĐÚNG GIỜ (checkedInAt <= date+startMinute):            +10
  *  - Hủy sát giờ (cancelledAt trong cửa sổ <12h trước giờ chơi):     -5
- *  - No-show (= COMPLETED mà KHÔNG có checkedInAt):                  -20
+ *  - No-show (NO_SHOW hoặc COMPLETED không có checkedInAt):         -20
  *  - Dữ liệu cũ / trường hợp khác: trung tính — không cộng không trừ.
  * Score = clamp(0..100, BASE + tổng delta).
  *
- * Quyết định đã thảo luận trong task: KHÔNG thêm sweep/cron NO_SHOW mới —
- * cron chuyển CONFIRMED -> COMPLETED qua giờ kết thúc đã tồn tại
- * (bookings.cron.service), nên "COMPLETED mà không có checkedInAt" tự suy
- * ra được khi đọc, không cần trạng thái phụ.
  */
 import { Injectable } from '@nestjs/common';
 import { BookingStatus } from '@prisma/client';
@@ -82,12 +78,12 @@ export class ReputationService {
 
   private async computeReputation(userId: string): Promise<ReputationResult> {
     // Một lần quét các đơn có thể chấm điểm: CANCELLED (xét hủy sát giờ),
-    // CHECKED_IN/COMPLETED (xét đúng giờ / no-show).
+    // CHECKED_IN/COMPLETED/NO_SHOW (xét đúng giờ / no-show).
     const bookings = await this.prisma.booking.findMany({
       where: {
         customerId: userId,
         status: {
-          in: [BookingStatus.CANCELLED, BookingStatus.CHECKED_IN, BookingStatus.COMPLETED],
+          in: [BookingStatus.CANCELLED, BookingStatus.CHECKED_IN, BookingStatus.COMPLETED, BookingStatus.NO_SHOW],
         },
       },
       select: {
@@ -117,6 +113,11 @@ export class ReputationService {
           lateCancels += 1;
           delta += REPUTATION_WEIGHTS.LATE_CANCEL;
         }
+        continue;
+      }
+      if (b.status === BookingStatus.NO_SHOW) {
+        noShows += 1;
+        delta += REPUTATION_WEIGHTS.NO_SHOW;
         continue;
       }
 
@@ -192,13 +193,13 @@ export class ReputationService {
     const distinct = await this.prisma.booking.findMany({
       where: {
         status: {
-          in: [BookingStatus.CANCELLED, BookingStatus.CHECKED_IN, BookingStatus.COMPLETED],
+          in: [BookingStatus.CANCELLED, BookingStatus.CHECKED_IN, BookingStatus.COMPLETED, BookingStatus.NO_SHOW],
         },
       },
       select: { customerId: true },
       distinct: ['customerId'],
     });
-    const ids = distinct.map((d) => d.customerId);
+    const ids = distinct.map((d) => d.customerId).filter((id): id is string => id !== null);
     if (ids.length === 0) {
       return { items: [], total: 0, generatedAt: new Date().toISOString() };
     }

@@ -12,19 +12,15 @@ import {
   User,
   Phone,
   AlertCircle,
-  Building2,
 } from 'lucide-react';
 import { useAuthStore } from '../../../lib/auth-store';
-import { UserRole } from '../../../lib/constants';
 import { registerApi } from '../api/auth-api';
-import { cn } from '../../../lib/utils';
 import { AuthBrandHeader } from '../components/auth-brand-header';
 
 export function RegisterPage(): React.ReactElement {
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
 
-  const [role, setRole] = React.useState<UserRole>(UserRole.CUSTOMER);
   const [fullName, setFullName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -58,15 +54,10 @@ export function RegisterPage(): React.ReactElement {
         email,
         phone: phone || undefined,
         password,
-        role,
       });
       setSession(res.user, res.accessToken, res.refreshToken);
 
-      if (res.user.role === UserRole.OWNER) {
-        navigate('/dashboard/owner/venues', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      navigate('/', { replace: true });
     } catch (err: any) {
       setErrorMessage(err.message || 'Email có thể đã tồn tại.');
     } finally {
@@ -88,41 +79,9 @@ export function RegisterPage(): React.ReactElement {
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* Role Selection Switcher */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground block">
-              Bạn tham gia với tư cách <span className="text-destructive">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-secondary/50 border border-border/60">
-              <button
-                type="button"
-                onClick={() => setRole(UserRole.CUSTOMER)}
-                className={cn(
-                  'py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5',
-                  role === UserRole.CUSTOMER
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <User className="h-3.5 w-3.5" />
-                <span>Người Chơi</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRole(UserRole.OWNER)}
-                className={cn(
-                  'py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5',
-                  role === UserRole.OWNER
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Building2 className="h-3.5 w-3.5" />
-                <span>Chủ Cụm Sân</span>
-              </button>
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Đăng ký tài khoản người chơi. Để quản lý cụm sân, liên hệ quản trị viên để được xét duyệt và cấp quyền chủ sân.
+          </p>
 
           {errorMessage && (
             <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold flex items-center gap-2.5">

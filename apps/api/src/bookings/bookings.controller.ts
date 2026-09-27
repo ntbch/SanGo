@@ -15,6 +15,8 @@ import { ZodValidationPipe } from '../auth/zod-validation.pipe';
 import {
   CancelBookingSchema,
   CheckInSchema,
+  CreateWalkInSchema,
+  type CreateWalkInDto,
   CreateReviewSchema,
   MyBookingsQuerySchema,
   BulkCancelSchema,
@@ -281,6 +283,15 @@ export class BookingsController {
 @Controller('owner')
 export class OwnerBookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
+
+  @Post('bookings/walk-in')
+  @ApiOperation({ summary: '[OWNER] Tạo đơn khách vãng lai chưa ghi nhận thanh toán' })
+  createWalkIn(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(CreateWalkInSchema)) dto: CreateWalkInDto,
+  ) {
+    return this.bookingsService.createWalkIn(user, dto);
+  }
 
   @Get('bookings')
   @ApiOperation({

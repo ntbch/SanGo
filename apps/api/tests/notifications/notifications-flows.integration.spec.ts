@@ -144,6 +144,7 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
   };
 
   it('confirmFromHold -> 3 thông báo đúng loại cho khách + chủ venue', async () => {
+    if (!dbUp) return;
     const hold = await prisma.bookingHold.create({
       data: {
         userId: custId,
@@ -171,12 +172,13 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
     expect(types).toContain(`${custId}:BOOKING_CONFIRMED`);
     expect(types).toContain(`${custId}:PAYMENT_RECEIVED`);
     expect(types).toContain(`${ownerId}:NEW_BOOKING_OWNER`);
-    // Mail xác nhận đã render branded; link trỏ route Đơn của tôi (QA-T4-P2-01)
+    // Route chuẩn của khách là /bookings; /dashboard/my-bookings chỉ còn là redirect.
     const confirmed = notis.find((n) => n.type === 'BOOKING_CONFIRMED');
-    expect(confirmed?.link).toBe('/dashboard/my-bookings');
+    expect(confirmed?.link).toBe('/bookings');
   });
 
   it('cancelBooking -> khách và chủ venue đều nhận BOOKING_CANCELLED', async () => {
+    if (!dbUp) return;
     const booking = await mkConfirmedBooking(72 * HOUR);
     await bookings.cancelBooking(booking.id, { id: custId, role: 'CUSTOMER' }, 'Đổi kế hoạch');
 
@@ -187,6 +189,7 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
   });
 
   it('join/leave ghép trận -> chủ đơn nhận MATCH_JOINED rồi MATCH_LEFT', async () => {
+    if (!dbUp) return;
     const booking = await mkConfirmedBooking(96 * HOUR, true);
 
     await bookings.joinOpenMatch(booking.id, { id: joinerId, role: 'CUSTOMER' });
@@ -203,6 +206,7 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
   });
 
   it('reminder cron chạy 2 LẦN không nhân đôi; cột remindedAt2h được claim', async () => {
+    if (!dbUp) return;
     const booking = await mkConfirmedBooking(30 * 60_000);
     // Đếm DELTA theo mốc — hai test reminder dùng chung link nên phải độc lập thứ tự
     const countT2 = () =>
@@ -221,6 +225,7 @@ describe('Thông báo gắn luồng nghiệp vụ (integration)', () => {
   });
 
   it('reminder mốc T-24h: đơn còn ~20 tiếng nhận đúng T-24h, chưa T-2h', async () => {
+    if (!dbUp) return;
     const booking = await mkConfirmedBooking(20 * HOUR);
     const countT24 = () =>
       prisma.notification.count({

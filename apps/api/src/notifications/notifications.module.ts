@@ -16,7 +16,7 @@ import { MAILER_PORT } from './mailer/mailer.port';
     NotifyService,
     {
       provide: MAILER_PORT,
-      // SMTP_HOST chưa cấu hình -> console (dev/demo); cấu hình rồi -> SMTP stub.
+      // SMTP_HOST chưa cấu hình -> console (dev/demo); cấu hình rồi -> SMTP.
       useFactory: () => createDefaultMailer(),
     },
   ],

@@ -1,9 +1,8 @@
 import React from 'react';
 import { Card } from '../../../components/ui/card';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Calendar, Crown, Award, ChevronRight } from 'lucide-react';
+import { Crown, Award, ChevronRight } from 'lucide-react';
 import { Tournament } from '../api/tournaments-api';
-import { formatVND } from '../../../lib/utils';
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -24,7 +23,7 @@ export function TournamentCard({ tournament: t }: TournamentCardProps): React.Re
   };
 
   const statusInfo = getStatusBadge(t.status);
-  const teamCount = t.teams?.length || 0;
+  const teamCount = t._count?.teams ?? t.teams?.length ?? 0;
 
   return (
     <Card
@@ -48,51 +47,28 @@ export function TournamentCard({ tournament: t }: TournamentCardProps): React.Re
             {t.name}
           </h3>
           <p className="text-xs text-muted-foreground line-clamp-2">
-            {t.rules || 'Thi đấu loại trực tiếp cup vô địch.'}
+            {t.description || 'Thi đấu loại trực tiếp cup vô địch.'}
           </p>
         </div>
 
-        {/* Location & Dates */}
-        <div className="space-y-1.5 text-xs text-muted-foreground pt-2 border-t border-border/50">
-          <div className="flex items-center gap-2 text-foreground font-semibold">
-            <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span>{t.district ? `${t.district}, ${t.city}` : t.city}</span>
-          </div>
-          {t.registrationDeadline && (
-            <div className="flex items-center gap-2 text-muted-foreground font-medium">
-              <Clock className="h-3.5 w-3.5 shrink-0" />
-              <span>Hạn đăng ký: {new Date(t.registrationDeadline).toLocaleDateString('vi-VN')}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span>Khai mạc: {t.startDate ? new Date(t.startDate).toLocaleDateString('vi-VN') : 'Sắp diễn ra'}</span>
-          </div>
-        </div>
 
         {/* Quick Stat Strip */}
-        <div className="grid grid-cols-2 gap-2 pt-2 text-center">
+        <div className="pt-2 text-center">
           <div className="p-2.5 rounded-xl bg-secondary/40 border border-border">
             <span className="text-[10px] text-muted-foreground font-bold block mb-1">Đội Đã Ghi Danh</span>
             <span className="font-mono-num font-black text-sm text-primary tabular-nums">
               {teamCount} / {t.maxTeams} Đội
             </span>
           </div>
-          <div className="p-2.5 rounded-xl bg-secondary/40 border border-border">
-            <span className="text-[10px] text-muted-foreground font-bold block mb-1">Tổng Giải Thưởng</span>
-            <span className="font-mono-num font-black text-sm text-primary tabular-nums">
-              {formatVND(t.prizePool || 0)}
-            </span>
-          </div>
         </div>
 
         {/* Champion Display if finished */}
-        {t.status === 'FINISHED' && t.championTeam && (
+        {t.status === 'FINISHED' && t.champion && (
           <div className="p-2.5 rounded-xl bg-secondary text-secondary-foreground border border-border flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-primary shrink-0" />
               <span className="text-[11px] text-muted-foreground">Quán quân:</span>
-              <strong className="text-foreground font-bold">{t.championTeam.name}</strong>
+              <strong className="text-foreground font-bold">{t.champion.name}</strong>
             </div>
             <Award className="h-4 w-4 text-primary shrink-0" />
           </div>

@@ -27,6 +27,8 @@ export interface RequestOptions extends RequestInit {
 }
 
 let isRefreshing = false;
+let refreshPromise: Promise<void> | null = null;
+let logoutInProgress = false;
 let failedQueue: Array<{
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
@@ -43,9 +45,12 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue = [];
 };
 
-export async function apiClient<T = unknown>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+export async function apiClient<T = unknown>(endpoint: string, options: RequestOptions = {}, retried = false): Promise<T> {
   const { params, skipAuth = false, headers = {}, ...customConfig } = options;
+  if (endpoint === '/auth/logout') logoutInProgress = true;
 
+  // Logout must revoke the latest cookie after an in-flight rotation finishes.
+  if (endpoint === '/auth/logout' && refreshPromise) await refreshPromise.catch(() => {});
   let base = API_BASE_URL;
   if (!base.startsWith('http')) {
     const origin =
@@ -71,7 +76,7 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
   }
 
   const reqHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(customConfig.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(headers as Record<string, string>),
   };
 
@@ -80,19 +85,31 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
     reqHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...customConfig,
-    credentials: 'include',
-    headers: reqHeaders,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...customConfig,
+      credentials: 'include',
+      headers: reqHeaders,
+    });
+  } finally {
+    if (endpoint === '/auth/logout') logoutInProgress = false;
+  }
 
   // Tự động làm mới token trong nền khi gặp 401 qua httpOnly cookie sango_refresh
-  if (response.status === 401 && !skipAuth && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+  if (response.status === 401 && token && !logoutInProgress && !retried && !skipAuth && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+    // Phiên đã được làm mới bởi một request khác trong lúc request này đang bay:
+    // thử lại bằng token mới thay vì báo lỗi cho người dùng.
+    const latestToken = localStorage.getItem('sango_access_token');
+    if (latestToken && latestToken !== token) {
+      return apiClient<T>(endpoint, options, true);
+    }
+
     if (isRefreshing) {
       return new Promise<T>((resolve, reject) => {
         failedQueue.push({
           resolve: () => {
-            resolve(apiClient<T>(endpoint, options));
+            resolve(apiClient<T>(endpoint, options, true));
           },
           reject: (err) => {
             reject(err);
@@ -102,6 +119,8 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
     }
 
     isRefreshing = true;
+    let completeRefresh!: () => void;
+    refreshPromise = new Promise<void>((resolve) => { completeRefresh = resolve; });
     try {
       const refreshRes = await fetch(`${base}/auth/refresh`, {
         method: 'POST',
@@ -119,10 +138,11 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
         if (refreshData.user) {
           localStorage.setItem('sango_user', JSON.stringify(refreshData.user));
         }
+        window.dispatchEvent(new Event('sango_auth_change'));
       }
 
       processQueue(null, refreshData.accessToken);
-      return apiClient<T>(endpoint, options);
+      return apiClient<T>(endpoint, options, true);
     } catch (err) {
       processQueue(err as Error, null);
       localStorage.removeItem('sango_access_token');
@@ -132,6 +152,8 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
       throw new ApiError('Phiên đăng nhập đã hết hạn, đăng nhập lại.', 401, 'UNAUTHORIZED');
     } finally {
       isRefreshing = false;
+      completeRefresh();
+      refreshPromise = null;
     }
   }
 

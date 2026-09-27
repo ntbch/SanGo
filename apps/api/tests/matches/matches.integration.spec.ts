@@ -33,7 +33,8 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
   let strangerE!: User;
   let courtId!: string;
   let publicBookingId!: string; // từ luồng hold->confirm, slotsNeeded=2
-  let directBookingId!: string; // tạo trực tiếp, dùng cho join trùng/tự join
+  let directBookingId!: string; // tạo trực tiếp, requiresApproval=false — dùng join trùng/tự join
+  let approvalBookingId!: string; // requiresApproval=true — chỉ dùng assert list/detail
   const DATE = new Date(tomorrow()).toISOString().slice(0, 10);
   const EMAILS = () => [
     `itmk-host-${SUFFIX}@sango.vn`,
@@ -80,6 +81,8 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
         name: `IT Match Venue ${SUFFIX}`,
         slug: `itmk-${SUFFIX}`,
         address: '2 Đường test',
+        city: `IT City ${SUFFIX}`,
+        district: `IT District ${SUFFIX}`,
         lat: 10.76,
         lng: 106.66,
         openMinute: 360,
@@ -122,7 +125,8 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
     });
     publicBookingId = confirmed.id;
 
-    // (2) Đơn public tạo trực tiếp (test join trùng / tự join).
+    // (2) Đơn public tạo trực tiếp (test join trùng / tự join). GIỮ requiresApproval=false
+    // vì joinOpenMatch chặn APPROVAL_REQUIRED — test join trùng dựa vào điều này.
     const direct = await prisma.booking.create({
       data: {
         code: `CH-ITMK-${SUFFIX}-D`,
@@ -137,15 +141,38 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
         isPublicMatch: true,
         slotsNeeded: 2,
         matchFull: false,
+        requiresApproval: false,
       },
     });
     directBookingId = direct.id;
+
+    // (3) Fixture RIÊNG cho assert requiresApproval của list/detail — trước đây test
+    // listOpen lật cờ của `direct` rồi test join trùng âm thầm dựa vào thay đổi đó,
+    // nên chạy riêng (-t) hoặc xáo trộn thứ tự là fail 409 APPROVAL_REQUIRED.
+    const approval = await prisma.booking.create({
+      data: {
+        code: `CH-ITMK-${SUFFIX}-A`,
+        customerId: hostA.id,
+        courtId,
+        date: new Date(DATE + 'T00:00:00.000Z'),
+        startMinute: 600,
+        endMinute: 690,
+        subtotal: 100_000,
+        depositAmount: 30_000,
+        status: 'CONFIRMED',
+        isPublicMatch: true,
+        slotsNeeded: 2,
+        matchFull: false,
+        requiresApproval: true,
+      },
+    });
+    approvalBookingId = approval.id;
   });
 
   afterAll(async () => {
     if (!dbUp) return;
     // Con trước cha; đơn từ confirmFromHold có mã chuẩn CH-YYYYMMDD-NNNN nên xóa theo id.
-    const ids = [publicBookingId, directBookingId].filter(Boolean);
+    const ids = [publicBookingId, directBookingId, approvalBookingId].filter(Boolean);
     if (ids.length > 0) {
       await prisma.matchParticipant.deleteMany({ where: { bookingId: { in: ids } } });
       await prisma.payment.deleteMany({ where: { bookingId: { in: ids } } });
@@ -184,6 +211,24 @@ describe('Ghép trận mở trên DB thật (integration)', () => {
         joinedCount: 0,
       });
     }
+    const byGroupAndArea = await matches.listOpen({
+      page: 1, limit: 10, sportGroup: 'FOOTBALL', city: `IT City ${SUFFIX}`, district: `IT District ${SUFFIX}`,
+    });
+    expect(byGroupAndArea.items.map((item) => item.bookingId)).toEqual(expect.arrayContaining([publicBookingId, directBookingId]));
+    const otherSportSameArea = await matches.listOpen({
+      page: 1, limit: 10, sportType: 'TENNIS', city: `IT City ${SUFFIX}`, district: `IT District ${SUFFIX}`,
+    });
+    expect(otherSportSameArea.items).toEqual([]);
+    const otherDistrict = await matches.listOpen({
+      page: 1, limit: 10, sportGroup: 'FOOTBALL', city: `IT City ${SUFFIX}`, district: `Other District ${SUFFIX}`,
+    });
+    expect(otherDistrict.items).toEqual([]);
+    expect(byGroupAndArea.items.find((item) => item.bookingId === approvalBookingId)?.requiresApproval).toBe(true);
+    const detail = await matches.getMatchDetail(approvalBookingId);
+    expect(detail.requiresApproval).toBe(true);
+    expect(detail.host?.id).toBe(hostA.id);
+    expect(detail.slotsNeeded).toBe(2);
+    expect(detail.joinedCount).toBe(0);
     const tennisOnly = await matches.listOpen({ page: 1, limit: 10, sportType: 'TENNIS' });
     expect(tennisOnly.items.some((i) => i.bookingId === publicBookingId)).toBe(false);
     const byDate = await matches.listOpen({ page: 1, limit: 10, date: DATE });

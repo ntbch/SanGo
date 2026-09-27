@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SportType } from '@prisma/client';
+import { Prisma, SportType } from '@prisma/client';
 import { ReputationService } from '../reputation/reputation.service';
 
 export interface ClubRankingItem {
@@ -8,7 +8,6 @@ export interface ClubRankingItem {
   teamId: string;
   teamName: string;
   sportType: string;
-  city: string;
   eloScore: number;
   matchesPlayed: number;
   wins: number;
@@ -24,10 +23,8 @@ export interface AthleteRankingItem {
   fullName: string;
   avatarUrl?: string | null;
   sportType: string;
-  city: string;
   reputationScore: number;
   matchesPlayed: number;
-  mvpCount: number;
   fairPlayBadge: string;
 }
 
@@ -39,10 +36,10 @@ export class RankingService {
   ) {}
 
   async getClubRankings(sportType?: string): Promise<ClubRankingItem[]> {
-    const where: any = {};
-    if (sportType && Object.values(SportType).includes(sportType as SportType)) {
-      where.sportType = sportType as SportType;
+    if (sportType && !Object.values(SportType).includes(sportType as SportType)) {
+      throw new BadRequestException('Môn thể thao không hợp lệ');
     }
+    const where: Prisma.TeamWhereInput = sportType ? { sportType: sportType as SportType } : {};
 
     const teams = await this.prisma.team.findMany({
       where,
@@ -96,7 +93,6 @@ export class RankingService {
         teamId: t.id,
         teamName: t.name,
         sportType: t.sportType,
-        city: 'Hà Nội',
         eloScore,
         matchesPlayed: totalMatches,
         wins,
@@ -116,9 +112,13 @@ export class RankingService {
   }
 
   async getAthleteRankings(sportType?: string): Promise<AthleteRankingItem[]> {
+    if (sportType && !Object.values(SportType).includes(sportType as SportType)) {
+      throw new BadRequestException('Môn thể thao không hợp lệ');
+    }
     const users = await this.prisma.user.findMany({
       where: {
         status: 'ACTIVE',
+        ...(sportType ? { favoriteSports: { has: sportType as SportType } } : {}),
       },
       select: {
         id: true,
@@ -130,19 +130,14 @@ export class RankingService {
           select: { id: true },
         },
       },
-      take: 50,
     });
 
     const items: AthleteRankingItem[] = [];
 
     for (const u of users) {
-      if (sportType && u.favoriteSports.length > 0 && !u.favoriteSports.includes(sportType as any)) {
-        continue;
-      }
-
       const rep = await this.reputationService.getMyReputation(u.id);
       const matchesPlayed = u.bookings.length;
-      const sport = u.favoriteSports[0] || 'FOOTBALL7';
+      const sport = sportType || u.favoriteSports[0] || '';
 
       let fairPlayBadge = 'Thành viên mới';
       if (rep.score >= 90) fairPlayBadge = 'Fair-play Kim Cương 💎';
@@ -155,17 +150,15 @@ export class RankingService {
         fullName: u.fullName,
         avatarUrl: u.avatarUrl,
         sportType: sport,
-        city: 'Hà Nội',
         reputationScore: rep.score,
         matchesPlayed,
-        mvpCount: Math.floor(matchesPlayed / 3),
         fairPlayBadge,
       });
     }
 
     items.sort((a, b) => b.reputationScore - a.reputationScore || b.matchesPlayed - a.matchesPlayed || a.fullName.localeCompare(b.fullName, 'vi'));
 
-    return items.map((item, index) => ({
+    return items.slice(0, 50).map((item, index) => ({
       ...item,
       rank: index + 1,
     }));

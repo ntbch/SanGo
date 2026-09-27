@@ -41,10 +41,6 @@ interface OwnerWalkInModalProps {
   setWalkInCustomerName: (name: string) => void;
   walkInCustomerPhone: string;
   setWalkInCustomerPhone: (phone: string) => void;
-  walkInDeposit: number;
-  setWalkInDeposit: (deposit: number) => void;
-  walkInTotal: number;
-  setWalkInTotal: (total: number) => void;
   walkInSubmitting: boolean;
   onWalkInSubmit: (e: React.FormEvent) => void;
 }
@@ -63,10 +59,6 @@ export function OwnerWalkInModal({
   setWalkInCustomerName,
   walkInCustomerPhone,
   setWalkInCustomerPhone,
-  walkInDeposit,
-  setWalkInDeposit,
-  walkInTotal,
-  setWalkInTotal,
   walkInSubmitting,
   onWalkInSubmit,
 }: OwnerWalkInModalProps): React.ReactElement {
@@ -144,31 +136,9 @@ export function OwnerWalkInModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold">Tiền Cọc Tại Quầy (VND)</label>
-              <Input
-                type="number"
-                value={walkInDeposit}
-                onChange={(e) => setWalkInDeposit(Number(e.target.value))}
-                step={10000}
-                className="font-mono text-xs font-bold"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold">Tổng Tiền Ca Đá (VND)</label>
-              <Input
-                type="number"
-                value={walkInTotal}
-                onChange={(e) => setWalkInTotal(Number(e.target.value))}
-                step={10000}
-                className="font-mono text-xs font-bold"
-                required
-              />
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Giá được tính theo bảng giá của sân khi lưu. Đơn giữ lịch nhưng chưa ghi nhận thanh toán hoặc tiền cọc.
+          </p>
 
           <DialogFooter className="pt-3">
             <Button type="button" variant="outline" onClick={() => setWalkInModalOpen(false)}>

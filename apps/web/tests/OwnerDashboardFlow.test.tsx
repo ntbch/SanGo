@@ -69,8 +69,9 @@ const mockAnalytics: ownerApi.OwnerAnalyticsResponse = {
   totalBookings: 45,
   cancelledCount: 2,
   noShowCount: 1,
-  cancelRate: 6.6,
-  occupancyRate: 85,
+  // computeCancelRate trả FRACTION 0..1 (analytics.service.ts) — 6.6 là phần trăm,
+  // nhân 100 ở component sẽ ra "660.0%".
+  cancelRate: 0.066,
   series: [
     { date: '2026-08-20', bookings: 3, revenueVnd: 900000 },
     { date: '2026-08-21', bookings: 4, revenueVnd: 1200000 },
@@ -80,7 +81,6 @@ const mockAnalytics: ownerApi.OwnerAnalyticsResponse = {
     {
       courtId: 'court-1',
       courtName: 'Sân Số 1 (VIP)',
-      sportType: 'FOOTBALL5',
       bookings: 28,
       revenueVnd: 11200000,
     },
@@ -241,6 +241,44 @@ describe('Owner Dashboard Full Integration Flow', () => {
     });
   });
 
+  it('submits a walk-in whose range is aligned to the selected court slot grid', async () => {
+    // Regression: modal từng gửi cứng 90 phút, còn server chỉ nhận ca khớp
+    // lưới của sân — trên sân 60 phút mọi lần gửi đều bị SLOTS_MISALIGNED.
+    const createWalkIn = vi
+      .spyOn(ownerApi, 'createWalkInBookingApi')
+      .mockResolvedValue({ code: 'CH-20350101-0001', subtotal: 300000 } as never);
+    render(
+      <MemoryRouter initialEntries={['/dashboard/owner']}>
+        <Routes>
+          <Route path="/dashboard/owner" element={<OwnerDashboardPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(screen.getAllByText(/Sân Bóng SanGo Cầu Giấy/i).length).toBeGreaterThan(0);
+    });
+    fireEvent.click(screen.getByTestId('owner-tab-schedule'));
+    fireEvent.click(await screen.findByRole('button', { name: /Tạo Đơn Quầy/i }));
+
+    fireEvent.change(await screen.findByPlaceholderText(/Ví dụ: Anh Hoàng/i), {
+      target: { value: 'Khách tại quầy' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Xác Nhận Đặt Quầy/i }));
+
+    await waitFor(() => expect(createWalkIn).toHaveBeenCalledTimes(1));
+    const payload = createWalkIn.mock.calls[0][0];
+    const venue = mockVenues.items[0];
+    const court = mockCourts.find((c) => c.id === payload.courtId)!;
+    expect(court.slotMinutes).toBe(60);
+    // Đúng predicate của server (createWalkIn trong bookings.service.ts).
+    expect(payload.startMinute).toBeGreaterThanOrEqual(venue.openMinute);
+    expect(payload.endMinute).toBeLessThanOrEqual(venue.closeMinute);
+    expect(payload.endMinute).toBeGreaterThan(payload.startMinute);
+    expect((payload.startMinute - venue.openMinute) % court.slotMinutes).toBe(0);
+    expect((payload.endMinute - payload.startMinute) % court.slotMinutes).toBe(0);
+    expect(payload.guestName).toBe('Khách tại quầy');
+  });
+
   it('navigates to Check-in quầy tab', async () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/owner']}>
@@ -286,7 +324,8 @@ describe('Owner Dashboard Full Integration Flow', () => {
       expect(screen.getByText(/Doanh Thu Xác Nhận/i)).toBeDefined();
       expect(screen.getByText(/18.500.000/i)).toBeDefined();
       expect(screen.getByText(/45 đơn/i)).toBeDefined();
-      expect(screen.getByText(/85%/i)).toBeDefined();
+      // Chốt đơn vị: (0.066 * 100).toFixed(1) = "6.6%".
+      expect(screen.getByText('6.6%')).toBeDefined();
     });
   });
 

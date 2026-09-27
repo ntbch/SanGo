@@ -4,17 +4,36 @@ import {
   createTopupApi,
   type WalletLedgerItem,
   type WalletEntryType,
+  type MyWalletResponse,
 } from '../api/wallet-api';
 import { formatVND } from '../../../lib/utils';
 import { useAuthStore } from '../../../lib/auth-store';
 
+type WalletLoadState = {
+  userId: string | undefined;
+  accessToken: string | null;
+} & (
+  | { status: 'loading' | 'error'; data: null }
+  | { status: 'success'; data: MyWalletResponse }
+);
+
+const EMPTY_LEDGER: WalletLedgerItem[] = [];
+
 export function useWallet() {
-  const { user } = useAuthStore();
-  const [balance, setBalance] = React.useState<number>(0);
-  const [ledgerItems, setLedgerItems] = React.useState<WalletLedgerItem[]>([]);
-  const [totalItems, setTotalItems] = React.useState<number>(0);
+  const { user, accessToken } = useAuthStore();
+  const userId = user?.id;
+  const [walletState, setWalletState] = React.useState<WalletLoadState>({
+    userId, accessToken, status: 'loading', data: null,
+  });
+  const requestId = React.useRef(0);
+  const status = walletState.userId === userId && walletState.accessToken === accessToken
+    ? walletState.status : 'loading';
+  const data = status === 'success' ? walletState.data : null;
+  const balance = data?.balance ?? null;
+  const ledgerItems = data?.items ?? EMPTY_LEDGER;
+  const totalItems = data?.total ?? 0;
   const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const isLoading = status === 'loading';
   const [showBalance, setShowBalance] = React.useState<boolean>(true);
 
   // Filters
@@ -55,23 +74,27 @@ export function useWallet() {
   const [withdrawSuccessMsg, setWithdrawSuccessMsg] = React.useState<string | null>(null);
 
   const fetchWalletData = React.useCallback(async () => {
-    setIsLoading(true);
+    const id = ++requestId.current;
+    if (!userId || !accessToken) {
+      setWalletState({ userId, accessToken, status: 'error', data: null });
+      return;
+    }
+    setWalletState({ userId, accessToken, status: 'loading', data: null });
     try {
       const res = await getMyWalletApi({ page: currentPage, pageSize: 10 });
-      setBalance(res.balance);
-      setLedgerItems(res.items);
-      setTotalItems(res.total);
+      if (id === requestId.current) {
+        setWalletState({ userId, accessToken, status: 'success', data: res });
+      }
     } catch {
-      setBalance(0);
-      setLedgerItems([]);
-      setTotalItems(0);
-    } finally {
-      setIsLoading(false);
+      if (id === requestId.current) {
+        setWalletState({ userId, accessToken, status: 'error', data: null });
+      }
     }
-  }, [currentPage]);
+  }, [currentPage, userId, accessToken]);
 
   React.useEffect(() => {
-    fetchWalletData();
+    void fetchWalletData();
+    return () => { requestId.current += 1; };
   }, [fetchWalletData]);
 
   // Handle Top-up
@@ -98,6 +121,10 @@ export function useWallet() {
   // Handle Withdrawal
   const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (balance === null) {
+      setWithdrawError('Chưa xác nhận được số dư. Vui lòng tải lại ví.');
+      return;
+    }
     const amt = Number(withdrawAmount);
     if (!amt || amt < 50000) {
       setWithdrawError('Số tiền rút tối thiểu là 50.000 đ');
@@ -184,6 +211,8 @@ export function useWallet() {
     ledgerItems,
     filteredLedger,
     isLoading,
+    status,
+    retry: fetchWalletData,
     totalItems,
     currentPage,
     setCurrentPage,

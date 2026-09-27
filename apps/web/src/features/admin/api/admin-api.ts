@@ -97,7 +97,7 @@ export interface AdminVenueDetail {
     id: string;
     name: string;
     sportType: SportType;
-    isMaintenance: boolean;
+    status: 'ACTIVE' | 'MAINTENANCE';
     pricingTier?: string | null;
   }>;
 }
@@ -125,7 +125,8 @@ export interface AdminBookingListItem {
   venueName: string;
   courtName: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | null;
+  guestPhone?: string | null;
   startTime: string;
   endTime: string;
   status: BookingStatus;
@@ -138,29 +139,6 @@ export interface AdminBookingListResponse {
   total: number;
 }
 
-export interface AdminTournament {
-  id: string;
-  name: string;
-  sportType: SportType;
-  maxTeams: number;
-  prizePoolVnd?: number;
-  status: 'REGISTRATION' | 'ONGOING' | 'COMPLETED';
-  startDate?: string;
-  endDate?: string;
-  venueName?: string;
-  teamsCount?: number;
-  matches?: Array<{
-    id: string;
-    round: number;
-    position: number;
-    teamAName?: string;
-    teamBName?: string;
-    scoreA?: number;
-    scoreB?: number;
-    status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
-    winnerTeamName?: string;
-  }>;
-}
 
 export interface AdminVoucher {
   id: string;
@@ -184,7 +162,7 @@ export interface AdminCourtItem {
   venueName: string;
   name: string;
   sportType: SportType;
-  isMaintenance: boolean;
+  status: 'ACTIVE' | 'MAINTENANCE';
   basePricePerHour?: number;
 }
 
@@ -295,43 +273,9 @@ export async function getAdminBookings(params?: {
   });
 }
 
-export async function getAdminTournaments(): Promise<AdminTournament[]> {
-  try {
-    return await apiClient<AdminTournament[]>('/tournaments');
-  } catch {
-    return [];
-  }
-}
 
-export async function createAdminTournament(data: {
-  name: string;
-  sportType: SportType;
-  maxTeams: number;
-  venueId?: string;
-  prizePoolVnd?: number;
-}): Promise<AdminTournament> {
-  return apiClient<AdminTournament>('/tournaments', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
 
-export async function startAdminTournament(id: string): Promise<AdminTournament> {
-  return apiClient<AdminTournament>(`/tournaments/${id}/start`, {
-    method: 'POST',
-  });
-}
 
-export async function updateAdminMatchScore(
-  matchId: string,
-  scoreA: number,
-  scoreB: number,
-): Promise<unknown> {
-  return apiClient(`/matches/${matchId}/score`, {
-    method: 'PATCH',
-    body: JSON.stringify({ scoreA, scoreB }),
-  });
-}
 
 export async function toggleAdminCourtMaintenance(
   courtId: string,

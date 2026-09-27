@@ -9,9 +9,14 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { cn } from '../../lib/utils';
-import { sendAiChatApi, type AiChatMessage } from '../../features/ai/api/ai-api';
-import { Link } from 'react-router-dom';
+import { cn, formatVND } from '../../lib/utils';
+import { createAiHoldApi, sendAiChatApi, type AiChatMessage, type AiChatPayload, type AiChatResponse } from '../../features/ai/api/ai-api';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../lib/auth-store';
+import { ApiError } from '../../lib/api-client';
+import { AuthModal } from '../auth/auth-modal';
+
+type ChatMessage = AiChatMessage & { data?: AiChatResponse['data']; toolsUsed?: string[] };
 
 const QUICK_PROMPTS = [
   'Tìm sân bóng đá 7 người tối nay ở Cầu Giấy',
@@ -21,10 +26,22 @@ const QUICK_PROMPTS = [
 ];
 
 export function AiChatWidget(): React.ReactElement {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [showAuthModal, setShowAuthModal] = React.useState(false);
+  const [holding, setHolding] = React.useState(false);
+  const [error, setError] = React.useState<{ message: string; request?: AiChatPayload } | null>(null);
+  const requestPending = React.useRef(false);
+  const holdPending = React.useRef(false);
+  const isMountedRef = React.useRef(true);
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputMessage, setInputMessage] = React.useState('');
   const [isTyping, setIsTyping] = React.useState(false);
-  const [messages, setMessages] = React.useState<AiChatMessage[]>([
+  const [messages, setMessages] = React.useState<ChatMessage[]>([
     {
       role: 'assistant',
       content:
@@ -44,44 +61,83 @@ export function AiChatWidget(): React.ReactElement {
     }
   }, [isOpen, messages, isTyping]);
 
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string, retryRequest?: AiChatPayload) => {
     const msg = (textToSend || inputMessage).trim();
-    if (!msg || isTyping) return;
-
-    const newHistory: AiChatMessage[] = [...messages, { role: 'user', content: msg }];
-    setMessages(newHistory);
-    setInputMessage('');
+    if ((!msg && !retryRequest) || requestPending.current || holdPending.current) return;
+    const request = retryRequest ?? {
+      message: msg,
+      history: messages.slice(-6).map(({ role, content }) => ({
+        role,
+        // Keep full replies in the UI; bound only the optional model context.
+        content: role === 'assistant' ? content.slice(0, 8000) : content,
+      })),
+    };
+    if (!retryRequest) {
+      setMessages((prev) => [...prev, { role: 'user', content: msg }]);
+      setInputMessage('');
+    }
+    setError(null);
+    requestPending.current = true;
     setIsTyping(true);
-
     try {
-      const res = await sendAiChatApi({
-        message: msg,
-        history: newHistory.slice(-6),
+      const res = await sendAiChatApi(request);
+      // Widget bị unmount khi điều hướng sang /login, /register, /forgot-password,
+      // /reset-password (PublicLayout bỏ widget ở các route này) -> đừng setState sau unmount.
+      if (!isMountedRef.current) return;
+      setMessages((prev) => [...prev, {
+        role: 'assistant', content: res.reply, data: res.data, toolsUsed: res.toolsUsed,
+      }]);
+    } catch (err) {
+      setError({
+        message: err instanceof ApiError && err.statusCode === 429
+          ? 'Bạn đã đạt giới hạn tin nhắn AI. Vui lòng thử lại sau.'
+          : err instanceof ApiError ? err.message : 'Kết nối gián đoạn. Vui lòng thử lại.',
+        request,
       });
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content:
-            'Kết nối gián đoạn, bạn thử lại hoặc xem trực tiếp tại [Tìm Sân](/venues) nhé!',
-        },
-      ]);
     } finally {
+      requestPending.current = false;
       setIsTyping(false);
     }
   };
 
+  const handleHold = async (courtId: string, date: string, startMinute: number) => {
+    if (holdPending.current || requestPending.current) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    const targetUserId = user.id;
+    holdPending.current = true;
+    setHolding(true);
+    setError(null);
+    try {
+      const hold = await createAiHoldApi({ courtId, date, slots: [startMinute] });
+      if (!isMountedRef.current || useAuthStore.getState().user?.id !== targetUserId) return;
+      setIsOpen(false);
+      navigate(`/checkout/hold/${hold.id}`);
+    } catch (err) {
+      // KHÔNG chặn theo đổi user ở nhánh lỗi: khi token hết hạn và refresh cũng hỏng,
+      // apiClient xoá session đồng bộ TRƯỚC khi ném 401, nên guard sẽ nuốt mất lỗi và
+      // người dùng thấy spinner tắt mà không có gì cả. 401 thì mở lại modal đăng nhập.
+      if (!isMountedRef.current) return;
+      if (err instanceof ApiError && err.statusCode === 401) {
+        setShowAuthModal(true);
+        return;
+      }
+      setError({ message: err instanceof Error ? err.message : 'Không thể giữ chỗ. Vui lòng chọn lại giờ.' });
+    } finally {
+      if (isMountedRef.current) {
+        holdPending.current = false;
+        setHolding(false);
+      }
+    }
+  };
+
   const handleResetChat = () => {
-    setMessages([
-      {
-        role: 'assistant',
-        content:
-          'Đã làm mới! Bạn cần tìm sân gì tiếp theo?',
-      },
-    ]);
+    if (requestPending.current || holdPending.current) return;
+    setError(null);
+    setInputMessage('');
+    setMessages([{ role: 'assistant', content: 'Đã làm mới! Bạn cần tìm sân gì tiếp theo?' }]);
   };
 
   return (
@@ -118,10 +174,10 @@ export function AiChatWidget(): React.ReactElement {
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-extrabold text-foreground">SanGo AI Assistant</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-primary/15 text-[9px] font-black text-primary border border-primary/20">
-                      GPT-4o
+                      Gemini
                     </span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Tự động tìm sân &amp; giữ chỗ 10 phút</p>
+                  <p className="text-[10px] text-muted-foreground">Tìm sân, chọn giờ rồi giữ chỗ 10 phút</p>
                 </div>
               </div>
 
@@ -129,6 +185,7 @@ export function AiChatWidget(): React.ReactElement {
                 <button
                   type="button"
                   onClick={handleResetChat}
+                  disabled={isTyping || holding}
                   title="Làm mới hội thoại"
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
                 >
@@ -179,6 +236,44 @@ export function AiChatWidget(): React.ReactElement {
                       <div className="space-y-1.5 whitespace-pre-line text-[11px] sm:text-xs">
                         {msg.content}
                       </div>
+                      {msg.data?.venues?.map((venue) => (
+                        <div key={venue.venueId} className="mt-3 border-t border-border pt-2">
+                          <Link to={`/venues/${venue.venueId}`} onClick={() => setIsOpen(false)} className="font-semibold text-primary hover:underline">
+                            {venue.name}
+                          </Link>
+                          <p>{venue.address}</p>
+                          {venue.minPrice !== null && <p className="tabular-nums">Từ {formatVND(venue.minPrice)}/slot</p>}
+                        </div>
+                      ))}
+                      {msg.data?.slots && (
+                        <div className="mt-3 space-y-2">
+                          <p className="font-semibold">{msg.data.slots.courtName} · {msg.data.slots.date}</p>
+                          {msg.data.slots.available.length === 0 && <p>Không còn giờ trống. Hãy tìm ngày hoặc sân khác.</p>}
+                          {msg.data.slots.available.map((slot) => (
+                            <Button key={slot.startMinute} size="sm" variant="outline" className="h-11 w-full tabular-nums" disabled={holding || isTyping}
+                              onClick={() => handleHold(msg.data!.slots!.courtId, msg.data!.slots!.date, slot.startMinute)}>
+                              Giữ chỗ {slot.label}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                      {msg.data?.suggestions && msg.data.courtId && msg.data.dateHint && (
+                        <div className="mt-3 space-y-2">
+                          <p className="font-semibold">Giờ gợi ý · {msg.data.dateHint}</p>
+                          <p>{msg.data.venues?.flatMap((venue) => venue.courts).find((court) => court.courtId === msg.data?.courtId)?.name ?? `Sân ${msg.data.courtId}`}</p>
+                          {msg.data.suggestions.length === 0 && <p>Chưa có giờ phù hợp. Hãy tìm ngày hoặc sân khác.</p>}
+                          {msg.data.suggestions.map((slot) => (
+                            <div key={slot.startMinute}>
+                              <Button size="sm" variant="outline" className="h-11 w-full tabular-nums" disabled={holding || isTyping}
+                                onClick={() => handleHold(msg.data!.courtId!, msg.data!.dateHint!, slot.startMinute)}>
+                                Giữ chỗ {slot.label}
+                              </Button>
+                              <p className="text-muted-foreground">{slot.reason}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!!msg.toolsUsed?.length && <p className="mt-2 text-muted-foreground">Dữ liệu từ: {msg.toolsUsed.join(', ')}</p>}
 
                       {/* If AI message mentions venues, suggest venue discovery CTA */}
                       {!isUser && idx === messages.length - 1 && (
@@ -191,13 +286,7 @@ export function AiChatWidget(): React.ReactElement {
                             <Compass className="h-3 w-3" />
                             <span>Mở danh sách sân</span>
                           </Link>
-                          <Link
-                            to="/venues"
-                            onClick={() => setIsOpen(false)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-foreground hover:underline bg-secondary px-2 py-0.5 rounded-lg border border-border"
-                          >
-                            <span>Xem trên bản đồ</span>
-                          </Link>
+                          {holding && <span>Đang giữ chỗ...</span>}
                         </div>
                       )}
                     </div>
@@ -216,6 +305,12 @@ export function AiChatWidget(): React.ReactElement {
                     <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:0.4s]" />
                     <span className="text-[10px] pl-1 font-semibold">SanGo AI đang tìm kiếm...</span>
                   </div>
+                </div>
+              )}
+              {error && (
+                <div role="alert" className="space-y-2 text-destructive">
+                  <p>{error.message}</p>
+                  {error.request && <Button variant="outline" size="sm" disabled={isTyping || holding} onClick={() => handleSendMessage(undefined, error.request)}>Thử lại</Button>}
                 </div>
               )}
 
@@ -255,13 +350,14 @@ export function AiChatWidget(): React.ReactElement {
                 <Input
                   placeholder="Hỏi AI tìm sân, gợi ý giờ vàng..."
                   value={inputMessage}
+                  maxLength={500}
                   onChange={(e) => setInputMessage(e.target.value)}
                   className="h-9 text-xs bg-secondary/40 border-border/70 focus-visible:ring-primary"
                 />
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={!inputMessage.trim() || isTyping}
+                  disabled={!inputMessage.trim() || isTyping || holding}
                   className="h-9 px-3.5 font-bold shrink-0 shadow-xs cursor-pointer"
                 >
                   <Send className="h-3.5 w-3.5" />
@@ -271,6 +367,9 @@ export function AiChatWidget(): React.ReactElement {
           </div>
         )}
       </div>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)}
+        onSuccess={() => setShowAuthModal(false)} title="Đăng nhập để giữ chỗ"
+        subtitle="Đăng nhập xong, bấm lại khung giờ bạn muốn giữ." />
     </>
   );
 }

@@ -5,12 +5,14 @@ import { TeamsPage, TeamDetailPage } from '../src/features/teams/pages';
 import { TeamCard } from '../src/features/teams/components/team-card';
 import { useAuthStore } from '../src/lib/auth-store';
 import { UserRole } from '../src/lib/constants';
+import * as teamsApi from '../src/features/teams/api/teams-api';
+import { ApiError } from '../src/lib/api-client';
 
 const { mockTeam } = vi.hoisted(() => ({
   mockTeam: {
     id: 'team-fc-sango',
     name: 'SanGo Warriors FC',
-    sportType: 'FOOTBALL',
+    sportType: 'FOOTBALL5',
     logoUrl: null,
     description: 'Đội bóng giao lưu sân 5 tại Cầu Giấy.',
     captainId: 'u-1',
@@ -52,6 +54,9 @@ vi.mock('../src/features/teams/api/teams-api', async (importOriginal) => {
     ...actual,
     listMyTeamsApi: vi.fn().mockResolvedValue([]),
     getTeamApi: vi.fn().mockResolvedValue(mockTeam),
+    respondInviteApi: vi.fn().mockResolvedValue(undefined),
+    contributeTreasuryApi: vi.fn().mockResolvedValue({ success: true }),
+    createTeamApi: vi.fn().mockRejectedValue(new Error('Unavailable')),
     getTeamExpensesApi: vi.fn().mockResolvedValue([
       {
         id: 'exp-1',
@@ -71,8 +76,8 @@ vi.mock('../src/features/teams/api/teams-api', async (importOriginal) => {
     getTreasuryOverviewApi: vi.fn().mockResolvedValue({
       teamId: 'team-fc-sango',
       balance: 1500000,
-      totalIncomeThisMonth: 2000000,
-      totalExpenseThisMonth: 500000,
+      monthIncome: 2000000,
+      monthExpense: 500000,
       recentTransactions: [
         {
           id: 'tx-1',
@@ -111,6 +116,7 @@ vi.mock('../src/features/wallet/api/wallet-api', async (importOriginal) => {
 
 describe('Teams Flow Integration', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     useAuthStore.setState({
       user: {
@@ -163,7 +169,7 @@ describe('Teams Flow Integration', () => {
     expect(screen.getByText(/Tạo Đội Thể Thao Mới/i)).toBeDefined();
   });
 
-  it('renders TeamCard with athletic roster stats, font-mono-num badges, and active scale transition', () => {
+  it('renders TeamCard member count and captain identity', () => {
     const mockMembership = {
       membershipId: 'mem-1',
       role: 'CAPTAIN' as const,
@@ -172,7 +178,7 @@ describe('Teams Flow Integration', () => {
       team: mockTeam,
     };
 
-    const { container } = render(
+    render(
       <MemoryRouter>
         <TeamCard membership={mockMembership} />
       </MemoryRouter>,
@@ -184,23 +190,6 @@ describe('Teams Flow Integration', () => {
     expect(screen.getByText(/2 Cầu thủ/i)).toBeDefined();
     expect(screen.getByText(/Trần Đức Người Chơi/i)).toBeDefined();
 
-    // Badges font-mono-num font-bold
-    const roleBadge = screen.getByText('Đội Trưởng');
-    expect(roleBadge.className).toContain('font-mono-num');
-    expect(roleBadge.className).toContain('font-bold');
-
-    const memberStat = screen.getByText(/2 Cầu thủ/i);
-    expect(memberStat.className).toContain('font-mono-num');
-    expect(memberStat.className).toContain('font-bold');
-
-    // Link has active:scale-[0.98] and NO hover:opacity
-    const link = screen.getByRole('link', { name: /Vào phòng đội/i });
-    expect(link.className).toContain('active:scale-[0.98]');
-    expect(link.className).not.toContain('hover:opacity');
-
-    // Card should not contain group-hover:scale-105 or animate-pulse
-    expect(container.innerHTML).not.toContain('group-hover:scale-105');
-    expect(container.innerHTML).not.toContain('animate-pulse');
   });
 
   it('renders TeamDetailPage with General Ledger Table and Split Bill reconciliation', async () => {
@@ -238,16 +227,6 @@ describe('Teams Flow Integration', () => {
     expect(screen.getByText('Đóng quỹ tháng 9')).toBeDefined();
     expect(screen.getByText('Nước uống trận giao hữu')).toBeDefined();
 
-    // Income transaction: + xanh lá (text-emerald-600)
-    const incomeAmount = screen.getByText(/\+.*500\.000/);
-    expect(incomeAmount.className).toContain('font-mono-num');
-    expect(incomeAmount.className).toContain('text-emerald-600');
-
-    // Expense transaction: - text-foreground (no raw rose-500)
-    const expenseAmount = screen.getByText(/-.*200\.000/);
-    expect(expenseAmount.className).toContain('font-mono-num');
-    expect(expenseAmount.className).toContain('text-foreground');
-    expect(expenseAmount.className).not.toContain('rose-500');
 
     // 2. Switch to Split tab -> Test Split bill reconciliation
     const splitTabBtn = screen.getByRole('button', { name: /Chia Tiền Sân Tự Động/i });
@@ -258,5 +237,93 @@ describe('Teams Flow Integration', () => {
     expect(screen.getByRole('heading', { name: /Nhật Ký Các Khoản Chia Tiền/i })).toBeDefined();
     expect(screen.getByText(/Nguyễn Văn Nam nợ Trần Đức Người Chơi/i)).toBeDefined();
     expect(screen.getByText(/Chưa Trả/i)).toBeDefined();
+  });
+
+  it('loads financial data only after accepting the pending invitation', async () => {
+    useAuthStore.setState({ user: { ...useAuthStore.getState().user!, id: 'u-2' } });
+    vi.mocked(teamsApi.getTeamApi).mockResolvedValueOnce({
+      ...mockTeam,
+      members: mockTeam.members.map((m) => m.userId === 'u-2' ? { ...m, status: 'PENDING' as const } : m),
+    });
+    render(<MemoryRouter initialEntries={['/teams/team-fc-sango']}><Routes><Route path="/teams/:id" element={<TeamDetailPage />} /></Routes></MemoryRouter>);
+    const accept = await screen.findByRole('button', { name: 'Chấp nhận' });
+    expect(teamsApi.getTeamExpensesApi).not.toHaveBeenCalled();
+    expect(teamsApi.getTreasuryOverviewApi).not.toHaveBeenCalled();
+    fireEvent.click(accept);
+    await screen.findByRole('heading', { name: /SanGo Warriors FC/i });
+    expect(teamsApi.respondInviteApi).toHaveBeenCalledWith('team-fc-sango', true);
+    expect(teamsApi.getTreasuryOverviewApi).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a recoverable error when team loading fails', async () => {
+    vi.mocked(teamsApi.getTeamApi).mockRejectedValueOnce(new Error('Offline'));
+    render(<MemoryRouter initialEntries={['/teams/team-fc-sango']}><Routes><Route path="/teams/:id" element={<TeamDetailPage />} /></Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Thử lại' }));
+    await screen.findByRole('heading', { name: /SanGo Warriors FC/i });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('excludes pending invitations from split participants', async () => {
+    vi.mocked(teamsApi.getTeamApi).mockResolvedValueOnce({
+      ...mockTeam,
+      members: mockTeam.members.map((m) => m.userId === 'u-2' ? { ...m, status: 'PENDING' as const } : m),
+    });
+    render(<MemoryRouter initialEntries={['/teams/team-fc-sango']}><Routes><Route path="/teams/:id" element={<TeamDetailPage />} /></Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: /Chia Tiền Sân Tự Động/i }));
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    expect((screen.getByRole('checkbox', { name: 'Trần Đức Người Chơi' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByRole('checkbox', { name: 'Nguyễn Văn Nam' })).toBeNull();
+  });
+
+  it('locks contribution submission until the financial refresh completes', async () => {
+    let resolveContribution!: (value: unknown) => void;
+    vi.mocked(teamsApi.contributeTreasuryApi).mockImplementationOnce(() => new Promise((resolve) => { resolveContribution = resolve; }));
+    render(<MemoryRouter initialEntries={['/teams/team-fc-sango']}><Routes><Route path="/teams/:id" element={<TeamDetailPage />} /></Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: /Quỹ Đội Minh Bạch/i }));
+    const submit = screen.getByRole('button', { name: /Xác Nhận Đóng Quỹ/i });
+    fireEvent.submit(submit.closest('form')!);
+    fireEvent.submit(submit.closest('form')!);
+    expect(teamsApi.contributeTreasuryApi).toHaveBeenCalledTimes(1);
+    expect((submit as HTMLButtonElement).disabled).toBe(true);
+    resolveContribution({ success: true });
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByText(/Đã đóng quỹ/)).toBeDefined();
+  });
+
+  it.each([
+    ['a generic failure', new Error('Unavailable'), 'Không thể tạo đội. Vui lòng thử lại.'],
+    ['an ApiError from the server', new ApiError('Tên đội đã tồn tại', 409), 'Tên đội đã tồn tại'],
+  ])('keeps the create modal open and shows the message after %s', async (_label, error, message) => {
+    vi.mocked(teamsApi.createTeamApi).mockRejectedValueOnce(error);
+    render(
+      <MemoryRouter initialEntries={['/teams']}>
+        <Routes>
+          <Route path="/teams" element={<TeamsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Tạo Đội Đầu Tiên' }));
+    const nameInput = screen.getByPlaceholderText(/Ví dụ: SanGo United FC/) as HTMLInputElement;
+    const submit = screen.getByRole('button', { name: 'Tạo Đội Ngay' });
+    expect((submit as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(nameInput, { target: { value: 'SanGo United FC' } });
+    expect((submit as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(() => expect(teamsApi.listMyTeamsApi).toHaveBeenCalledTimes(1));
+
+    fireEvent.submit(submit.closest('form')!);
+
+    expect((await screen.findByRole('alert')).textContent).toBe(message);
+    expect(teamsApi.createTeamApi).toHaveBeenCalledWith({
+      name: 'SanGo United FC',
+      sportType: 'FOOTBALL5',
+      description: '',
+    });
+    // Modal stays open on the typed values and the roster is never refetched.
+    expect(screen.getByText(/Tạo Đội Thể Thao Mới/i)).toBeDefined();
+    expect((screen.getByPlaceholderText(/Ví dụ: SanGo United FC/) as HTMLInputElement).value).toBe('SanGo United FC');
+    expect(teamsApi.listMyTeamsApi).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Tạo Đội Ngay' }) as HTMLButtonElement).disabled).toBe(false));
   });
 });

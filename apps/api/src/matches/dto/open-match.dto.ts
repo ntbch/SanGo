@@ -48,8 +48,13 @@ export interface OpenMatchItem {
   /** Tổng giá trị đơn (VND) — người tham gia trả chủ đơn NGOÀI hệ thống (giới hạn §3.11). */
   subtotal: number;
   depositAmount: number;
-  /** Tên chủ đơn. */
-  hostName: string;
+  costPerPerson: number;
+  matchLevel: string;
+  targetPositions: string[];
+  venue: { id: string; name: string; address: string; city: string | null; district: string | null };
+  host: { id: string; fullName: string; avatarUrl: string | null } | null;
+  requiresApproval: boolean | null;
+  commentsCount: number;
   slotsNeeded: number;
   joinedCount: number;
 }

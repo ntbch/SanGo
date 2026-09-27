@@ -1,21 +1,45 @@
 node_modules/
 dist/
+build/
 .env
 .env.*
 !.env.example
 coverage/
-.pnpm-store/
-.tooling-cache/
 *.tsbuildinfo
-.tmp-screens/
-.codegraph/
-.agent-teams/
 
-# Cache công cụ cục bộ
+# Package manager & tooling caches
+.pnpm-store/
 .npm-cache/
 .tooling-cache/
+
+# Agent & AI tool caches
+.agent-teams/
+.codegraph/
+.superpowers/
 .tmp-screens/
 
-# runtime dev logs
+# Runtime logs
 api-dev.log
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Keys & Certificates (never commit private keys)
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
+
+# ảnh đại diện người dùng tải lên (xem AVATAR_UPLOAD_DIR)
+uploads/

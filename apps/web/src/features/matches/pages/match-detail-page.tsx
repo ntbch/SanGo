@@ -23,6 +23,7 @@ import { MatchCommentsSection } from '../components/match-comments-section';
 import { MatchJoinRequestCard } from '../components/match-join-request-card';
 import { MatchPendingRequestsCard } from '../components/match-pending-requests-card';
 import { PageContainer } from '../../../components/layout/page-container';
+import { EmptyState } from '../../../components/feedback';
 
 export function MatchDetailPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -32,11 +33,20 @@ export function MatchDetailPage(): React.ReactElement {
   const [requests, setRequests] = React.useState<MatchParticipant[]>([]);
   const [comments, setComments] = React.useState<MatchComment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [requestsError, setRequestsError] = React.useState<string | null>(null);
+  const [commentsError, setCommentsError] = React.useState<string | null>(null);
+  const [isLoadingRequests, setIsLoadingRequests] = React.useState(false);
+  const [isLoadingComments, setIsLoadingComments] = React.useState(false);
+  const loadVersion = React.useRef(0);
+  // Gương của `match` để fetchMatchData (deps chỉ [id]) biết đây là lần tải đầu hay refetch.
+  const matchRef = React.useRef<OpenMatch | null>(null);
 
   // Form State: Join Request
   const [preferredPosition, setPreferredPosition] = React.useState('Tiền đạo');
   const [joinNote, setJoinNote] = React.useState('');
   const [joinMsg, setJoinMsg] = React.useState<string | null>(null);
+  const [isSendingRequest, setIsSendingRequest] = React.useState(false);
 
   // P5a.3 O1: tham gia trực tiếp + UX 409 APPROVAL_REQUIRED
   const [isJoiningDirect, setIsJoiningDirect] = React.useState(false);
@@ -47,39 +57,85 @@ export function MatchDetailPage(): React.ReactElement {
   const [isPostingComment, setIsPostingComment] = React.useState(false);
 
   const fetchMatchData = React.useCallback(async () => {
-    if (!id) return;
-    setIsLoading(true);
-    try {
-      const [matchData, reqData, cmtData] = await Promise.all([
-        getMatchDetailApi(id),
-        listJoinRequestsApi(id),
-        listMatchCommentsApi(id),
-      ]);
-      setMatch(matchData);
-      setRequests(Array.isArray(reqData) ? reqData : []);
-      setComments(Array.isArray(cmtData) ? cmtData : []);
-    } finally {
+    const version = ++loadVersion.current;
+    setLoadError(null);
+    // Chỉ lần tải ĐẦU mới bật skeleton + xoá dữ liệu. Refetch sau khi hành động
+    // (gửi/duyệt yêu cầu) phải giữ trang đang mở, nếu không refetch lỗi sẽ xoá sạch
+    // kèo và nuốt mất thông báo thành công vừa hiển thị.
+    const isFirstLoad = matchRef.current === null;
+    if (isFirstLoad) setIsLoading(true);
+    if (!id) {
+      setLoadError('Không tìm thấy kèo ghép trận.');
       setIsLoading(false);
+      return;
+    }
+    try {
+      const matchData = await getMatchDetailApi(id);
+      if (version === loadVersion.current) {
+        matchRef.current = matchData;
+        setMatch(matchData);
+        if (matchData.targetPositions && matchData.targetPositions.length > 0) {
+          setPreferredPosition(matchData.targetPositions[0]);
+        }
+      }
+    } catch {
+      if (version === loadVersion.current) {
+        // Chỉ mất trang khi chưa từng tải được; đã có dữ liệu thì giữ nguyên và báo lỗi.
+        if (matchRef.current === null) setMatch(null);
+        setLoadError('Không thể tải thông tin kèo. Vui lòng thử lại.');
+      }
+    } finally {
+      if (version === loadVersion.current) setIsLoading(false);
     }
   }, [id]);
 
   React.useEffect(() => {
-    fetchMatchData();
+    void fetchMatchData();
+    return () => { ++loadVersion.current; };
   }, [fetchMatchData]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setRequests([]);
+    setRequestsError(null);
+    setIsLoadingRequests(false);
+    if (!match || !user?.id || !match.hostUser || match.hostUser.id !== user.id) return;
+    setIsLoadingRequests(true);
+    void listJoinRequestsApi(match.id)
+      .then((data) => { if (!cancelled) setRequests(data); })
+      .catch(() => { if (!cancelled) setRequestsError('Không thể tải yêu cầu tham gia.'); })
+      .finally(() => { if (!cancelled) setIsLoadingRequests(false); });
+    return () => { cancelled = true; };
+  }, [match, user?.id]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setComments([]);
+    setCommentsError(null);
+    setIsLoadingComments(false);
+    if (!match) return;
+    setIsLoadingComments(true);
+    void listMatchCommentsApi(match.id)
+      .then((data) => { if (!cancelled) setComments(data); })
+      .catch(() => { if (!cancelled) setCommentsError('Không thể tải bình luận.'); })
+      .finally(() => { if (!cancelled) setIsLoadingComments(false); });
+    return () => { cancelled = true; };
+  }, [match]);
 
   const handleSendJoinRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!id || isSendingRequest) return;
+    setIsSendingRequest(true);
     try {
       await createJoinRequestApi(id, { preferredPosition, note: joinNote });
       setJoinMsg('Đã gửi yêu cầu tham gia tới chủ kèo!');
       setJoinNote('');
-      setTimeout(() => {
-        setJoinMsg(null);
-        fetchMatchData();
-      }, 1500);
+      // Refetch nền: không chặn thông báo thành công; fetchMatchData tự giữ trang nếu lỗi.
+      void fetchMatchData();
     } catch {
       setJoinMsg('Gửi yêu cầu thất bại');
+    } finally {
+      setIsSendingRequest(false);
     }
   };
 
@@ -119,8 +175,13 @@ export function MatchDetailPage(): React.ReactElement {
 
   const handleReviewRequest = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     if (!id) return;
-    await reviewJoinRequestApi(id, requestId, { status });
-    fetchMatchData();
+    setRequestsError(null);
+    try {
+      await reviewJoinRequestApi(id, requestId, { status });
+      void fetchMatchData();
+    } catch {
+      setRequestsError('Không thể cập nhật yêu cầu tham gia. Vui lòng thử lại.');
+    }
   };
 
   const handlePostComment = async (e: React.FormEvent) => {
@@ -131,12 +192,14 @@ export function MatchDetailPage(): React.ReactElement {
       const newCmt = await createMatchCommentApi(id, { content: commentContent });
       setComments((prev) => [...prev, newCmt]);
       setCommentContent('');
+    } catch {
+      setCommentsError('Không thể đăng bình luận. Vui lòng thử lại.');
     } finally {
       setIsPostingComment(false);
     }
   };
 
-  if (isLoading || !match) {
+  if (isLoading) {
     return (
       <PageContainer className="space-y-6 sm:space-y-8" aria-busy="true" aria-label="Đang tải thông tin kèo">
         {/* Calm Hero Skeleton */}
@@ -185,11 +248,24 @@ export function MatchDetailPage(): React.ReactElement {
     );
   }
 
-  const isHost = match.hostUser?.id === user?.id;
+  if (!match) {
+    return (
+      <PageContainer>
+        <EmptyState
+          title="Không thể mở kèo ghép trận"
+          description={loadError ?? 'Kèo không tồn tại hoặc không còn công khai.'}
+          actionLabel="Thử lại"
+          onAction={() => void fetchMatchData()}
+        />
+      </PageContainer>
+    );
+  }
+
+  const isHost = Boolean(user?.id && match.hostUser?.id === user.id);
   const total = match.totalSlots ?? 0;
   const filled = match.filledSlots ?? 0;
   const slotsLeft = Math.max(0, total - filled);
-  const fillPercent = Math.min(100, Math.round((filled / total) * 100));
+  const fillPercent = total > 0 ? Math.min(100, Math.round((filled / total) * 100)) : 0;
   const isFull = slotsLeft === 0;
 
   return (
@@ -239,13 +315,21 @@ export function MatchDetailPage(): React.ReactElement {
 
           <MatchParticipantsList participants={match.participants} />
 
-          <MatchCommentsSection
-            comments={comments}
-            commentContent={commentContent}
-            onCommentContentChange={setCommentContent}
-            isPostingComment={isPostingComment}
-            onPostComment={handlePostComment}
-          />
+          {commentsError && <p role="alert" className="text-sm text-destructive">{commentsError} <Button variant="outline" onClick={() => void fetchMatchData()}>Thử lại</Button></p>}
+          {/* Bình luận nằm ở request riêng: chỉ render khung khi đã tải xong, nếu không
+              lúc đang tải sẽ đồng thời hiện "Đang tải bình luận..." và empty state khẳng định
+              sai là chưa có bình luận nào. Đúng pattern nhánh yêu cầu tham gia ngay bên phải. */}
+          {isLoadingComments ? (
+            <p role="status" className="text-sm text-muted-foreground">Đang tải bình luận...</p>
+          ) : !commentsError ? (
+            <MatchCommentsSection
+              comments={comments}
+              commentContent={commentContent}
+              onCommentContentChange={setCommentContent}
+              isPostingComment={isPostingComment}
+              onPostComment={handlePostComment}
+            />
+          ) : null}
         </div>
 
         {/* Right Column (40%): Sticky Action Command Card, Join/Manage */}
@@ -365,16 +449,23 @@ export function MatchDetailPage(): React.ReactElement {
                 joinNote={joinNote}
                 onJoinNoteChange={setJoinNote}
                 onSubmit={handleSendJoinRequest}
+                disabled={isFull}
+                isSubmitting={isSendingRequest}
+                allowedPositions={match.targetPositions}
               />
             </div>
           )}
 
           {/* Host Pending Approval Management */}
           {isHost && (
-            <MatchPendingRequestsCard
-              requests={requests}
-              onReviewRequest={handleReviewRequest}
-            />
+            <>
+              {requestsError && <p role="alert" className="text-sm text-destructive">{requestsError} <Button variant="outline" onClick={() => void fetchMatchData()}>Thử lại</Button></p>}
+              {isLoadingRequests ? (
+                <p role="status" className="text-sm text-muted-foreground">Đang tải yêu cầu tham gia...</p>
+              ) : !requestsError && (
+                <MatchPendingRequestsCard requests={requests} onReviewRequest={handleReviewRequest} />
+              )}
+            </>
           )}
         </div>
       </div>

@@ -1,6 +1,5 @@
 import { apiClient } from '../../../lib/api-client';
 import { User } from '../../../lib/auth-store';
-import { UserRole } from '../../../lib/constants';
 
 export interface LoginDto {
   email: string;
@@ -12,7 +11,6 @@ export interface RegisterDto {
   password?: string;
   fullName: string;
   phone?: string;
-  role: UserRole;
 }
 
 export interface AuthSessionResponse {
@@ -28,8 +26,11 @@ export interface ChangePasswordDto {
 
 export interface UpdateProfileDto {
   fullName?: string;
-  phone?: string;
-  avatarUrl?: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  notifyEmail?: boolean;
+  notifyInApp?: boolean;
 }
 
 export async function loginApi(dto: LoginDto): Promise<AuthSessionResponse> {
@@ -76,5 +77,12 @@ export async function updateProfileApi(dto: UpdateProfileDto): Promise<User> {
     method: 'PATCH',
     body: JSON.stringify(dto),
   });
+  return res.user;
+}
+
+export async function uploadAvatarApi(file: File): Promise<User> {
+  const body = new FormData();
+  body.append('file', file);
+  const res = await apiClient<{ user: User }>('/users/me/avatar', { method: 'POST', body });
   return res.user;
 }

@@ -8,13 +8,19 @@ export interface SportFilterItem {
   label: string;
 }
 
+// Phải khớp enum SportType thật (packages/shared): FOOTBALL5, FOOTBALL7,
+// PICKLEBALL, BADMINTON, TENNIS. 'BASKETBALL' không tồn tại nên lọc ra rỗng.
+// Gộp bóng đá 5/7 người thành một nhóm, teams-page so khớp theo danh sách này.
+export const TEAM_SPORT_FILTERS: Record<string, string[]> = {
+  FOOTBALL5: ['FOOTBALL5', 'FOOTBALL7'],
+};
+
 export const DEFAULT_TEAM_SPORTS_FILTER: SportFilterItem[] = [
   { id: 'ALL', label: 'Tất Cả Môn' },
-  { id: 'FOOTBALL', label: 'Bóng Đá' },
+  { id: 'FOOTBALL5', label: 'Bóng Đá' },
   { id: 'PICKLEBALL', label: 'Pickleball' },
   { id: 'BADMINTON', label: 'Cầu Lông' },
   { id: 'TENNIS', label: 'Tennis' },
-  { id: 'BASKETBALL', label: 'Bóng Rổ' },
 ];
 
 interface TeamFilterBarProps {

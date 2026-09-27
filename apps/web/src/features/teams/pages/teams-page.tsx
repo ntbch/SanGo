@@ -7,10 +7,11 @@ import {
   type MyTeamMembership,
 } from '../api/teams-api';
 import { TeamHeader } from '../components/team-header';
-import { TeamFilterBar } from '../components/team-filter-bar';
+import { TeamFilterBar, TEAM_SPORT_FILTERS } from '../components/team-filter-bar';
 import { TeamCard } from '../components/team-card';
 import { TeamCreateModal } from '../components/team-create-modal';
 import { PageContainer } from '../../../components/layout/page-container';
+import { ApiError } from '../../../lib/api-client';
 
 export function TeamsPage(): React.ReactElement {
   const [memberships, setMemberships] = React.useState<MyTeamMembership[]>([]);
@@ -21,10 +22,11 @@ export function TeamsPage(): React.ReactElement {
 
   // Form State
   const [name, setName] = React.useState('');
-  const [sportType, setSportType] = React.useState('FOOTBALL');
+  const [sportType, setSportType] = React.useState('FOOTBALL5');
   const [teamCity, setTeamCity] = React.useState('Hà Nội');
   const [description, setDescription] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [createError, setCreateError] = React.useState<string | null>(null);
 
   const fetchTeams = React.useCallback(async () => {
     setIsLoading(true);
@@ -42,7 +44,8 @@ export function TeamsPage(): React.ReactElement {
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSubmitting) return;
+    setCreateError(null);
     setIsSubmitting(true);
     try {
       await createTeamApi({ name, sportType, description });
@@ -50,13 +53,18 @@ export function TeamsPage(): React.ReactElement {
       setName('');
       setDescription('');
       fetchTeams();
+    } catch (e) {
+      setCreateError(e instanceof ApiError ? e.message : 'Không thể tạo đội. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const filteredMemberships = memberships.filter((m) => {
-    const matchesSport = sportFilter === 'ALL' || m.team.sportType.includes(sportFilter);
+    // So khớp theo danh sách môn tường minh; `.includes()` từng hoạt động ngẫu nhiên
+    // nhờ tiền tố chuỗi và hỏng với mọi môn không phải tiền tố.
+    const matchesSport =
+      sportFilter === 'ALL' || (TEAM_SPORT_FILTERS[sportFilter] ?? [sportFilter]).includes(m.team.sportType);
     const matchesQuery =
       !searchQuery.trim() || m.team.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSport && matchesQuery;
@@ -128,6 +136,7 @@ export function TeamsPage(): React.ReactElement {
         description={description}
         onDescriptionChange={setDescription}
         isSubmitting={isSubmitting}
+        error={createError}
         onSubmit={handleCreateTeam}
       />
     </PageContainer>

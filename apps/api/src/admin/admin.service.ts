@@ -147,6 +147,7 @@ export class AdminService {
         select: {
           code: true,
           createdAt: true,
+          guestName: true,
           customer: { select: { fullName: true } },
           court: { select: { venue: { select: { name: true } } } },
         },
@@ -243,7 +244,7 @@ export class AdminService {
       ...recentBookings.map((b) => ({
         type: 'BOOKING_CREATED' as const,
         at: b.createdAt.getTime(),
-        label: `${b.code} · ${b.customer.fullName} @ ${b.court.venue.name}`,
+        label: `${b.code} · ${b.customer?.fullName ?? b.guestName ?? 'Khách vãng lai'} @ ${b.court.venue.name}`,
       })),
     ]
       .sort((a, b) => b.at - a.at)
@@ -355,7 +356,10 @@ export class AdminService {
 
   /**
    * Tra cứu đơn toàn hệ thống (GET /admin/bookings): lọc date/status/venueId,
-   * tìm search trên mã đơn HOẶC tên khách, phân trang items/total.
+   * tìm search trên mã đơn HOẶC tên khách tài khoản HOẶC tên khách vãng lai,
+   * phân trang items/total.
+   * - `guestName` là cột thẳng trên Booking nên khớp được cả đơn khách vãng lai
+   *   (customerId NULL); nhánh `customer.fullName` chỉ khớp đơn có tài khoản.
    * Include venue+court+customer trong MỘT findMany — không N+1.
    */
   async listBookings(query: AdminBookingsQueryDto) {
@@ -369,6 +373,9 @@ export class AdminService {
             OR: [
               { code: { contains: query.search, mode: 'insensitive' } },
               { customer: { fullName: { contains: query.search, mode: 'insensitive' } } },
+              // guestName là cột thẳng trên Booking: đơn quầy có customerId NULL
+              // không đi qua được nhánh `customer` nên phải có nhánh riêng.
+              { guestName: { contains: query.search, mode: 'insensitive' } },
             ],
           }
         : {}),
@@ -398,8 +405,10 @@ export class AdminService {
         venueId: b.court.venueId,
         venueName: b.court.venue.name,
         courtName: b.court.name,
-        customerName: b.customer.fullName,
-        customerEmail: b.customer.email,
+        // Đơn quầy (khách vãng lai) không có customer -> rơi về guestName, cuối cùng là nhãn mặc định.
+        customerName: b.customer?.fullName ?? b.guestName ?? 'Khách vãng lai',
+        customerEmail: b.customer?.email ?? null,
+        guestPhone: b.guestPhone,
         startTime: new Date(dayStartMs + b.startMinute * 60_000).toISOString(),
         endTime: new Date(dayStartMs + b.endMinute * 60_000).toISOString(),
         status: b.status,

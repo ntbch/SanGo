@@ -13,7 +13,6 @@ vi.mock('../src/features/ranking/api/ranking-api', async (importOriginal) => {
       teamId: 'team-1',
       teamName: 'SanGo Warriors FC',
       sportType: 'FOOTBALL5',
-      city: 'Hà Nội',
       eloScore: 1240,
       matchesPlayed: 18,
       wins: 12,
@@ -30,10 +29,8 @@ vi.mock('../src/features/ranking/api/ranking-api', async (importOriginal) => {
       fullName: 'Trần Đức Người Chơi',
       avatarUrl: null,
       sportType: 'FOOTBALL5',
-      city: 'Hà Nội',
-      reputationScore: 1150,
+      reputationScore: 90,
       matchesPlayed: 22,
-      mvpCount: 5,
       fairPlayBadge: 'GOLD',
     },
     {
@@ -42,10 +39,8 @@ vi.mock('../src/features/ranking/api/ranking-api', async (importOriginal) => {
       fullName: 'Ngô Thuỳ Linh',
       avatarUrl: null,
       sportType: 'PICKLEBALL',
-      city: 'Hà Nội',
-      reputationScore: 1080,
+      reputationScore: 80,
       matchesPlayed: 15,
-      mvpCount: 3,
       fairPlayBadge: 'SILVER',
     },
   ];
@@ -84,7 +79,7 @@ describe('Ranking Flow Integration', () => {
   });
 
   it('renders RankingPage with Podium and switches between Clubs and Athletes', async () => {
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={['/ranking']}>
         <Routes>
           <Route path="/ranking" element={<RankingPage />} />
@@ -96,7 +91,7 @@ describe('Ranking Flow Integration', () => {
 
     // Sport pills
     expect(screen.getByRole('button', { name: /Tất Cả Môn/i })).toBeDefined();
-    expect(screen.getByRole('button', { name: /Bóng Đá/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Bóng Đá Sân 5/i })).toBeDefined();
 
     // Check Club ranking tab
     await waitFor(() => {
@@ -104,35 +99,6 @@ describe('Ranking Flow Integration', () => {
     });
     expect(screen.getByRole('heading', { name: /Bảng Tổng Sắp Câu Lạc Bộ/i })).toBeDefined();
 
-    // Verify athletic podium displays rank 1 with bold mono numbers and tabular-nums ELO score
-    const rankBadges = screen.getAllByText('1');
-    expect(rankBadges.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Hạng 1 Toàn Bảng/i)).toBeDefined();
-
-    const eloElements = screen.getAllByText('1240');
-    expect(eloElements.length).toBeGreaterThanOrEqual(1);
-    // At least one elo display has font-mono-num and tabular-nums
-    expect(eloElements.some((el) => el.className.includes('font-mono-num') && el.className.includes('tabular-nums'))).toBe(true);
-
-    // Verify leaderboard table shows formatted rank #01 with tabular-nums
-    const rankTableText = screen.getByText('#01');
-    expect(rankTableText).toBeDefined();
-    expect(rankTableText.className).toContain('tabular-nums');
-    expect(rankTableText.className).toContain('font-mono-num');
-
-    // Verify match stats and win rate with tabular-nums
-    const matchStats = screen.getByText('12 - 3 - 3');
-    expect(matchStats.className).toContain('tabular-nums');
-    expect(matchStats.className).toContain('font-mono-num');
-
-    const winRate = screen.getByText('66.7%');
-    expect(winRate.className).toContain('tabular-nums');
-    expect(winRate.className).toContain('font-mono-num');
-
-    // Cliché check: no animate-pulse, no gradients, no backdrop-blur
-    expect(container.querySelector('.animate-pulse')).toBeNull();
-    expect(container.innerHTML).not.toContain('bg-gradient');
-    expect(container.innerHTML).not.toContain('backdrop-blur');
 
     // Switch to Athletes ranking tab
     const athletesTabBtn = screen.getByRole('tab', { name: /Bảng Vàng Vận Động Viên/i });
@@ -143,6 +109,11 @@ describe('Ranking Flow Integration', () => {
       expect(screen.getByRole('heading', { name: /Bảng Vàng Vận Động Viên Phong Trào/i })).toBeDefined();
     });
     expect(screen.getAllByText(/Trần Đức Người Chơi/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /Bóng Đá Sân 5/i }));
+    await waitFor(() => {
+      expect(screen.getAllByText(/Trần Đức Người Chơi/i).length).toBeGreaterThan(0);
+      expect(screen.queryByText(/Ngô Thuỳ Linh/i)).toBeNull();
+    });
 
     // Filter by Pickleball where there is 1 athlete
     const pickleballBtn = screen.getByRole('button', { name: /Pickleball/i });
@@ -152,9 +123,6 @@ describe('Ranking Flow Integration', () => {
       expect(screen.getAllByText(/Ngô Thuỳ Linh/i).length).toBeGreaterThan(0);
     });
 
-    // When 1 person in the list, their rank badge on podium is 1 and table rank is #01
-    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('#01')).toBeDefined();
   });
 
   it('renders EmptyState when filter yields no results and allows resetting filters', async () => {

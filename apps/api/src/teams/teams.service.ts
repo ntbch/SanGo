@@ -13,6 +13,7 @@ import {
   TeamFundEntryType,
   type ExpenseShare,
 } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { NotificationType } from '@sango/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletsService } from '../wallets/wallets.service';
@@ -28,6 +29,15 @@ import type {
   UpdateExpenseShareStatusDto,
   UpdateTeamDto,
 } from './dto/team.dto';
+
+/**
+ * Kết quả trả về cho lời mời — CỐ TÌNH không chứa userId/thành viên để không
+ * lộ ra việc email có tồn tại hay không (chống dò tài khoản).
+ */
+const INVITE_RESULT = {
+  status: 'PENDING' as const,
+  message: 'Đã gửi lời mời. Nếu tài khoản tồn tại, thành viên sẽ thấy yêu cầu trong đội.',
+};
 
 @Injectable()
 export class TeamsService {
@@ -89,8 +99,14 @@ export class TeamsService {
     });
   }
 
-  /** Chi tiết đội: kèm danh sách thành viên ACTIVE + thông tin cơ bản đội trưởng. */
-  async getTeam(teamId: string) {
+  /** Chi tiết và liên hệ chỉ dành cho thành viên ACTIVE hoặc người được mời. */
+  async getTeam(teamId: string, user: { id: string }) {
+    const membership = await this.prisma.teamMember.findFirst({
+      where: { teamId, userId: user.id, status: { in: ['ACTIVE', 'PENDING'] } },
+    });
+    if (!membership) {
+      throw new ForbiddenException({ message: 'Bạn không có quyền xem đội này', code: 'TEAM_FORBIDDEN' });
+    }
     const team = await this.prisma.team.findUnique({
       where: { id: teamId },
       include: {
@@ -188,29 +204,35 @@ export class TeamsService {
       });
     }
 
-    const targetUser = await this.prisma.user.findUnique({ where: { id: dto.userId } });
-    if (!targetUser) {
-      throw new NotFoundException({ message: 'Người dùng không tồn tại', code: 'USER_NOT_FOUND' });
-    }
+    // Chống dò email (đúng convention auth.service.ts:96,205): KHÔNG phân biệt được
+    // "email không tồn tại" với "đã là thành viên" — cả hai trả cùng một kết quả.
+    // users.email là cột case-sensitive và dữ liệu cũ có thể lưu Nguyễn.VanA@Gmail.com,
+    // nên tra cứu mode insensitive thay vì so khớp chính xác.
+    const target = dto.userId
+      ? { id: dto.userId }
+      : await this.prisma.user.findFirst({
+          where: { email: { equals: dto.email ?? '', mode: 'insensitive' } },
+          select: { id: true },
+        });
+    // Không tìm thấy user -> UUID ngẫu nhiên để create hỏng FK (P2003), y hệt trường
+    // hợp email có thật nhưng đã là thành viên (P2002).
+    const targetUserId = target?.id ?? randomUUID();
 
     try {
-      return await this.prisma.teamMember.create({
+      await this.prisma.teamMember.create({
         data: {
           teamId,
-          userId: dto.userId,
-          role: dto.role,
+          userId: targetUserId,
+          role: 'MEMBER',
           status: 'PENDING',
         },
       });
     } catch (e) {
-      if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') {
-        throw new ConflictException({
-          message: 'Người dùng này đã ở trong đội hoặc đã được mời trước đó',
-          code: 'TEAM_MEMBER_EXISTS',
-        });
-      }
+      const code = (e as Prisma.PrismaClientKnownRequestError).code;
+      if (code === 'P2002' || code === 'P2003') return INVITE_RESULT;
       throw e;
     }
+    return INVITE_RESULT;
   }
 
   /** Chấp nhận hoặc từ chối lời mời vào đội. */
@@ -324,121 +346,77 @@ export class TeamsService {
     return share;
   }
 
-  /**
-   * Chia đều tiền một đơn đặt sân (Booking) cho các thành viên trong đội:
-   * Tổng tiền = booking.subtotal (hoặc depositAmount nếu chỉ cọc), chia đều cho danh sách memberIds (gồm cả người trả hoặc không).
-   * Tạo các bản ghi ExpenseShare UNPAID cho từng debtor.
-   */
+  /** Chia tiền đã thanh toán của booking; người đặt sân là người ứng tiền. */
   async splitBookingExpense(teamId: string, user: { id: string }, dto: SplitBookingExpenseDto) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: dto.bookingId },
-      include: { payments: true },
-    });
-    if (!booking) {
-      throw new NotFoundException({
-        message: 'Không tìm thấy đơn đặt sân',
-        code: 'BOOKING_NOT_FOUND',
-      });
-    }
-
-    // Người chia tiền phải là người đặt sân (customerId) hoặc captain của đội
-    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
-    if (!team) {
-      throw new NotFoundException({
-        message: 'Không tìm thấy đội thể thao',
-        code: 'TEAM_NOT_FOUND',
-      });
-    }
-
-    if (booking.customerId !== user.id && team.captainId !== user.id) {
-      throw new ForbiddenException({
-        message: 'Chỉ người đặt sân hoặc đội trưởng mới có thể chia tiền đơn này',
-        code: 'FORBIDDEN_SPLIT',
-      });
-    }
-
-    // MAJOR-A(2a): đơn phải thuộc đúng đội trên route param — chặn gắn khoản nợ
-    // của đội này vào booking của đội khác.
-    if (booking.teamId !== teamId) {
-      throw new BadRequestException({
-        message: 'Đơn đặt sân không thuộc đội này',
-        code: 'BOOKING_TEAM_MISMATCH',
-      });
-    }
-
-    // Tính tổng tiền cần chia: tổng số tiền đã thanh toán (PAID) của đơn
-    const paidAmount = booking.payments
-      .filter((p) => p.status === 'PAID' && (p.type === 'DEPOSIT' || p.type === 'FULL'))
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const totalToSplit = paidAmount > 0 ? paidAmount : booking.subtotal;
-    // Charter C (S3): dedup memberIds — trùng debtor không được sinh 2 khoản nợ
-    // giống nhau trong một lần chia tiền.
-    dto.memberIds = [...new Set(dto.memberIds)];
-    const count = dto.memberIds.length;
-    if (count === 0) {
-      throw new BadRequestException({
-        message: 'Danh sách thành viên chia tiền không được rỗng',
-        code: 'EMPTY_MEMBERS',
-      });
-    }
-
-    // MAJOR-A(2c): mọi người được chia phải là TeamMember ACTIVE của đúng đội này.
-    const activeMembers = await this.prisma.teamMember.findMany({
-      where: { teamId, userId: { in: dto.memberIds }, status: 'ACTIVE' },
-      select: { userId: true },
-    });
-    if (activeMembers.length !== new Set(dto.memberIds).size) {
-      throw new BadRequestException({
-        message: 'Có thành viên không thuộc đội hoặc chưa ACTIVE',
-        code: 'MEMBER_NOT_ACTIVE',
-      });
-    }
-
-    const sharePerPerson = Math.floor(totalToSplit / count);
-
-    // Tạo các ExpenseShare cho các thành viên (loại trừ chính người trả nếu có trong danh sách)
-    const debtors = dto.memberIds.filter((id) => id !== user.id);
-
     const split = await this.prisma.$transaction(async (tx) => {
-      // MAJOR-A(2b): một booking chỉ được chia tiền MỘT lần trong đội —
-      // M4 fix: khoá dòng booking để hai split song song xếp hàng (ReadCommitted
-      // không tự chặn), recheck findFirst phía sau luôn thấy share tx trước đã commit.
-      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${booking.id}::uuid FOR UPDATE`;
-      const existingShare = await tx.expenseShare.findFirst({
-        where: { teamId, bookingId: booking.id },
+      const reference = await tx.booking.findUnique({
+        where: dto.bookingId ? { id: dto.bookingId } : { code: dto.bookingCode },
         select: { id: true },
       });
+      if (!reference) {
+        throw new NotFoundException({ message: 'Không tìm thấy đơn đặt sân', code: 'BOOKING_NOT_FOUND' });
+      }
+      await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${reference.id}::uuid FOR UPDATE`;
+      const booking = await tx.booking.findUniqueOrThrow({
+        where: { id: reference.id }, include: { payments: true },
+      });
+      const team = await tx.team.findUnique({ where: { id: teamId } });
+      if (!team) {
+        throw new NotFoundException({ message: 'Không tìm thấy đội thể thao', code: 'TEAM_NOT_FOUND' });
+      }
+      if (booking.customerId !== user.id && team.captainId !== user.id) {
+        throw new ForbiddenException({ message: 'Chỉ người đặt sân hoặc đội trưởng mới có thể chia tiền đơn này', code: 'FORBIDDEN_SPLIT' });
+      }
+      if (booking.teamId !== teamId) {
+        throw new BadRequestException({ message: 'Đơn đặt sân không thuộc đội này', code: 'BOOKING_TEAM_MISMATCH' });
+      }
+      const payerId = booking.customerId;
+      if (!payerId || booking.status === 'CANCELLED') {
+        throw new BadRequestException({ message: 'Đơn không có người ứng tiền hợp lệ hoặc đã hủy', code: 'BOOKING_NOT_SPLITTABLE' });
+      }
+      const memberIds = [...new Set(dto.memberIds)];
+      const requiredIds = [...new Set([...memberIds, payerId, user.id])];
+      const activeMembers = await tx.teamMember.findMany({
+        where: { teamId, userId: { in: requiredIds }, status: 'ACTIVE' },
+        select: { userId: true },
+      });
+      if (activeMembers.length !== requiredIds.length) {
+        throw new BadRequestException({ message: 'Có thành viên không thuộc đội hoặc chưa ACTIVE', code: 'MEMBER_NOT_ACTIVE' });
+      }
+      const totalToSplit = booking.payments
+        .filter((p) => p.status === 'PAID' && (p.type === 'DEPOSIT' || p.type === 'FULL'))
+        .reduce((sum, p) => sum + p.amount, 0);
+      if (totalToSplit <= 0) {
+        throw new BadRequestException({ message: 'Đơn chưa có khoản thanh toán được xác nhận', code: 'BOOKING_NOT_PAID' });
+      }
+      if (memberIds.length === 0 || memberIds.every((id) => id === payerId)) {
+        throw new BadRequestException({ message: 'Chọn ít nhất một thành viên khác người ứng tiền', code: 'EMPTY_DEBTORS' });
+      }
+      const existingShare = await tx.expenseShare.findFirst({
+        where: { teamId, bookingId: booking.id }, select: { id: true },
+      });
       if (existingShare) {
-        throw new ConflictException({
-          message: 'Đơn này đã được chia tiền trong đội rồi',
-          code: 'BOOKING_ALREADY_SPLIT',
-        });
+        throw new ConflictException({ message: 'Đơn này đã được chia tiền trong đội rồi', code: 'BOOKING_ALREADY_SPLIT' });
       }
-
+      const sharePerPerson = Math.floor(totalToSplit / memberIds.length);
+      if (sharePerPerson === 0) {
+        throw new BadRequestException({ message: 'Số tiền không đủ để chia cho các thành viên', code: 'SPLIT_AMOUNT_TOO_SMALL' });
+      }
+      const remainder = totalToSplit % memberIds.length;
       const createdShares = [];
-      for (const debtorId of debtors) {
-        const share = await tx.expenseShare.create({
+      for (const [index, debtorId] of memberIds.entries()) {
+        if (debtorId === payerId) continue;
+        createdShares.push(await tx.expenseShare.create({
           data: {
-            teamId,
-            bookingId: booking.id,
-            payerId: user.id,
-            debtorId,
-            amount: sharePerPerson,
-            note: dto.note || `Chia tiền sân đơn ${booking.code}`,
-            status: 'UNPAID',
+            teamId, bookingId: booking.id, payerId, debtorId,
+            amount: sharePerPerson + (index < remainder ? 1 : 0),
+            note: dto.note || `Chia tiền sân đơn ${booking.code}`, status: 'UNPAID',
           },
-        });
-        createdShares.push(share);
+        }));
       }
-
       return {
-        bookingId: booking.id,
-        bookingCode: booking.code,
-        totalAmount: totalToSplit,
-        sharePerPerson,
-        sharesCreated: createdShares.length,
-        shares: createdShares,
+        bookingId: booking.id, bookingCode: booking.code, totalAmount: totalToSplit,
+        sharePerPerson, sharesCreated: createdShares.length, shares: createdShares,
       };
     });
 
@@ -447,7 +425,7 @@ export class TeamsService {
       await this.notifyTeamSafe({
         userId: share.debtorId,
         title: 'Bạn có khoản nợ chia tiền mới',
-        body: `Đơn ${booking.code} đã được chia đều — bạn nợ ${share.amount.toLocaleString('vi-VN')}đ`,
+        body: `Đơn ${split.bookingCode} đã được chia đều — bạn nợ ${share.amount.toLocaleString('vi-VN')}đ`,
         link: `/teams/${teamId}`,
       });
     }
@@ -561,34 +539,30 @@ export class TeamsService {
     user: { id: string },
     dto: UpdateExpenseShareStatusDto,
   ) {
-    const share = await this.prisma.expenseShare.findUnique({
-      where: { id: shareId },
-      include: { team: true },
-    });
-    if (!share || share.teamId !== teamId) {
-      throw new NotFoundException({
-        message: 'Không tìm thấy khoản chia tiền',
-        code: 'EXPENSE_NOT_FOUND',
-      });
-    }
-
-    const isPayer = share.payerId === user.id;
-    const isCaptain = share.team.captainId === user.id;
-
-    if (!isPayer && !isCaptain) {
-      throw new ForbiddenException({
-        message: 'Chỉ người đã ứng tiền (payer) hoặc đội trưởng mới được xác nhận đã thanh toán',
-        code: 'EXPENSE_FORBIDDEN',
-      });
-    }
-
-    const updated = await this.prisma.expenseShare.update({
-      where: { id: shareId },
-      data: { status: dto.status },
+    const { updated, transitioned, isPayer } = await this.prisma.$transaction(async (tx) => {
+      // Dùng cùng khóa với payExpenseShare: không thể mở nợ giữa debit/credit và PAID.
+      await tx.$queryRaw`SELECT id FROM "expense_shares" WHERE id = ${shareId}::uuid FOR UPDATE`;
+      const share = await tx.expenseShare.findUnique({ where: { id: shareId }, include: { team: true } });
+      if (!share || share.teamId !== teamId) {
+        throw new NotFoundException({ message: 'Không tìm thấy khoản chia tiền', code: 'EXPENSE_NOT_FOUND' });
+      }
+      const isPayer = share.payerId === user.id;
+      if (!isPayer && share.team.captainId !== user.id) {
+        throw new ForbiddenException({ message: 'Chỉ người ứng tiền hoặc đội trưởng mới được xác nhận', code: 'EXPENSE_FORBIDDEN' });
+      }
+      if (dto.status === 'UNPAID') {
+        const settlement = await tx.walletLedger.findFirst({
+          where: { refType: 'EXPENSE_SHARE_PAYMENT', refId: share.id }, select: { id: true },
+        });
+        if (settlement) {
+          throw new ConflictException({ message: 'Khoản đã thanh toán qua ví không thể mở lại', code: 'EXPENSE_ALREADY_PAID' });
+        }
+      }
+      const updated = await tx.expenseShare.update({ where: { id: shareId }, data: { status: dto.status } });
+      return { updated, isPayer, transitioned: dto.status === 'PAID' && share.status !== 'PAID' };
     });
 
-    // Phase 1 (T1.2): chỉ báo cho debtor đúng lúc chuyển UNPAID -> PAID (PATCH lặp không spam).
-    if (dto.status === 'PAID' && share.status !== 'PAID') {
+    if (transitioned) {
       await this.notifyTeamSafe({
         userId: updated.debtorId,
         title: 'Khoản nợ đã được xác nhận trả',
@@ -688,95 +662,68 @@ export class TeamsService {
 
   /** Tổng quan quỹ đội: số dư, thu/chi tháng này, danh sách đợt thu đang mở */
   async getTreasuryOverview(teamId: string, user: { id: string }) {
-    const isMember = await this.prisma.teamMember.findFirst({
-      where: { teamId, userId: user.id, status: 'ACTIVE' },
-    });
-    if (!isMember) {
-      throw new ForbiddenException({
-        message: 'Chỉ thành viên chính thức mới có thể xem quỹ đội',
-        code: 'TEAM_FORBIDDEN',
+    return this.prisma.$transaction(async (tx) => {
+      const isMember = await tx.teamMember.findFirst({
+        where: { teamId, userId: user.id, status: 'ACTIVE' },
       });
-    }
-
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // Tính tổng thu từ đóng quỹ (FundContribution)
-    const totalContributions = await this.prisma.fundContribution.aggregate({
-      where: { fundDrive: { teamId } },
-      _sum: { amount: true },
-    });
-
-    // Tính tổng thu / chi từ nhật ký TeamExpense
-    const expenses = await this.prisma.teamExpense.findMany({
-      where: { teamId },
-      select: { type: true, amount: true, occurredAt: true },
-    });
-
-    let totalExpenseLogged = 0;
-    let totalOtherIncome = 0;
-    let monthExpense = 0;
-    let monthIncome = 0;
-
-    for (const exp of expenses) {
-      if (exp.type === TeamFundEntryType.EXPENSE) {
-        totalExpenseLogged += exp.amount;
-        if (exp.occurredAt >= startOfMonth) {
-          monthExpense += exp.amount;
-        }
-      } else {
-        totalOtherIncome += exp.amount;
-        if (exp.occurredAt >= startOfMonth) {
-          monthIncome += exp.amount;
+      if (!isMember) {
+        throw new ForbiddenException({ message: 'Chỉ thành viên chính thức mới có thể xem quỹ đội', code: 'TEAM_FORBIDDEN' });
+      }
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const [expenses, contributions, activeDrives] = await Promise.all([
+        tx.teamExpense.findMany({
+          where: { teamId }, include: { recorder: { select: { fullName: true } } },
+        }),
+        tx.fundContribution.findMany({
+          where: { fundDrive: { teamId } },
+          include: { user: { select: { fullName: true } }, fundDrive: { select: { title: true } } },
+        }),
+        tx.fundDrive.findMany({
+          where: { teamId, status: FundDriveStatus.ACTIVE },
+          include: {
+            _count: { select: { contributions: true } },
+            contributions: { where: { userId: user.id }, select: { id: true, amount: true, paidAt: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+      const recentTransactions = [
+        ...expenses.map((e) => ({
+          id: `expense:${e.id}`, type: e.type, amount: e.amount,
+          description: e.reason, createdAt: e.occurredAt.toISOString(), createdByName: e.recorder.fullName,
+        })),
+        ...contributions.map((c) => ({
+          id: `contribution:${c.id}`, type: TeamFundEntryType.INCOME, amount: c.amount,
+          description: `Đóng quỹ: ${c.fundDrive.title}${c.note ? ` (${c.note})` : ''}`,
+          createdAt: c.paidAt.toISOString(), createdByName: c.user.fullName,
+        })),
+      ].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let monthIncome = 0;
+      let monthExpense = 0;
+      for (const entry of recentTransactions) {
+        const thisMonth = new Date(entry.createdAt) >= startOfMonth;
+        if (entry.type === TeamFundEntryType.INCOME) {
+          totalIncome += entry.amount;
+          if (thisMonth) monthIncome += entry.amount;
+        } else {
+          totalExpense += entry.amount;
+          if (thisMonth) monthExpense += entry.amount;
         }
       }
-    }
-
-    // Tính thêm thu tháng này từ FundContribution
-    const monthContributions = await this.prisma.fundContribution.aggregate({
-      where: {
-        fundDrive: { teamId },
-        paidAt: { gte: startOfMonth },
-      },
-      _sum: { amount: true },
-    });
-    monthIncome += (monthContributions._sum.amount ?? 0);
-
-    const totalIncome = (totalContributions._sum.amount ?? 0) + totalOtherIncome;
-    const balance = totalIncome - totalExpenseLogged;
-
-    // Đợt thu đang mở
-    const activeDrives = await this.prisma.fundDrive.findMany({
-      where: { teamId, status: FundDriveStatus.ACTIVE },
-      include: {
-        _count: { select: { contributions: true } },
-        contributions: {
-          where: { userId: user.id },
-          select: { id: true, amount: true, paidAt: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return {
-      balance,
-      monthIncome,
-      monthExpense,
-      totalIncome,
-      totalExpense: totalExpenseLogged,
-      activeDrives: activeDrives.map((d) => ({
-        id: d.id,
-        title: d.title,
-        description: d.description,
-        scope: d.scope,
-        targetAmount: d.targetAmount,
-        amountPerMember: d.amountPerMember,
-        status: d.status,
-        deadline: d.deadline,
-        contributionsCount: d._count.contributions,
-        myContribution: d.contributions[0] ?? null,
-      })),
-    };
+      return {
+        teamId, balance: totalIncome - totalExpense, monthIncome, monthExpense,
+        totalIncome, totalExpense, recentTransactions,
+        activeDrives: activeDrives.map((d) => ({
+          id: d.id, title: d.title, description: d.description, scope: d.scope,
+          targetAmount: d.targetAmount, amountPerMember: d.amountPerMember,
+          status: d.status, deadline: d.deadline,
+          contributionsCount: d._count.contributions, myContribution: d.contributions[0] ?? null,
+        })),
+      };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   /** Tạo đợt thu quỹ (chỉ Captain) */
@@ -938,18 +885,15 @@ export class TeamsService {
     });
   }
 
-  /** Thêm nhật ký thu–chi quỹ (Captain hoặc thành viên được ủy quyền) */
+  /** Thêm nhật ký thu–chi quỹ: chỉ đội trưởng được ghi sổ. */
   async createTeamExpense(teamId: string, user: { id: string }, dto: CreateTeamExpenseDto) {
     const team = await this.prisma.team.findUnique({ where: { id: teamId } });
     if (!team) {
       throw new NotFoundException({ message: 'Không tìm thấy đội', code: 'TEAM_NOT_FOUND' });
     }
-    const isMember = await this.prisma.teamMember.findFirst({
-      where: { teamId, userId: user.id, status: 'ACTIVE' },
-    });
-    if (!isMember) {
+    if (team.captainId !== user.id) {
       throw new ForbiddenException({
-        message: 'Chỉ thành viên đội mới có thể ghi nhật ký',
+        message: 'Chỉ đội trưởng mới có thể ghi nhật ký thu chi',
         code: 'TEAM_FORBIDDEN',
       });
     }

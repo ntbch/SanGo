@@ -8,18 +8,11 @@ export interface TournamentTeamEntry {
   tournamentId: string;
   teamId: string;
   seed?: number | null;
-  registeredAt: string;
-  contactPhone?: string;
-  captainName?: string;
+  joinedAt: string;
   team: {
     id: string;
     name: string;
     logoUrl?: string | null;
-    captain?: {
-      id: string;
-      fullName: string;
-      phoneNumber?: string;
-    };
   };
 }
 
@@ -28,7 +21,6 @@ export interface TournamentMatch {
   tournamentId: string;
   round: number;
   position: number;
-  matchTime?: string;
   homeTeamId?: string | null;
   awayTeamId?: string | null;
   homeScore?: number | null;
@@ -40,15 +32,13 @@ export interface TournamentMatch {
     id: string;
     name: string;
     logoUrl?: string | null;
-    captainName?: string;
   } | null;
   awayTeam?: {
     id: string;
     name: string;
     logoUrl?: string | null;
-    captainName?: string;
   } | null;
-  winnerTeam?: {
+  winner?: {
     id: string;
     name: string;
   } | null;
@@ -58,23 +48,16 @@ export interface Tournament {
   id: string;
   name: string;
   sportType: string;
-  city: string;
-  district?: string;
+  description?: string | null;
   status: TournamentStatus;
   maxTeams: number;
-  bannerUrl?: string | null;
-  prizePool?: number;
-  registrationDeadline?: string;
-  startDate?: string;
-  endDate?: string;
-  rules?: string;
-  entryFee?: number;
   createdBy: string;
   championTeamId?: string | null;
-  championTeam?: {
+  champion?: {
     id: string;
     name: string;
   } | null;
+  _count?: { teams: number };
   teams?: TournamentTeamEntry[];
   matches?: TournamentMatch[];
 }
@@ -82,21 +65,11 @@ export interface Tournament {
 export interface CreateTournamentDto {
   name: string;
   sportType: string;
-  city: string;
-  district?: string;
-  maxTeams: number;
-  prizePool?: number;
-  entryFee?: number;
-  registrationDeadline?: string;
-  startDate?: string;
-  rules?: string;
+  description?: string;
 }
 
 export interface RegisterTournamentTeamDto {
   teamId: string;
-  contactPhone?: string;
-  captainName?: string;
-  teamName?: string;
 }
 
 export interface UpdateMatchScoreDto {
@@ -122,7 +95,7 @@ export async function createTournamentApi(data: CreateTournamentDto): Promise<To
 export async function registerTournamentTeamApi(
   tournamentId: string,
   data: RegisterTournamentTeamDto,
-): Promise<any> {
+): Promise<TournamentTeamEntry> {
   return apiClient(`/tournaments/${tournamentId}/register`, {
     method: 'POST',
     body: JSON.stringify({ teamId: data.teamId }),

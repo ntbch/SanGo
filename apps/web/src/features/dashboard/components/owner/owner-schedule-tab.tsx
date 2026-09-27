@@ -1,4 +1,5 @@
 import React from 'react';
+import { vietnamDate, shiftOperatingDate } from '../../utils/operating-date';
 import {
   type Court,
   type OwnerBookingItem,
@@ -32,7 +33,7 @@ interface OwnerScheduleTabProps {
   bookings: OwnerBookingItem[];
   bookingDate: string;
   setBookingDate: (date: string) => void;
-  onOpenWalkIn: (courtId?: string, startHour?: string, endHour?: string) => void;
+  onOpenWalkIn: (courtId?: string, startHour?: string) => void;
   onQuickCheckIn: (code: string) => void;
 }
 
@@ -66,11 +67,7 @@ export function OwnerScheduleTab({
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => {
-                const d = new Date(bookingDate);
-                d.setDate(d.getDate() - 1);
-                setBookingDate(d.toISOString().slice(0, 10));
-              }}
+              onClick={() => setBookingDate(shiftOperatingDate(bookingDate, -1))}
               className="h-8 w-8 rounded-lg"
               title="Ngày trước"
             >
@@ -78,16 +75,16 @@ export function OwnerScheduleTab({
             </Button>
             <Button
               size="sm"
-              variant={bookingDate === new Date().toISOString().slice(0, 10) ? 'default' : 'ghost'}
-              onClick={() => setBookingDate(new Date().toISOString().slice(0, 10))}
+              variant={bookingDate === vietnamDate() ? 'default' : 'ghost'}
+              onClick={() => setBookingDate(vietnamDate())}
               className="h-8 text-xs font-bold px-3 rounded-lg"
             >
               Hôm Nay
             </Button>
             <Button
               size="sm"
-              variant={bookingDate === new Date(Date.now() + 86400000).toISOString().slice(0, 10) ? 'default' : 'ghost'}
-              onClick={() => setBookingDate(new Date(Date.now() + 86400000).toISOString().slice(0, 10))}
+              variant={bookingDate === shiftOperatingDate(vietnamDate(), 1) ? 'default' : 'ghost'}
+              onClick={() => setBookingDate(shiftOperatingDate(vietnamDate(), 1))}
               className="h-8 text-xs font-bold px-3 rounded-lg"
             >
               Ngày Mai
@@ -95,11 +92,7 @@ export function OwnerScheduleTab({
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => {
-                const d = new Date(bookingDate);
-                d.setDate(d.getDate() + 1);
-                setBookingDate(d.toISOString().slice(0, 10));
-              }}
+              onClick={() => setBookingDate(shiftOperatingDate(bookingDate, 1))}
               className="h-8 w-8 rounded-lg"
               title="Ngày sau"
             >
@@ -132,7 +125,7 @@ export function OwnerScheduleTab({
         </div>
         <div className="flex items-center gap-1.5 font-medium">
           <span className="h-3 w-3 rounded-full bg-amber-500 inline-block" />
-          <span>Đã cọc / Chờ khách đến</span>
+          <span>Đã đặt / Chờ khách đến</span>
         </div>
         <div className="flex items-center gap-1.5 font-medium">
           <span className="h-3 w-3 rounded-full bg-sky-500 inline-block" />
@@ -176,7 +169,7 @@ export function OwnerScheduleTab({
                 </tr>
               ) : (
                 courts.map((court) => {
-                  const courtBookings = bookings.filter((b) => b.courtId === court.id);
+                  const courtBookings = bookings.filter((b) => b.courtId === court.id && b.date.slice(0, 10) === bookingDate && ['CONFIRMED', 'CHECKED_IN', 'COMPLETED'].includes(b.status));
                   return (
                     <tr key={court.id} className="hover:bg-secondary/15 transition-colors">
                       {/* Sticky Left Court Info */}
@@ -235,9 +228,9 @@ export function OwnerScheduleTab({
                                     ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
                                     : 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
                                 )}
-                                title={`Đơn: ${matchingBooking.code} - ${matchingBooking.customer.fullName} (${formatMinutesToTime(matchingBooking.startMinute)} - ${formatMinutesToTime(matchingBooking.endMinute)})`}
+                                title={`Đơn: ${matchingBooking.code} - ${matchingBooking.customer?.fullName ?? matchingBooking.guestName} (${formatMinutesToTime(matchingBooking.startMinute)} - ${formatMinutesToTime(matchingBooking.endMinute)})`}
                               >
-                                <p className="truncate font-black">{matchingBooking.customer.fullName}</p>
+                                <p className="truncate font-black">{matchingBooking.customer?.fullName ?? matchingBooking.guestName}</p>
                                 <p className="font-mono text-[9px] opacity-80">{matchingBooking.code.slice(-6)}</p>
                               </div>
                             </td>
@@ -254,8 +247,7 @@ export function OwnerScheduleTab({
                               onClick={() =>
                                 onOpenWalkIn(
                                   court.id,
-                                  `${hour.toString().padStart(2, '0')}:00`,
-                                  `${(hour + 1).toString().padStart(2, '0')}:30`
+                                  `${hour.toString().padStart(2, '0')}:00`
                                 )
                               }
                               className="w-full h-11 rounded-lg border border-dashed border-border/40 hover:border-primary hover:bg-primary/10 flex items-center justify-center text-muted-foreground/30 hover:text-primary transition-all text-[10px] font-bold"

@@ -311,7 +311,7 @@ export class PaymentsService {
    * idempotency qua txnRef UNIQUE, rồi confirm hold hoặc ghi nhận ADD_ON trong MỘT transaction.
    */
   async handleVnpayCallback(query: VnpayCallbackQuery) {
-    const secret = this.env('VNPAY_HASH_SECRET', 'sandbox-secret');
+    const secret = this.requireEnv('VNPAY_HASH_SECRET');
     if (!verifyVnpaySignature(query, secret)) {
       // Chữ ký sai: không redirect về success dưới mọi hình thức
       throw new BadRequestException({
@@ -370,6 +370,7 @@ export class PaymentsService {
         throw e;
       }
 
+      if (booking.customerId) {
       await this.notify
         .dispatch({
           userId: booking.customerId,
@@ -379,6 +380,7 @@ export class PaymentsService {
           link: '/bookings',
         })
         .catch(() => undefined);
+      }
 
       // PA(chốt A): đính kèm type để FE trang kết quả phân biệt luồng ADD_ON.
       return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code, type: 'ADD_ON' });
@@ -455,6 +457,7 @@ export class PaymentsService {
         }
         throw e;
       }
+      if (booking.customerId) {
       await this.notify
         .dispatch({
           userId: booking.customerId,
@@ -464,6 +467,7 @@ export class PaymentsService {
           link: '/bookings',
         })
         .catch(() => undefined);
+      }
       return { success: true, txnRef, type: 'ADD_ON', bookingCode: booking.code };
     }
 
@@ -535,6 +539,7 @@ export class PaymentsService {
         throw e;
       }
 
+      if (booking.customerId) {
       await this.notify
         .dispatch({
           userId: booking.customerId,
@@ -544,6 +549,7 @@ export class PaymentsService {
           link: '/bookings',
         })
         .catch(() => undefined);
+      }
 
       return this.frontendRedirect('SUCCESS', { txnRef, code: booking.code, type: 'ADD_ON' });
     }

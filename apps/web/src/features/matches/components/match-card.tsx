@@ -13,7 +13,9 @@ export function MatchCard({ match: m }: MatchCardProps): React.ReactElement {
   const total = m.totalSlots ?? 0;
   const filled = m.filledSlots ?? 0;
   const slotsLeft = Math.max(0, total - filled);
-  const isFull = slotsLeft === 0;
+  // total === 0 nghĩa là dữ liệu chưa có số chỗ, KHÔNG phải kèo đã kín — trước đây
+  // card hiện "Đã đủ" cho mọi match thiếu trường này.
+  const isFull = total > 0 && slotsLeft === 0;
 
   const formattedDate = React.useMemo(() => {
     if (!m.date) return 'Hôm nay';

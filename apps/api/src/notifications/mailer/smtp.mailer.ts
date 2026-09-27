@@ -1,56 +1,40 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { createTransport } from 'nodemailer';
 import type { MailerPort, SendMailInput } from './mailer.port';
 
-/**
- * Adapter SMTP — hiện đang là STUB:
- * TODO(nodemailer): `pnpm --filter @sango/api add nodemailer` (+ @types/nodemailer)
- * rồi thay khối try bên dưới bằng transporter thật:
- *
- *   const nodemailer = require('nodemailer');
- *   this.transporter = nodemailer.createTransport({
- *     host: process.env.SMTP_HOST,
- *     port: Number(process.env.SMTP_PORT ?? 587),
- *     secure: Number(process.env.SMTP_PORT ?? 587) === 465,
- *     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
- *   });
- *   await this.transporter.sendMail({ from: process.env.MAIL_FROM, ...input });
- *
- * Cho đến khi cài đặt, nếu SMTP_HOST được đặt mà thiếu dependency thì tự rơi về
- * log console (không làm vỡ luồng nghiệp vụ gọi mail).
- */
+/** Transport SMTP thật; lỗi gửi được chuyển tới NotifyService.sendMailSafe. */
 @Injectable()
 export class SmtpMailer implements MailerPort {
-  private readonly logger = new Logger(SmtpMailer.name);
+  private readonly transporter;
+
+  constructor(env: NodeJS.ProcessEnv = process.env) {
+    const port = Number(env.SMTP_PORT ?? 587);
+    // 465 = TLS ngầm định; mọi cổng khác phải nâng cấp STARTTLS, nếu server không
+    // quảng bá thì fail chứ không gửi AUTH (và khoá) dạng rõ.
+    const secure = port === 465;
+    this.transporter = createTransport({
+      host: env.SMTP_HOST,
+      port,
+      secure,
+      requireTLS: !secure,
+      auth:
+        env.SMTP_USER && env.SMTP_PASS
+          ? { user: env.SMTP_USER, pass: env.SMTP_PASS }
+          : undefined,
+      // Không chờ mãi: chặn treo request khi host sai/chặn mạng.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
+    });
+    this.from = env.MAIL_FROM ?? 'SanGo <no-reply@sango.vn>';
+  }
+
+  private readonly from: string;
 
   async send(input: SendMailInput): Promise<void> {
-    try {
-      // Chỉ chạy được sau khi cài nodemailer — xem TODO phía trên.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy load stub, dep chưa có trong package.json
-      const nodemailer = require('nodemailer') as {
-        createTransport(opts: unknown): { sendMail(opts: unknown): Promise<unknown> };
-      };
-      const port = Number(process.env.SMTP_PORT ?? 587);
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port,
-        secure: port === 465,
-        auth:
-          process.env.SMTP_USER && process.env.SMTP_PASS
-            ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-            : undefined,
-      });
-      await transporter.sendMail({
-        from: process.env.MAIL_FROM ?? 'SanGo <no-reply@sango.vn>',
-        to: input.to,
-        subject: input.subject,
-        html: input.html,
-        text: input.text,
-      });
-    } catch {
-      this.logger.warn(
-        'SMTP_HOST đã cấu hình nhưng nodemailer chưa cài / gửi lỗi — fallback console',
-      );
-      console.log(`[MAIL] to=${input.to} subject=${input.subject}`);
+    const result = await this.transporter.sendMail({ from: this.from, ...input });
+    if (result.rejected.length > 0) {
+      throw new Error('SMTP từ chối người nhận email');
     }
   }
 }

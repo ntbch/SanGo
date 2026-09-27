@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { vietnamDate } from '../utils/operating-date';
 import {
   getOwnerVenuesApi,
   getVenueCourtsApi,
@@ -18,6 +19,7 @@ import {
   getOwnerAnalyticsApi,
   getOwnerBookingsApi,
   checkInBookingApi,
+  createWalkInBookingApi,
   markNoShowBookingApi,
   type OwnerVenue,
   type Court,
@@ -29,7 +31,6 @@ import {
   type SportType,
   type DayType,
   type ServiceType,
-  type BookingStatus,
 } from '../api/owner-api';
 
 export function useOwnerDashboard() {
@@ -43,7 +44,7 @@ export function useOwnerDashboard() {
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [checkInResult, setCheckInResult] = useState<{ message: string; booking: OwnerBookingItem } | null>(null);
   const [checkInError, setCheckInError] = useState<string | null>(null);
-  const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [bookingDate, setBookingDate] = useState<string>(() => vietnamDate());
   const [bookingStatusFilter, setBookingStatusFilter] = useState<string>('ALL');
   const [bookings, setBookings] = useState<OwnerBookingItem[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
@@ -55,8 +56,6 @@ export function useOwnerDashboard() {
   const [walkInEndHour, setWalkInEndHour] = useState('18:30');
   const [walkInCustomerName, setWalkInCustomerName] = useState('');
   const [walkInCustomerPhone, setWalkInCustomerPhone] = useState('');
-  const [walkInDeposit, setWalkInDeposit] = useState(100000);
-  const [walkInTotal, setWalkInTotal] = useState(300000);
   const [walkInSubmitting, setWalkInSubmitting] = useState(false);
 
   // Analytics State
@@ -127,13 +126,18 @@ export function useOwnerDashboard() {
     if (!targetVenue) return;
     setLoadingBookings(true);
     try {
-      const res = await getOwnerBookingsApi({
-        venueId: targetVenue.id,
-        date: bookingDate || undefined,
-        status: bookingStatusFilter !== 'ALL' ? (bookingStatusFilter as BookingStatus) : undefined,
-        limit: 50,
-      });
-      setBookings(res.items);
+      const items: OwnerBookingItem[] = [];
+      let page = 1;
+      let pages = 1;
+      do {
+        const res = await getOwnerBookingsApi({
+          venueId: targetVenue.id, date: bookingDate || undefined, limit: 50, page,
+        });
+        items.push(...res.items);
+        pages = res.pages;
+        page += 1;
+      } while (page <= pages);
+      setBookings(items);
     } catch (err) {
       console.error('Lỗi khi nạp danh sách đơn:', err);
     } finally {
@@ -280,14 +284,36 @@ export function useOwnerDashboard() {
     }
   };
 
-  const handleOpenWalkIn = (courtId?: string, startH = '17:00', endH = '18:30') => {
-    setWalkInCourtId(courtId || (courts.length > 0 ? courts[0].id : ''));
-    setWalkInStartHour(startH);
-    setWalkInEndHour(endH);
+  /** Lưới giờ của sân: start phải khớp openMinute, dài đúng bằng slotMinutes. */
+  const walkInWindowFor = (court: Court | undefined, requestedStartMinute: number) => {
+    const step = court?.slotMinutes ?? 60;
+    const open = selectedVenue?.openMinute ?? 0;
+    const slots = Math.max(0, Math.round((requestedStartMinute - open) / step));
+    const startMinute = open + slots * step;
+    return { startMinute, endMinute: startMinute + step };
+  };
+
+  const parseHHMM = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+
+  const formatHHMM = (minutes: number) =>
+    `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`;
+
+  // startHour do lưới lịch truyền vào; end luôn bằng start + slotMinutes của sân.
+  // Trước đây end hardcode 90 phút -> sân 60 phút luôn bị server từ chối SLOTS_MISALIGNED.
+  const handleOpenWalkIn = (courtId?: string, startHour?: string) => {
+    const targetId = courtId || (courts.length > 0 ? courts[0].id : '');
+    const { startMinute, endMinute } = walkInWindowFor(
+      courts.find((c) => c.id === targetId),
+      startHour ? parseHHMM(startHour) : 17 * 60,
+    );
+    setWalkInCourtId(targetId);
+    setWalkInStartHour(formatHHMM(startMinute));
+    setWalkInEndHour(formatHHMM(endMinute));
     setWalkInCustomerName('');
     setWalkInCustomerPhone('');
-    setWalkInDeposit(100000);
-    setWalkInTotal(300000);
     setWalkInModalOpen(true);
   };
 
@@ -299,37 +325,21 @@ export function useOwnerDashboard() {
     }
     setWalkInSubmitting(true);
     try {
-      const startMin = parseInt(walkInStartHour.split(':')[0], 10) * 60 + parseInt(walkInStartHour.split(':')[1] || '0', 10);
-      const endMin = parseInt(walkInEndHour.split(':')[0], 10) * 60 + parseInt(walkInEndHour.split(':')[1] || '0', 10);
-      const targetCourt = courts.find((c) => c.id === walkInCourtId);
-
-      const newBooking: OwnerBookingItem = {
-        id: `walkin-${Date.now()}`,
-        code: `WI-${bookingDate.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`,
-        customerId: `walkin-cust-${Date.now()}`,
-        courtId: walkInCourtId,
-        date: bookingDate,
-        startMinute: startMin,
-        endMinute: endMin,
-        subtotal: Number(walkInTotal),
-        depositAmount: Number(walkInDeposit),
-        status: 'CONFIRMED',
-        court: {
-          id: walkInCourtId,
-          name: targetCourt?.name || 'Sân đặt quầy',
-          sportType: targetCourt?.sportType || 'FOOTBALL5',
-        },
-        customer: {
-          id: `walkin-cust-${Date.now()}`,
-          fullName: walkInCustomerName.trim(),
-          phone: walkInCustomerPhone.trim() || 'Khách vãng lai',
-          email: 'walkin@sango.vn',
-        },
-      };
-
-      setBookings((prev) => [newBooking, ...prev]);
+      // Ô giờ cho phép chủ sân gõ tay -> chuẩn hoá lại về lưới của sân trước khi gửi,
+      // và đồng bộ giá trị hiển thị để khung giờ người dùng thấy luôn là khung sẽ lưu.
+      const { startMinute, endMinute } = walkInWindowFor(
+        courts.find((c) => c.id === walkInCourtId),
+        parseHHMM(walkInStartHour),
+      );
+      setWalkInStartHour(formatHHMM(startMinute));
+      setWalkInEndHour(formatHHMM(endMinute));
+      const newBooking = await createWalkInBookingApi({
+        courtId: walkInCourtId, date: bookingDate, startMinute, endMinute,
+        guestName: walkInCustomerName.trim(), guestPhone: walkInCustomerPhone.trim(),
+      });
+      await fetchBookings();
       setWalkInModalOpen(false);
-      alert(`Tạo đơn đặt quầy thành công! Mã đơn: ${newBooking.code}`);
+      alert(`Đã lưu đơn tại quầy ${newBooking.code}. Tổng tiền: ${newBooking.subtotal.toLocaleString('vi-VN')}đ. Chưa ghi nhận thanh toán.`);
     } catch (err: any) {
       alert(err.message || 'Lỗi khi tạo đơn tại quầy');
     } finally {
@@ -400,7 +410,7 @@ export function useOwnerDashboard() {
     }
 
     const newRule: PricingRule = {
-      id: 'temp-' + Date.now(),
+      id: crypto.randomUUID(),
       courtId: selectedCourtForPricing?.id || '',
       dayType: pricingDayType,
       startMinute,
@@ -411,10 +421,8 @@ export function useOwnerDashboard() {
     setPricingRules([...pricingRules, newRule]);
   };
 
-  const handleRemovePricingRule = (index: number) => {
-    const next = [...pricingRules];
-    next.splice(index, 1);
-    setPricingRules(next);
+  const handleRemovePricingRule = (id: string) => {
+    setPricingRules((rules) => rules.filter((rule) => rule.id !== id));
   };
 
   const handleSaveAllPricingRules = async () => {
@@ -559,10 +567,6 @@ export function useOwnerDashboard() {
     setWalkInCustomerName,
     walkInCustomerPhone,
     setWalkInCustomerPhone,
-    walkInDeposit,
-    setWalkInDeposit,
-    walkInTotal,
-    setWalkInTotal,
     walkInSubmitting,
     analyticsDays,
     setAnalyticsDays,

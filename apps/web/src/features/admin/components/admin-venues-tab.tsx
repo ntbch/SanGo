@@ -55,6 +55,7 @@ export function AdminVenuesTab(): React.ReactElement {
   const [rejectVenueId, setRejectVenueId] = React.useState<string | null>(null);
   const [rejectReason, setRejectReason] = React.useState('');
   const [actionLoading, setActionLoading] = React.useState(false);
+  const [maintenanceError, setMaintenanceError] = React.useState<string | null>(null);
 
   const fetchVenues = React.useCallback(async () => {
     setLoading(true);
@@ -79,6 +80,7 @@ export function AdminVenuesTab(): React.ReactElement {
   }, [fetchVenues]);
 
   const handleInspect = async (id: string) => {
+    setMaintenanceError(null);
     try {
       const detail = await adminApi.getAdminVenueDetail(id);
       setSelectedVenueDetail(detail);
@@ -130,6 +132,21 @@ export function AdminVenuesTab(): React.ReactElement {
       await fetchVenues();
     } catch (err) {
       console.error('Update venue status failed:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleMaintenance = async (court: adminApi.AdminVenueDetail['courts'][number]) => {
+    if (!selectedVenueDetail || actionLoading) return;
+    setActionLoading(true);
+    setMaintenanceError(null);
+    try {
+      await adminApi.toggleAdminCourtMaintenance(court.id, court.status !== 'MAINTENANCE');
+      const detail = await adminApi.getAdminVenueDetail(selectedVenueDetail.id);
+      setSelectedVenueDetail(detail);
+    } catch (error) {
+      setMaintenanceError(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái sân.');
     } finally {
       setActionLoading(false);
     }
@@ -427,6 +444,7 @@ export function AdminVenuesTab(): React.ReactElement {
                 <h4 className="text-xs font-bold text-muted-foreground uppercase">
                   Danh Sách Sân Con ({selectedVenueDetail.courts.length})
                 </h4>
+                {maintenanceError && <p role="alert" className="text-xs text-destructive">{maintenanceError}</p>}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {selectedVenueDetail.courts.map((c) => (
                     <div key={c.id} className="p-3 rounded-xl bg-card border border-border/80 flex items-center justify-between text-xs">
@@ -434,9 +452,14 @@ export function AdminVenuesTab(): React.ReactElement {
                         <p className="font-bold text-foreground">{c.name}</p>
                         <p className="text-[10px] text-muted-foreground">{SPORT_TYPE_LABELS[c.sportType]}</p>
                       </div>
-                      <Badge variant={c.isMaintenance ? 'destructive' : 'available'} className="text-[9px]">
-                        {c.isMaintenance ? 'Bảo trì' : 'Sẵn sàng'}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant={c.status === 'MAINTENANCE' ? 'destructive' : 'available'} className="text-[9px]">
+                          {c.status === 'MAINTENANCE' ? 'Bảo trì' : 'Sẵn sàng'}
+                        </Badge>
+                        <Button variant="outline" size="sm" disabled={actionLoading} onClick={() => void handleToggleMaintenance(c)}>
+                          {c.status === 'MAINTENANCE' ? 'Kết thúc bảo trì' : 'Bật bảo trì'}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

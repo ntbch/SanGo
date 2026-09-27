@@ -52,12 +52,12 @@ export interface CreateTeamDto {
 }
 
 export interface AddTeamMemberDto {
-  emailOrPhone: string;
-  role?: 'MEMBER' | 'VICE_CAPTAIN';
+  email: string;
+  role?: 'MEMBER';
 }
 
 export interface SplitBookingDto {
-  bookingId: string;
+  bookingCode: string;
   memberIds: string[];
   note?: string;
 }
@@ -80,8 +80,8 @@ export interface ExpenseShare {
 export interface TreasuryOverview {
   teamId: string;
   balance: number;
-  totalIncomeThisMonth: number;
-  totalExpenseThisMonth: number;
+  monthIncome: number;
+  monthExpense: number;
   recentTransactions: Array<{
     id: string;
     type: 'INCOME' | 'EXPENSE';
@@ -123,14 +123,20 @@ export async function addMemberApi(teamId: string, data: AddTeamMemberDto): Prom
   return apiClient(`/teams/${teamId}/invite`, {
     method: 'POST',
     body: JSON.stringify({
-      targetPhone: data.emailOrPhone,
+      email: data.email.trim(),
       role: data.role || 'MEMBER',
     }),
   });
 }
 
-export async function removeMemberApi(teamId: string, memberId: string): Promise<any> {
-  return apiClient(`/teams/${teamId}/members/${memberId}`, {
+export async function respondInviteApi(teamId: string, accept: boolean): Promise<void> {
+  await apiClient(`/teams/${teamId}/respond-invite`, {
+    method: 'POST', body: JSON.stringify({ accept }),
+  });
+}
+
+export async function removeMemberApi(teamId: string, userId: string): Promise<any> {
+  return apiClient(`/teams/${teamId}/members/${userId}`, {
     method: 'DELETE',
   });
 }

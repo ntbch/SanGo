@@ -3,7 +3,6 @@ import { apiClient } from '../../../lib/api-client';
 import { bindRealtimeToAuth } from '../../../lib/socket';
 import { AppNotification, NotificationType } from '../types';
 
-// ---- Shape trả về từ BE GET /notifications (notifications.service.ts list()) ----
 interface BeNotification {
   id: string;
   type: string;
@@ -14,7 +13,7 @@ interface BeNotification {
   createdAt: string;
 }
 
-interface NotificationListResponse {
+export interface NotificationListResponse {
   items: BeNotification[];
   page: number;
   pageSize: number;
@@ -22,10 +21,6 @@ interface NotificationListResponse {
   unreadCount: number;
 }
 
-/** Shape BE emit qua WS event 'notification:new' — khớp BeNotification của GET /notifications. */
-export type RealtimeBeNotification = BeNotification;
-
-/** Map NotificationType của BE (schema.prisma) sang nhóm filter của FE. */
 function mapBeType(t: string): Exclude<NotificationType, 'ALL'> {
   if (['BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'NEW_BOOKING_OWNER', 'REMINDER'].includes(t)) {
     return 'BOOKING';
@@ -52,84 +47,116 @@ interface NotificationsState {
   notifications: AppNotification[];
   loading: boolean;
   loaded: boolean;
+  error: string | null;
+  total: number;
+  page: number;
+  pageSize: number;
+  unreadTotal: number;
+  sessionUserId: string | null;
   filterType: NotificationType;
   filterUnreadOnly: boolean;
-  fetchNotifications: () => Promise<void>;
+  setSession: (userId: string | null) => void;
+  fetchNotifications: (loadMore?: boolean) => Promise<void>;
   setFilterType: (type: NotificationType) => void;
   setFilterUnreadOnly: (unreadOnly: boolean) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  handleRealtimeNotification: (notification: BeNotification) => void;
-  deleteNotification: (id: string) => void;
-  clearAll: () => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  clearAll: () => Promise<void>;
   unreadCount: () => number;
 }
 
-export const useNotificationsStore = create<NotificationsState>()((set, get) => ({
-  notifications: [],
-  loading: false,
-  loaded: false,
-  filterType: 'ALL',
-  filterUnreadOnly: false,
+export const useNotificationsStore = create<NotificationsState>()((set, get) => {
+  let session = 0;
+  let refreshPending = false;
 
-  /** Tải hộp thư thật từ BE (trang 1, mới nhất trước). */
-  fetchNotifications: async () => {
-    if (get().loading) return;
-    set({ loading: true });
+  async function mutate(path: string, method: 'POST' | 'DELETE'): Promise<void> {
+    if (!get().sessionUserId) return;
+    const startedSession = session;
+    set({ error: null });
     try {
-      const res = await apiClient<NotificationListResponse>('/notifications', {
-        params: { page: 1 },
-      });
-      set({ notifications: res.items.map(mapBeNotification), loaded: true });
+      await apiClient(path, { method });
+      if (session === startedSession) await get().fetchNotifications();
     } catch {
-      // Lỗi mạng/401: giữ danh sách đã có, apiClient đã lo refresh token/chuyển event
-    } finally {
-      set({ loading: false });
+      if (session === startedSession) set({ error: 'Không thể cập nhật thông báo. Vui lòng thử lại.' });
     }
-  },
+  }
 
-  setFilterType: (type) => set({ filterType: type }),
-  setFilterUnreadOnly: (unreadOnly) => set({ filterUnreadOnly: unreadOnly }),
+  return {
+    notifications: [],
+    loading: false,
+    loaded: false,
+    error: null,
+    total: 0,
+    page: 0,
+    pageSize: 10,
+    unreadTotal: 0,
+    sessionUserId: null,
+    filterType: 'ALL',
+    filterUnreadOnly: false,
 
-  markAsRead: (id) => {
-    set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, isRead: true } : n,
-      ),
-    }));
-    void apiClient(`/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
-  },
+    setSession: (userId) => {
+      session += 1;
+      refreshPending = false;
+      set({
+        sessionUserId: userId,
+        notifications: [], loading: false, loaded: false, error: null,
+        total: 0, page: 0, unreadTotal: 0, filterType: 'ALL', filterUnreadOnly: false,
+      });
+      if (userId) void get().fetchNotifications();
+    },
 
-  markAllAsRead: () => {
-    set((state) => ({
-      notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
-    }));
-    void apiClient('/notifications/read-all', { method: 'POST' }).catch(() => {});
-  },
+    fetchNotifications: async (loadMore = false) => {
+      if (!get().sessionUserId) return;
+      if (get().loading) {
+        if (!loadMore) refreshPending = true;
+        return;
+      }
+      if (loadMore && get().loaded && get().page * get().pageSize >= get().total) return;
+      const startedSession = session;
+      const targetPage = loadMore ? get().page + 1 : Math.max(1, get().page);
+      let items = loadMore ? [...get().notifications] : [];
+      set({ loading: true, error: null });
+      try {
+        // Reconcile the loaded prefix so inserts/deletes cannot leave pagination gaps.
+        for (let page = loadMore ? targetPage : 1; page <= targetPage; page += 1) {
+          const res = await apiClient<NotificationListResponse>('/notifications', { params: { page } });
+          if (session !== startedSession) return;
+          items = [...items, ...res.items.map(mapBeNotification)];
+          const lastPage = page === targetPage || page * res.pageSize >= res.total;
+          if (lastPage) {
+            set({
+              notifications: [...new Map(items.map((item) => [item.id, item])).values()],
+              page: res.page, pageSize: res.pageSize, total: res.total,
+              unreadTotal: res.unreadCount, loaded: true,
+            });
+            break;
+          }
+        }
+      } catch {
+        if (session === startedSession) set({ error: 'Không thể tải thông báo. Vui lòng thử lại.' });
+      } finally {
+        if (session === startedSession) {
+          set({ loading: false });
+          if (refreshPending) {
+            refreshPending = false;
+            void get().fetchNotifications();
+          }
+        }
+      }
+    },
 
-  /**
-   * Phase 4: nhận event WS 'notification:new' (gợi ý refetch) — prepend có dedupe theo id
-   * để badge unread tự tăng qua unreadCount(); nếu user đang mở trang thì danh sách cập nhật
-   * ngay không cần gọi lại REST (REST vẫn là nguồn sự thật khi F5/refetch).
-   */
-  handleRealtimeNotification: (notification) => {
-    set((state) => {
-      if (state.notifications.some((n) => n.id === notification.id)) return state;
-      return { notifications: [mapBeNotification(notification), ...state.notifications], loaded: true };
-    });
-  },
+    setFilterType: (type) => set({ filterType: type }),
+    setFilterUnreadOnly: (unreadOnly) => set({ filterUnreadOnly: unreadOnly }),
+    markAsRead: (id) => mutate(`/notifications/${id}/read`, 'POST'),
+    markAllAsRead: () => mutate('/notifications/read-all', 'POST'),
+    deleteNotification: (id) => mutate(`/notifications/${id}`, 'DELETE'),
+    clearAll: () => mutate('/notifications', 'DELETE'),
+    unreadCount: () => get().unreadTotal,
+  };
+});
 
-  // View-state cục bộ: BE chưa có endpoint xoá/clear — chỉ ảnh hưởng phiên hiện tại.
-  deleteNotification: (id) =>
-    set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== id),
-    })),
-
-  clearAll: () => set({ notifications: [] }),
-
-  unreadCount: () => get().notifications.filter((n) => !n.isRead).length,
-}));
-
-// Phase 4: kích hoạt kết nối realtime theo auth state đúng một lần khi store được nạp
-// (navbar luôn mount NotificationDropdown nên store nằm trong bundle khởi động app).
-bindRealtimeToAuth();
+bindRealtimeToAuth({
+  onSessionChange: (userId) => useNotificationsStore.getState().setSession(userId),
+  onReconnect: () => { void useNotificationsStore.getState().fetchNotifications(); },
+});

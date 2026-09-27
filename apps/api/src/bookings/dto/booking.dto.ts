@@ -72,6 +72,16 @@ export const CreateHoldSchema = z
   });
 export type CreateHoldDto = z.infer<typeof CreateHoldSchema>;
 
+export const CreateWalkInSchema = z.object({
+  courtId: z.string().uuid(),
+  date: z.string().regex(DATE_RE, 'date phải là YYYY-MM-DD'),
+  startMinute: z.number().int().min(0).max(1439),
+  endMinute: z.number().int().min(1).max(1440),
+  guestName: z.string().trim().min(1).max(120),
+  guestPhone: z.string().trim().max(30).optional(),
+}).refine((v) => v.endMinute > v.startMinute, { message: 'Giờ kết thúc phải sau giờ bắt đầu' });
+export type CreateWalkInDto = z.infer<typeof CreateWalkInSchema>;
+
 export const CancelBookingSchema = z.object({
   reason: z.string().trim().max(300).optional(),
 });

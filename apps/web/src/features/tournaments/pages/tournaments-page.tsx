@@ -18,21 +18,13 @@ export function TournamentsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = React.useState(true);
   const [sportFilter, setSportFilter] = React.useState('ALL');
   const [showAuthModal, setShowAuthModal] = React.useState(false);
-  const [cityFilter, setCityFilter] = React.useState('ALL');
   const [statusFilter, setStatusFilter] = React.useState('ALL');
 
   // Modal Create Tournament
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [name, setName] = React.useState('');
   const [sportType, setSportType] = React.useState('FOOTBALL7');
-  const [city, setCity] = React.useState('Hà Nội');
-  const [district] = React.useState('Cầu Giấy');
-  const [maxTeams, setMaxTeams] = React.useState('8');
-  const [prizePool, setPrizePool] = React.useState('25000000');
-  const [entryFee, setEntryFee] = React.useState('500000');
-  const [registrationDeadline, setRegistrationDeadline] = React.useState('2026-09-01');
-  const [startDate, setStartDate] = React.useState('2026-09-05');
-  const [rules, setRules] = React.useState('Thi đấu loại trực tiếp (Single-Elimination), không có kết quả hòa.');
+  const [description, setDescription] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const fetchTournaments = React.useCallback(async () => {
@@ -57,17 +49,11 @@ export function TournamentsPage(): React.ReactElement {
       await createTournamentApi({
         name,
         sportType,
-        city,
-        district,
-        maxTeams: parseInt(maxTeams, 10) || 8,
-        prizePool: parseInt(prizePool, 10) || 0,
-        entryFee: parseInt(entryFee, 10) || 0,
-        registrationDeadline,
-        startDate,
-        rules,
+        description,
       });
       setShowCreateModal(false);
       setName('');
+      setDescription('');
       fetchTournaments();
     } finally {
       setIsSubmitting(false);
@@ -76,9 +62,8 @@ export function TournamentsPage(): React.ReactElement {
 
   const filteredTournaments = tournaments.filter((t) => {
     const matchesSport = sportFilter === 'ALL' || t.sportType.includes(sportFilter);
-    const matchesCity = cityFilter === 'ALL' || t.city === cityFilter;
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
-    return matchesSport && matchesCity && matchesStatus;
+    return matchesSport && matchesStatus;
   });
 
   return (
@@ -96,8 +81,6 @@ export function TournamentsPage(): React.ReactElement {
       <TournamentFilterBar
         sportFilter={sportFilter}
         onSportFilterChange={setSportFilter}
-        cityFilter={cityFilter}
-        onCityFilterChange={setCityFilter}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
       />
@@ -133,11 +116,10 @@ export function TournamentsPage(): React.ReactElement {
       ) : filteredTournaments.length === 0 ? (
         <EmptyState
           title="Không tìm thấy giải đấu nào"
-          description="Thử thay đổi bộ môn thể thao hoặc địa điểm để khám phá các giải đấu khác."
+          description="Thử thay đổi bộ môn hoặc trạng thái để khám phá các giải đấu khác."
           actionLabel="Đặt lại bộ lọc"
           onAction={() => {
             setSportFilter('ALL');
-            setCityFilter('ALL');
             setStatusFilter('ALL');
           }}
         />
@@ -156,20 +138,8 @@ export function TournamentsPage(): React.ReactElement {
         onNameChange={setName}
         sportType={sportType}
         onSportTypeChange={setSportType}
-        city={city}
-        onCityChange={setCity}
-        maxTeams={maxTeams}
-        onMaxTeamsChange={setMaxTeams}
-        prizePool={prizePool}
-        onPrizePoolChange={setPrizePool}
-        entryFee={entryFee}
-        onEntryFeeChange={setEntryFee}
-        registrationDeadline={registrationDeadline}
-        onRegistrationDeadlineChange={setRegistrationDeadline}
-        startDate={startDate}
-        onStartDateChange={setStartDate}
-        rules={rules}
-        onRulesChange={setRules}
+        description={description}
+        onDescriptionChange={setDescription}
         isSubmitting={isSubmitting}
         onSubmit={handleCreateTournament}
       />

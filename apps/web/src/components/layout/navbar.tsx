@@ -24,7 +24,7 @@ import { cn } from '../../lib/utils';
 import { NotificationDropdown } from '../../features/notifications/components/notification-dropdown';
 
 export function Navbar(): React.ReactElement {
-  const { user, logout } = useAuthStore();
+  const { user, logout, logoutError } = useAuthStore();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const userMenuRef = React.useRef<HTMLDivElement>(null);
@@ -69,10 +69,11 @@ export function Navbar(): React.ReactElement {
     };
   }, [userMenuOpen]);
 
-  const handleLogout = () => {
-    setUserMenuOpen(false);
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    if (await logout()) {
+      setUserMenuOpen(false);
+      navigate('/');
+    }
   };
 
   const navLinks = [
@@ -84,6 +85,7 @@ export function Navbar(): React.ReactElement {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-card transition-all">
+      {logoutError && <p role="alert" className="p-3 text-xs text-destructive">{logoutError}</p>}
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 flex h-16 items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 group shrink-0">

@@ -93,7 +93,7 @@ export function TeamSplitTab({
               Chọn Cầu Thủ Tham Gia Trận Đấu ({selectedMemberIds.length} người)
             </label>
             <div className="p-3 rounded-2xl bg-secondary/30 border border-border/60 space-y-2 max-h-48 overflow-y-auto">
-              {team.members?.map((m) => {
+              {team.members?.filter((m) => m.status === 'ACTIVE').map((m) => {
                 const isChecked = selectedMemberIds.includes(m.userId);
                 return (
                   <label

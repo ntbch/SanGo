@@ -12,25 +12,30 @@ export function MatchesPage(): React.ReactElement {
   const [sportFilter, setSportFilter] = React.useState('ALL');
   const [searchCity, setSearchCity] = React.useState<string>('ALL');
   const [searchDistrict, setSearchDistrict] = React.useState<string>('ALL');
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const loadVersion = React.useRef(0);
 
   const fetchMatches = React.useCallback(async () => {
+    const version = ++loadVersion.current;
     setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await listOpenMatchesApi({
         sportType: sportFilter === 'ALL' ? undefined : sportFilter,
         city: searchCity === 'ALL' ? undefined : searchCity,
         district: searchDistrict === 'ALL' ? undefined : searchDistrict,
       });
-      setMatches(Array.isArray(data) ? data : []);
+      if (version === loadVersion.current) setMatches(data);
     } catch {
-      setMatches([]);
+      if (version === loadVersion.current) setLoadError('Không thể tải danh sách kèo. Vui lòng thử lại.');
     } finally {
-      setIsLoading(false);
+      if (version === loadVersion.current) setIsLoading(false);
     }
   }, [sportFilter, searchCity, searchDistrict]);
 
   React.useEffect(() => {
-    fetchMatches();
+    void fetchMatches();
+    return () => { ++loadVersion.current; };
   }, [fetchMatches]);
 
   const handleResetFilters = () => {
@@ -86,6 +91,13 @@ export function MatchesPage(): React.ReactElement {
             </div>
           ))}
         </div>
+      ) : loadError ? (
+        <EmptyState
+          title="Không thể tải danh sách kèo"
+          description={loadError}
+          actionLabel="Thử lại"
+          onAction={() => void fetchMatches()}
+        />
       ) : matches.length === 0 ? (
         <EmptyState
           title="Không tìm thấy kèo thi đấu phù hợp"

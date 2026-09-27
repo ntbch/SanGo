@@ -4,7 +4,6 @@ import {
   type Court,
   type OwnerAnalyticsResponse,
   type OwnerBookingItem,
-  type SportType,
 } from '../../api/owner-api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
@@ -38,13 +37,6 @@ import {
   Check,
 } from 'lucide-react';
 
-const SPORT_TYPE_LABELS: Record<SportType, string> = {
-  FOOTBALL5: 'Bóng đá 5',
-  FOOTBALL7: 'Bóng đá 7',
-  PICKLEBALL: 'Pickleball',
-  BADMINTON: 'Cầu lông',
-  TENNIS: 'Tennis',
-};
 
 interface OwnerOverviewTabProps {
   selectedVenue: OwnerVenue | null;
@@ -191,11 +183,11 @@ export function OwnerOverviewTab({
             </div>
             <div>
               <p className="text-xl sm:text-2xl font-black text-foreground">
-                {analytics?.occupancyRate || 0}%
+                Chưa có dữ liệu
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
                 <Activity className="h-3 w-3 text-amber-500" />
-                <span>Tỷ lệ hủy/no-show: {analytics?.cancelRate || 0}%</span>
+                <span>Tỷ lệ hủy/no-show: {analytics ? `${(analytics.cancelRate * 100).toFixed(1)}%` : 'Chưa có dữ liệu'}</span>
               </p>
             </div>
           </CardContent>
@@ -280,7 +272,7 @@ export function OwnerOverviewTab({
                 <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs animate-in fade-in-0 duration-200">
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    <span>{checkInResult.message} ({checkInResult.booking.customer.fullName} - {checkInResult.booking.court.name})</span>
+                    <span>{checkInResult.message} ({checkInResult.booking.customer?.fullName ?? checkInResult.booking.guestName} - {checkInResult.booking.court.name})</span>
                   </div>
                   <Badge variant="available" className="font-mono text-[10px]">
                     {checkInResult.booking.code}
@@ -347,7 +339,7 @@ export function OwnerOverviewTab({
                             {b.status}
                           </Badge>
                         </div>
-                        <p className="font-bold text-foreground truncate">{b.customer.fullName} · {b.court.name}</p>
+                        <p className="font-bold text-foreground truncate">{b.customer?.fullName ?? b.guestName} · {b.court.name}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-2">
                           <span>{formatMinutesToTime(b.startMinute)} - {formatMinutesToTime(b.endMinute)}</span>
                           <span>· Cọc: {formatVND(b.depositAmount)}</span>
@@ -513,7 +505,6 @@ export function OwnerOverviewTab({
                       </span>
                       <div className="truncate">
                         <p className="font-bold truncate text-foreground">{c.courtName}</p>
-                        <p className="text-[10px] text-muted-foreground">{SPORT_TYPE_LABELS[c.sportType]}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">

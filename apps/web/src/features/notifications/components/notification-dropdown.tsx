@@ -17,6 +17,9 @@ export function NotificationDropdown(): React.ReactElement {
     markAllAsRead,
     clearAll,
     unreadCount,
+    error,
+    loading,
+    fetchNotifications,
   } = useNotificationsStore();
 
   const count = unreadCount();
@@ -126,8 +129,16 @@ export function NotificationDropdown(): React.ReactElement {
           </div>
 
           {/* Notification List Body */}
+          {error && (
+            <div role="alert" className="px-4 py-2 text-xs text-destructive">
+              {error}
+              <button type="button" onClick={() => void fetchNotifications()} className="ml-2 underline">Thử lại</button>
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto divide-y divide-border/40">
-            {filtered.length === 0 ? (
+            {loading && notifications.length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground" role="status">Đang tải thông báo...</p>
+            ) : filtered.length === 0 ? (
               <div className="p-8 text-center space-y-2">
                 <div className="h-10 w-10 rounded-2xl bg-secondary/80 flex items-center justify-center mx-auto text-muted-foreground">
                   <Bell className="h-5 w-5" />

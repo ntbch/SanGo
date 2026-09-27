@@ -9,6 +9,7 @@ import { WalletCard } from '../components/wallet-card';
 import { WalletStatsCard } from '../components/wallet-stats-card';
 import { WalletLedgerTable } from '../components/wallet-ledger-table';
 import { WalletModalsContainer } from '../components/wallet-modals-container';
+import { useAuthStore } from '../../../lib/auth-store';
 
 interface TopupResultBanner {
   ok: boolean;
@@ -31,6 +32,8 @@ function WalletDashboard(): React.ReactElement {
         <WalletCard
           user={w.user}
           balance={w.balance}
+          status={w.status}
+          onRetry={() => void w.retry()}
           showBalance={w.showBalance}
           onToggleBalance={() => w.setShowBalance(!w.showBalance)}
           onOpenTopup={() => w.setShowTopupModal(true)}
@@ -38,13 +41,16 @@ function WalletDashboard(): React.ReactElement {
           onOpenQrPay={() => w.setShowQrPayModal(true)}
         />
 
+        {w.status === 'success' && (
         <WalletStatsCard
           totalTopupMonth={w.totalTopupMonth}
           totalSpentMonth={w.totalSpentMonth}
           totalRewardMonth={w.totalRewardMonth}
         />
+        )}
       </div>
 
+      {w.status !== 'error' && (
       <WalletLedgerTable
         ledgerItems={w.ledgerItems}
         filteredLedger={w.filteredLedger}
@@ -66,13 +72,14 @@ function WalletDashboard(): React.ReactElement {
         onPageChange={w.setCurrentPage}
         onSelectReceipt={w.setSelectedReceipt}
       />
+      )}
 
       <WalletModalsContainer wallet={w} />
     </div>
   );
 }
 
-export function WalletPage(): React.ReactElement {
+function WalletSessionPage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const [reloadKey, setReloadKey] = React.useState(0);
   const [topupResult, setTopupResult] = React.useState<TopupResultBanner | null>(null);
@@ -154,4 +161,9 @@ export function WalletPage(): React.ReactElement {
       <WalletDashboard key={reloadKey} />
     </div>
   );
+}
+
+export function WalletPage(): React.ReactElement {
+  const { user } = useAuthStore();
+  return <WalletSessionPage key={user?.id ?? 'anonymous'} />;
 }

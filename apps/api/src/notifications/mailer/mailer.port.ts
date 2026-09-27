@@ -10,7 +10,7 @@ export interface SendMailInput {
 /**
  * Port gửi mail (hexagonal): nghiệp vụ chỉ phụ thuộc interface này.
  * Adapter mặc định là ConsoleMailer (dev/khi chưa cấu hình SMTP);
- * SmtpMailer là stub TODO nodemailer cho môi trường thật.
+ * SmtpMailer dùng transport SMTP và trả lỗi gửi về caller.
  */
 export const MAILER_PORT = Symbol('MAILER_PORT');
 

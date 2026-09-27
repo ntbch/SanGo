@@ -49,7 +49,7 @@ describe('Notifications trên DB thật (integration)', () => {
   });
 
   it('create -> list mới nhất trước + unreadCount đúng; phân trang theo pageSize', async () => {
-    // Tạo 12 thông báo cho user (trang đầu đủ 10)
+    if (!dbUp) return;
     for (let i = 1; i <= 12; i++) {
       await service.create({
         userId,
@@ -93,6 +93,7 @@ describe('Notifications trên DB thật (integration)', () => {
   });
 
   it('markRead của người khác -> 404; đã đọc rồi -> idempotent giữ readAt cũ', async () => {
+    if (!dbUp) return;
     const target = await service.create({
       userId,
       type: 'MATCH_JOINED' as never,
@@ -108,6 +109,8 @@ describe('Notifications trên DB thật (integration)', () => {
   });
 
   it('read-all -> cập nhật đúng số dòng chưa đọc, unreadCount về 0', async () => {
+    if (!dbUp) return;
+    // Test trước đã markRead 2 thông báo -> reset về chưa đọc để đếm đủ 14 dòng.
     await prisma.notification.updateMany({ where: { userId }, data: { readAt: null } });
     const res = await service.markAllRead(userId);
     expect(res.updated).toBe(14); // 12 vòng + reminder + ghép trận
@@ -116,5 +119,18 @@ describe('Notifications trên DB thật (integration)', () => {
 
     // Gọi lần nữa -> updated = 0 (không có gì chưa đọc)
     expect((await service.markAllRead(userId)).updated).toBe(0);
+  });
+
+  it('deletion persists and never removes another users notifications', async () => {
+    if (!dbUp) return;
+    const own = await service.create({ userId, type: 'REMINDER' as never, title: 'delete-me', body: 'b' });
+    const other = await service.create({ userId: strangerId, type: 'REMINDER' as never, title: 'keep-me', body: 'b' });
+    await expect(service.deleteOne(userId, other.id)).rejects.toBeInstanceOf(NotFoundException);
+    await service.deleteOne(userId, own.id);
+    expect(await prisma.notification.findUnique({ where: { id: own.id } })).toBeNull();
+    await service.deleteAll(userId);
+    expect((await service.list(userId, 1)).total).toBe(0);
+    expect((await service.list(userId, 1)).unreadCount).toBe(0);
+    expect((await service.list(strangerId, 1)).items.map((n) => n.id)).toContain(other.id);
   });
 });

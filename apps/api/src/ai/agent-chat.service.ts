@@ -223,6 +223,9 @@ export class AgentChatService implements ChatOrchestrator {
           const slots = await this.tools.checkSlots(courtId, date);
           data.slots = slots;
           data.courtId = courtId;
+          data.dateHint = slots.date;
+          // These are the latest actionable results; never mix a prior court/date's suggestions.
+          delete data.suggestions;
           toolsUsed.push(call.name);
           return slots;
         }
@@ -235,6 +238,8 @@ export class AgentChatService implements ChatOrchestrator {
           });
           data.suggestions = suggested.suggestions;
           data.courtId = courtId;
+          data.dateHint = suggested.date;
+          delete data.slots;
           toolsUsed.push(call.name);
           return suggested;
         }
@@ -264,6 +269,6 @@ export class AgentChatService implements ChatOrchestrator {
         : data.venues !== undefined || data.slots !== undefined
           ? 'SEARCH_SLOTS'
           : 'FALLBACK';
-    return { intent, reply, toolsUsed, data: { ...data, dateHint: today } };
+    return { intent, reply, toolsUsed, data: { ...data, dateHint: data.dateHint ?? today } };
   }
 }

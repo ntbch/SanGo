@@ -15,7 +15,12 @@ function makeTools(overrides: { prisma?: object; slots?: object; bookings?: obje
     booking: { findMany: jest.fn().mockResolvedValue([]) },
     ...overrides.prisma,
   };
-  const slots = { week: jest.fn() };
+  const slots = { week: jest.fn().mockResolvedValue({
+    slotMinutes: 60,
+    byDate: [{ slots: [360, 480, 1020, 1080, 1140].map((startMinute) => ({
+      startMinute, endMinute: startMinute + 60, state: 'AVAILABLE',
+    })) }],
+  }) };
   const bookingsSvc = { createHold: jest.fn() };
   Object.assign(slots, overrides.slots ?? {});
   Object.assign(bookingsSvc, overrides.bookings ?? {});
@@ -133,7 +138,7 @@ describe('AiToolsService (tool-call DB thật)', () => {
   });
 
   it('getSuggestedSlots có lịch sử: boost giờ từng chơi lên trước giờ vàng', async () => {
-    const { tools, prisma } = makeTools({});
+    const { tools, prisma, slots } = makeTools({});
     prisma.court.findUnique.mockResolvedValue({
       id: COURT_ID,
       slotMinutes: 60,
@@ -154,6 +159,9 @@ describe('AiToolsService (tool-call DB thật)', () => {
         take: 10,
       }),
     );
+    // Nếu code truyền vnToday() hoặc opts.date cũ vào week() thì mọi chip và mọi
+    // nút "Giữ chỗ" sẽ thuộc sai ngày mà các test này vẫn xanh — phải chốt tham số.
+    expect(slots.week).toHaveBeenCalledWith(COURT_ID, '2026-08-26', 1);
     expect(res.date).toBe('2026-08-26');
     expect(res.suggestions[0]).toMatchObject({ startMinute: 480, score: 20 });
     expect(res.suggestions[0].reason).toContain('Bạn thường chơi khung này');
@@ -162,6 +170,21 @@ describe('AiToolsService (tool-call DB thật)', () => {
       [17, 18, 19].includes(Math.floor(s.startMinute / 60)),
     );
     expect(golden.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('suggestions exclude unavailable slots and keep the real non-hourly slot grid', async () => {
+    const { tools, prisma, slots } = makeTools({});
+    prisma.court.findUnique.mockResolvedValue({ id: COURT_ID, slotMinutes: 90 });
+    slots.week.mockResolvedValue({ byDate: [{ slots: [
+      { startMinute: 1020, endMinute: 1110, state: 'BOOKED' },
+      { startMinute: 1110, endMinute: 1200, state: 'AVAILABLE' },
+      { startMinute: 1200, endMinute: 1290, state: 'HELD' },
+    ] }] });
+    const result = await tools.getSuggestedSlots(COURT_ID, { date: '2026-09-20' });
+    expect(slots.week).toHaveBeenCalledWith(COURT_ID, '2026-09-20', 1);
+    expect(result.suggestions.map(({ startMinute, label }) => ({ startMinute, label }))).toEqual([
+      { startMinute: 1110, label: '18:30–20:00' },
+    ]);
   });
 
   it('getSuggestedSlots: court không tồn tại -> 404 COURT_NOT_FOUND', async () => {

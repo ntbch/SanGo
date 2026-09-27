@@ -16,6 +16,7 @@ interface TeamCreateModalProps {
   description: string;
   onDescriptionChange: (desc: string) => void;
   isSubmitting: boolean;
+  error: string | null;
   onSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -31,6 +32,7 @@ export function TeamCreateModal({
   description,
   onDescriptionChange,
   isSubmitting,
+  error,
   onSubmit,
 }: TeamCreateModalProps): React.ReactElement | null {
   if (!show) return null;
@@ -50,6 +52,7 @@ export function TeamCreateModal({
         </CardHeader>
         <CardContent className="p-5">
           <form onSubmit={onSubmit} className="space-y-4">
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
                 Tên Đội Thể Thao <span className="text-destructive">*</span>
@@ -71,11 +74,11 @@ export function TeamCreateModal({
                   onChange={(e) => onSportTypeChange(e.target.value)}
                   className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer"
                 >
-                  <option value="FOOTBALL">Bóng Đá Sân 7 / Sân 5</option>
+                  <option value="FOOTBALL5">Bóng Đá Sân 5</option>
+                  <option value="FOOTBALL7">Bóng Đá Sân 7</option>
                   <option value="PICKLEBALL">Pickleball</option>
                   <option value="BADMINTON">Cầu Lông</option>
                   <option value="TENNIS">Tennis</option>
-                  <option value="BASKETBALL">Bóng Rổ</option>
                 </select>
               </div>
 

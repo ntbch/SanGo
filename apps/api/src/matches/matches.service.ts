@@ -44,21 +44,21 @@ export class MatchesService {
       status: BookingStatus.CONFIRMED,
       isPublicMatch: true,
       OR: [{ matchFull: false }, { matchFull: null }],
-      ...(sportTypes ? { court: { sportType: { in: sportTypes } } } : {}),
       ...(query.date ? { date: new Date(query.date + 'T00:00:00.000Z') } : {}),
       ...(query.level ? { matchLevel: query.level as MatchLevel } : {}),
       ...(query.fromMinute !== undefined ? { startMinute: { gte: query.fromMinute } } : {}),
       ...(query.toMinute !== undefined ? { endMinute: { lte: query.toMinute } } : {}),
-      ...(query.city || query.district
-        ? {
-            court: {
+      court: {
+        ...(sportTypes ? { sportType: { in: sportTypes } } : {}),
+        ...(query.city || query.district
+          ? {
               venue: {
                 ...(query.city ? { city: { contains: query.city, mode: 'insensitive' } } : {}),
                 ...(query.district ? { district: { contains: query.district, mode: 'insensitive' } } : {}),
               },
-            },
-          }
-        : {}),
+            }
+          : {}),
+      },
     };
 
     const [rows, total] = await Promise.all([
@@ -76,6 +76,7 @@ export class MatchesService {
           subtotal: true,
           depositAmount: true,
           slotsNeeded: true,
+          requiresApproval: true,
           matchLevel: true,
           targetPositions: true,
           costPerPerson: true,
@@ -111,6 +112,7 @@ export class MatchesService {
         targetPositions: b.targetPositions,
         host: b.customer,
         slotsNeeded: b.slotsNeeded ?? 0,
+        requiresApproval: b.requiresApproval,
         joinedCount: b._count.participants,
         commentsCount: b._count.matchComments,
       })),
@@ -145,7 +147,7 @@ export class MatchesService {
       },
     });
 
-    if (!booking || !booking.isPublicMatch) {
+    if (!booking || !booking.isPublicMatch || !booking.customer) {
       throw new NotFoundException({ message: 'Không tìm thấy kèo ghép trận', code: 'MATCH_NOT_FOUND' });
     }
 
@@ -172,6 +174,7 @@ export class MatchesService {
       matchLevel: booking.matchLevel ?? 'FRIENDLY',
       targetPositions: booking.targetPositions,
       slotsNeeded: booking.slotsNeeded ?? 0,
+      requiresApproval: booking.requiresApproval,
       joinedCount: booking.participants.length,
       court: {
         id: booking.court.id,

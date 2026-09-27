@@ -1,14 +1,12 @@
 import React from 'react';
 import {
   type OwnerAnalyticsResponse,
-  type SportType,
 } from '../../api/owner-api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
 import { formatVND } from '../../../../lib/utils';
 import {
   RevenueTrendAreaChart,
-  HourlyOccupancyBarChart,
   CourtPerformanceDoughnut,
 } from '../dashboard-charts';
 import {
@@ -17,18 +15,10 @@ import {
   BarChart3,
   Building2,
   Calendar,
-  Clock,
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
 
-const SPORT_TYPE_LABELS: Record<SportType, string> = {
-  FOOTBALL5: 'Bóng đá 5',
-  FOOTBALL7: 'Bóng đá 7',
-  PICKLEBALL: 'Pickleball',
-  BADMINTON: 'Cầu lông',
-  TENNIS: 'Tennis',
-};
 
 interface OwnerAnalyticsTabProps {
   analytics: OwnerAnalyticsResponse | null;
@@ -117,10 +107,10 @@ export function OwnerAnalyticsTab({
                   <TrendingUp className="h-4 w-4 text-primary" />
                 </div>
                 <div className="text-2xl font-extrabold text-foreground tracking-tight">
-                  {analytics.occupancyRate ?? 82}%
+                  Chưa có dữ liệu
                 </div>
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                  Hiệu suất khai thác slot cao
+                  Chưa có thống kê công suất theo giờ mở cửa
                 </p>
               </CardContent>
             </Card>
@@ -132,7 +122,7 @@ export function OwnerAnalyticsTab({
                   <AlertCircle className="h-4 w-4 text-rose-500" />
                 </div>
                 <div className="text-2xl font-extrabold text-foreground tracking-tight">
-                  {analytics.cancelRate}%
+                  {(analytics.cancelRate * 100).toFixed(1)}%
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   {analytics.cancelledCount} đơn hủy, {analytics.noShowCount} no-show
@@ -178,25 +168,8 @@ export function OwnerAnalyticsTab({
             </Card>
           </div>
 
-          {/* Row 2: Hourly Occupancy Bar Chart + Top Courts Table */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Card className="lg:col-span-7 border-border/80 shadow-xs">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-amber-500" /> Tỷ Lệ Lấp Đầy Theo Khung Giờ (06:00 - 23:00)
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Màu vàng thể hiện khung giờ vàng cao điểm (17:00 - 21:00) thường xuyên kín sân.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-72 pt-2">
-                <HourlyOccupancyBarChart
-                  isDark={document.documentElement.classList.contains('dark')}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Top Courts Performance List */}
+          {/* Top Courts Performance List */}
+          <div className="grid grid-cols-1 gap-6">
             <Card className="lg:col-span-5 border-border/80 shadow-xs">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -216,7 +189,6 @@ export function OwnerAnalyticsTab({
                         </span>
                         <div className="truncate">
                           <p className="font-bold truncate text-foreground">{c.courtName}</p>
-                          <p className="text-[10px] text-muted-foreground">{SPORT_TYPE_LABELS[c.sportType]}</p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">

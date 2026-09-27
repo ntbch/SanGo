@@ -18,29 +18,35 @@ export type RankingTab = 'CLUBS' | 'ATHLETES';
 export function RankingPage(): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<RankingTab>('CLUBS');
   const [sportFilter, setSportFilter] = React.useState('ALL');
-  const [cityFilter, setCityFilter] = React.useState('ALL');
   const [clubRankings, setClubRankings] = React.useState<ClubRankingItem[]>([]);
   const [athleteRankings, setAthleteRankings] = React.useState<AthleteRankingItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  // Phải phân biệt "hỏng mạng" với "không có dữ liệu": nếu không, lỗi tải sẽ hiện
+  // empty state gợi ý đổi môn thể thao — hoàn toàn sai nguyên nhân.
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   const handleResetFilters = React.useCallback(() => {
     setSportFilter('ALL');
-    setCityFilter('ALL');
   }, []);
 
   const fetchRankings = React.useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const [clubs, athletes] = await Promise.all([
-        getClubRankingsApi({ sportType: sportFilter, city: cityFilter }),
-        getAthleteRankingsApi({ sportType: sportFilter, city: cityFilter }),
+        getClubRankingsApi({ sportType: sportFilter }),
+        getAthleteRankingsApi({ sportType: sportFilter }),
       ]);
       setClubRankings(clubs);
       setAthleteRankings(athletes);
+    } catch {
+      setClubRankings([]);
+      setAthleteRankings([]);
+      setLoadError('Không tải được bảng xếp hạng. Vui lòng kiểm tra kết nối rồi thử lại.');
     } finally {
       setIsLoading(false);
     }
-  }, [sportFilter, cityFilter]);
+  }, [sportFilter]);
 
   React.useEffect(() => {
     fetchRankings();
@@ -53,14 +59,14 @@ export function RankingPage(): React.ReactElement {
       <RankingFilterBar
         sportFilter={sportFilter}
         onSportFilterChange={setSportFilter}
-        cityFilter={cityFilter}
-        onCityFilterChange={setCityFilter}
       />
 
       <RankingTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {isLoading ? (
         <RankingSkeleton />
+      ) : loadError ? (
+        <p role="alert" className="text-sm text-destructive">{loadError}</p>
       ) : (
         <div className="space-y-8">
           <RankingPodium

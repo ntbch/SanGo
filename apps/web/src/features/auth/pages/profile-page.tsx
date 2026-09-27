@@ -13,6 +13,7 @@ import { useAuthStore } from '../../../lib/auth-store';
 import {
   changePasswordApi,
   updateProfileApi,
+  uploadAvatarApi,
 } from '../api/auth-api';
 import { ProfileSidebar } from '../components/profile-sidebar';
 import { ProfileOverviewTab } from '../components/profile-overview-tab';
@@ -34,9 +35,7 @@ export function ProfilePage(): React.ReactElement {
   const [fullName, setFullName] = React.useState(user?.fullName || '');
   const [phone, setPhone] = React.useState(user?.phone || '');
   const [avatarUrl, setAvatarUrl] = React.useState(user?.avatarUrl || '');
-  const [city, setCity] = React.useState('Hà Nội');
-  const [district, setDistrict] = React.useState('Ba Đình');
-  const [bio, setBio] = React.useState('Người đam mê thể thao phong trào.');
+  const [bio, setBio] = React.useState(user?.bio || '');
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [updateMsg, setUpdateMsg] = React.useState<{ text: string; isError?: boolean } | null>(null);
 
@@ -47,10 +46,18 @@ export function ProfilePage(): React.ReactElement {
   const [isChangingPass, setIsChangingPass] = React.useState(false);
   const [passMsg, setPassMsg] = React.useState<{ text: string; isError?: boolean } | null>(null);
 
-  // Notification toggles
-  const [notifyMatchReminder, setNotifyMatchReminder] = React.useState(true);
-  const [notifyMatchInvites, setNotifyMatchInvites] = React.useState(true);
-  const [notifyVouchers, setNotifyVouchers] = React.useState(false);
+  const [isSavingPreferences, setIsSavingPreferences] = React.useState(false);
+  const [preferenceMsg, setPreferenceMsg] = React.useState<{ text: string; isError?: boolean } | null>(null);
+
+  // Chỉ nạp lại form khi đổi người dùng. Avatar upload trả về user với thông tin đã
+  // lưu gần nhất, nếu đồng bộ theo từng field sẽ xoá mất bio/fullName chưa lưu.
+  React.useEffect(() => {
+    setFullName(user?.fullName || '');
+    setPhone(user?.phone || '');
+    setAvatarUrl(user?.avatarUrl || '');
+    setBio(user?.bio || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (!user) {
     return (
@@ -63,24 +70,27 @@ export function ProfilePage(): React.ReactElement {
     );
   }
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUpdateMsg({ text: 'Kích thước ảnh tối đa là 5MB.', isError: true });
+    e.target.value = '';
+    if (!file || isUpdating) return;
+    setActiveTab('PROFILE');
+    if (file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png'].includes(file.type)) {
+      setUpdateMsg({ text: 'Chỉ nhận ảnh JPG hoặc PNG tối đa 5MB.', isError: true });
       return;
     }
-
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      const dataUrl = uploadEvent.target?.result as string;
-      setAvatarUrl(dataUrl);
-      updateUser({ avatarUrl: dataUrl });
-      updateProfileApi({ avatarUrl: dataUrl }).catch(() => {});
+    setIsUpdating(true);
+    setUpdateMsg(null);
+    try {
+      const updated = await uploadAvatarApi(file);
+      updateUser(updated);
+      setAvatarUrl(updated.avatarUrl || '');
       setUpdateMsg({ text: 'Đã cập nhật ảnh đại diện thành công!' });
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setUpdateMsg({ text: err instanceof Error ? err.message : 'Không thể lưu ảnh đại diện.', isError: true });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -89,11 +99,11 @@ export function ProfilePage(): React.ReactElement {
     setUpdateMsg(null);
 
     try {
-      const updated = await updateProfileApi({ fullName, phone, avatarUrl });
+      const updated = await updateProfileApi({ fullName, phone: phone.trim() || null, bio: bio.trim() || null });
       updateUser(updated);
       setUpdateMsg({ text: 'Đã lưu thông tin cá nhân thành công.' });
-    } catch (err: any) {
-      setUpdateMsg({ text: err.message || 'Cập nhật không thành công.', isError: true });
+    } catch (err) {
+      setUpdateMsg({ text: err instanceof Error ? err.message : 'Cập nhật không thành công.', isError: true });
     } finally {
       setIsUpdating(false);
     }
@@ -120,16 +130,29 @@ export function ProfilePage(): React.ReactElement {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
-    } catch (err: any) {
-      setPassMsg({ text: err.message || 'Đổi mật khẩu thất bại.', isError: true });
+    } catch (err) {
+      setPassMsg({ text: err instanceof Error ? err.message : 'Đổi mật khẩu thất bại.', isError: true });
     } finally {
       setIsChangingPass(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    if (await logout()) navigate('/login');
+  };
+
+  const handlePreferenceChange = async (field: 'notifyEmail' | 'notifyInApp', value: boolean) => {
+    if (isSavingPreferences) return;
+    setIsSavingPreferences(true);
+    setPreferenceMsg(null);
+    try {
+      updateUser(await updateProfileApi({ [field]: value }));
+      setPreferenceMsg({ text: 'Đã lưu cài đặt thông báo.' });
+    } catch (err) {
+      setPreferenceMsg({ text: err instanceof Error ? err.message : 'Không thể lưu cài đặt.', isError: true });
+    } finally {
+      setIsSavingPreferences(false);
+    }
   };
 
   const sideNavItems: { id: ProfileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -169,10 +192,6 @@ export function ProfilePage(): React.ReactElement {
               phone={phone}
               onPhoneChange={setPhone}
               avatarUrl={avatarUrl}
-              city={city}
-              onCityChange={setCity}
-              district={district}
-              onDistrictChange={setDistrict}
               bio={bio}
               onBioChange={setBio}
               isUpdating={isUpdating}
@@ -202,12 +221,11 @@ export function ProfilePage(): React.ReactElement {
 
           {activeTab === 'NOTIFICATIONS' && (
             <ProfileNotificationsTab
-              notifyMatchReminder={notifyMatchReminder}
-              onToggleMatchReminder={() => setNotifyMatchReminder(!notifyMatchReminder)}
-              notifyMatchInvites={notifyMatchInvites}
-              onToggleMatchInvites={() => setNotifyMatchInvites(!notifyMatchInvites)}
-              notifyVouchers={notifyVouchers}
-              onToggleVouchers={() => setNotifyVouchers(!notifyVouchers)}
+              notifyEmail={user.notifyEmail}
+              notifyInApp={user.notifyInApp}
+              onChange={handlePreferenceChange}
+              isSaving={isSavingPreferences}
+              message={preferenceMsg}
             />
           )}
         </main>

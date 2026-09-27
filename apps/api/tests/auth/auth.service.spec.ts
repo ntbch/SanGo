@@ -345,7 +345,7 @@ describe('AuthService', () => {
       expect(data.expiresAt.getTime()).toBeGreaterThanOrEqual(Date.now() + 29 * 60 * 1000);
       expect(mailer.sendPasswordResetLink).toHaveBeenCalledTimes(1);
       const [, link] = mailer.sendPasswordResetLink.mock.calls[0];
-      expect(link).toContain(`/dat-lai-mat-khau?token=${token}`);
+      expect(link).toContain(`/reset-password?token=${token}`);
     });
 
     it('email lạ -> im lặng tuyệt đối (chống dò email)', async () => {

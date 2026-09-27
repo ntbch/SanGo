@@ -110,7 +110,8 @@ export interface AdminBookingListItem {
   venueName: string;
   courtName: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | null;
+  guestPhone?: string | null;
   /** ISO datetime = date + startMinute (biên bucket UTC khớp analytics). */
   startTime: string;
   endTime: string;

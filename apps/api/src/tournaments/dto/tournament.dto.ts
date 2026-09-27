@@ -9,12 +9,12 @@ export const CreateTournamentSchema = z.object({
     .max(120, 'Tên giải tối đa 120 ký tự'),
   description: z.string().trim().max(1000, 'Mô tả tối đa 1000 ký tự').optional(),
   sportType: z.nativeEnum(SportType, { errorMap: () => ({ message: 'sportType không hợp lệ' }) }),
-});
+}).strict();
 export type CreateTournamentDto = z.infer<typeof CreateTournamentSchema>;
 
 export const RegisterTeamSchema = z.object({
   teamId: z.string().uuid('teamId phải là UUID'),
-});
+}).strict();
 export type RegisterTeamDto = z.infer<typeof RegisterTeamSchema>;
 
 /** Nhập điểm tay (host/admin) — loại trực tiếp bắt buộc có thắng/thua. */

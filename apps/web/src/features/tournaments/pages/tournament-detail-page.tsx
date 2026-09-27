@@ -29,16 +29,13 @@ export function TournamentDetailPage(): React.ReactElement {
   const [tournament, setTournament] = React.useState<Tournament | null>(null);
   const [activeTab, setActiveTab] = React.useState<TournamentTab>('BRACKET');
   const [isLoading, setIsLoading] = React.useState(true);
-  const [myTeams, setMyTeams] = React.useState<MyTeamMembership[]>([]);
+  const [teamSession, setTeamSession] = React.useState<{ userId: string; teams: MyTeamMembership[] } | null>(null);
+  const [teamsError, setTeamsError] = React.useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
 
   // Modals & Action States
   const [showRegisterModal, setShowRegisterModal] = React.useState(false);
   const [selectedTeamId, setSelectedTeamId] = React.useState('');
-  const [paymentMethod, setPaymentMethod] = React.useState<'WALLET' | 'QR'>('WALLET');
-  const [contactPhone, setContactPhone] = React.useState('0912345678');
-  const [captainName, setCaptainName] = React.useState(user?.fullName || 'Trần Đức');
-  const [agreeTerms, setAgreeTerms] = React.useState(false);
   const [isRegistering, setIsRegistering] = React.useState(false);
   const [actionMsg, setActionMsg] = React.useState<string | null>(null);
 
@@ -52,16 +49,7 @@ export function TournamentDetailPage(): React.ReactElement {
     if (!id) return;
     setIsLoading(true);
     try {
-      const [tourData, teamsData] = await Promise.all([
-        getTournamentDetailApi(id),
-        listMyTeamsApi().catch(() => []),
-      ]);
-      setTournament({ ...tourData });
-      setMyTeams(teamsData);
-      const captainTeams = teamsData.filter((m) => m.role === 'CAPTAIN');
-      if (captainTeams.length > 0) {
-        setSelectedTeamId(captainTeams[0].team.id);
-      }
+      setTournament(await getTournamentDetailApi(id));
     } finally {
       setIsLoading(false);
     }
@@ -71,36 +59,43 @@ export function TournamentDetailPage(): React.ReactElement {
     fetchTournamentData();
   }, [fetchTournamentData]);
 
-  const captainTeams = myTeams.filter((m) => m.role === 'CAPTAIN');
+  React.useEffect(() => {
+    let active = true;
+    setTeamSession(null);
+    setSelectedTeamId('');
+    setActionMsg(null);
+    setTeamsError(null);
+    if (!user?.id) {
+      setShowRegisterModal(false);
+      return;
+    }
+    const userId = user.id;
+    listMyTeamsApi().then((teams) => {
+      if (active) setTeamSession({ userId, teams });
+    }).catch(() => {
+      if (active) setTeamsError('Không tải được đội của bạn. Vui lòng tải lại trang để thử lại.');
+    });
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const captainTeams = (teamSession?.userId === user?.id ? teamSession?.teams ?? [] : []).filter(
+    (m) => m.status === 'ACTIVE' && m.role === 'CAPTAIN' && m.team.sportType === tournament?.sportType
+      && !tournament?.teams?.some((entry) => entry.teamId === m.team.id),
+  );
+  const registrationTeamId = captainTeams.some((m) => m.team.id === selectedTeamId)
+    ? selectedTeamId : captainTeams[0]?.team.id ?? '';
 
   const handleRegisterTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !selectedTeamId) return;
-    if (!agreeTerms) {
-      alert('đồng ý với điều lệ và cam kết thi đấu fair-play.');
-      return;
-    }
+    if (!id || !registrationTeamId) return;
 
     setIsRegistering(true);
     try {
-      const registeredTeamObj = captainTeams.find((m) => m.team.id === selectedTeamId);
-      const nameToRegister = registeredTeamObj?.team.name || 'Đội Bóng';
-
-      await registerTournamentTeamApi(id, {
-        teamId: selectedTeamId,
-        teamName: nameToRegister,
-        captainName,
-        contactPhone,
-      });
-
-      const methodText = paymentMethod === 'WALLET' ? 'Ví SanGo' : 'Mã QR Ngân Hàng';
-      setActionMsg(`Đã đặt cọc lệ phí qua ${methodText} và đăng ký CLB "${nameToRegister}" thành công!`);
-      setTimeout(async () => {
-        setShowRegisterModal(false);
-        setActionMsg(null);
-        await fetchTournamentData();
-        setActiveTab('TEAMS');
-      }, 1200);
+      const nameToRegister = captainTeams.find((m) => m.team.id === registrationTeamId)!.team.name;
+      await registerTournamentTeamApi(id, { teamId: registrationTeamId });
+      setActionMsg(`Đã đăng ký CLB "${nameToRegister}" thành công!`);
+      await fetchTournamentData();
+      setActiveTab('TEAMS');
     } catch {
       setActionMsg('Đăng ký không thành công, thử lại.');
     } finally {
@@ -142,7 +137,7 @@ export function TournamentDetailPage(): React.ReactElement {
     );
   }
 
-  const isManager = tournament.createdBy === user?.id || user?.role === UserRole.ADMIN || Boolean(user);
+  const isManager = tournament.createdBy === user?.id || user?.role === UserRole.ADMIN;
   const matchesByRound: Record<number, TournamentMatch[]> = {};
   tournament.matches?.forEach((m) => {
     if (!matchesByRound[m.round]) matchesByRound[m.round] = [];
@@ -160,6 +155,7 @@ export function TournamentDetailPage(): React.ReactElement {
             setShowAuthModal(true);
             return;
           }
+          setActionMsg(null);
           setShowRegisterModal(true);
         }}
         onStartTournament={handleStartTournament}
@@ -202,21 +198,15 @@ export function TournamentDetailPage(): React.ReactElement {
 
       <TournamentRegisterModal
         show={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        tournament={tournament}
+        onClose={() => {
+          setActionMsg(null);
+          setShowRegisterModal(false);
+        }}
         captainTeams={captainTeams}
-        selectedTeamId={selectedTeamId}
+        selectedTeamId={registrationTeamId}
         setSelectedTeamId={setSelectedTeamId}
-        captainName={captainName}
-        setCaptainName={setCaptainName}
-        contactPhone={contactPhone}
-        setContactPhone={setContactPhone}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
-        agreeTerms={agreeTerms}
-        setAgreeTerms={setAgreeTerms}
         isRegistering={isRegistering}
-        actionMsg={actionMsg}
+        actionMsg={actionMsg ?? teamsError ?? (user && teamSession?.userId !== user.id ? 'Đang tải đội của bạn...' : null)}
         onSubmit={handleRegisterTeam}
       />
 
@@ -234,7 +224,10 @@ export function TournamentDetailPage(): React.ReactElement {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        onSuccess={() => setShowRegisterModal(true)}
+        onSuccess={() => {
+          setActionMsg(null);
+          setShowRegisterModal(true);
+        }}
         title="Đăng Nhập Để Đăng Ký Giải Đấu"
         subtitle="đăng nhập tài khoản để đưa CLB tham gia giải."
       />

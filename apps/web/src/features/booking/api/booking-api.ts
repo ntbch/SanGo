@@ -227,13 +227,13 @@ export async function confirmMockPaymentApi(
 
 // 7. Lấy danh sách vé đặt sân của tôi
 export async function getMyBookingsApi(params: {
-  status?: string;
+  filter?: 'upcoming' | 'history' | 'cancelled';
   page?: number;
   limit?: number;
 } = {}): Promise<MyBookingsResponse> {
   return apiClient<MyBookingsResponse>('/bookings/me', {
     params: {
-      status: params.status || undefined,
+      filter: params.filter || undefined,
       page: params.page || 1,
       limit: params.limit || 10,
     },

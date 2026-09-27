@@ -32,8 +32,15 @@ function bookingRow(overrides: Partial<Record<string, unknown>> = {}) {
       venue: { id: VENUE_ID, name: 'Sân Cầu Giấy' },
     },
     customer: { fullName: 'Nguyễn Văn A', email: 'a@sango.vn' },
+    guestName: null,
+    guestPhone: null,
     ...overrides,
   };
+}
+
+/** Đơn khách vãng lai: customerId NULL -> quan hệ customer trả null. */
+function guestBookingRow(overrides: Partial<Record<string, unknown>> = {}) {
+  return bookingRow({ customer: null, guestName: null, guestPhone: null, ...overrides });
 }
 
 describe('AdminService.listBookings', () => {
@@ -69,14 +76,55 @@ describe('AdminService.listBookings', () => {
     expect(res.total).toBe(57);
   });
 
-  it('search khớp code HOẶC tên khách contains insensitive', async () => {
+  it('search khớp code HOẶC tên khách tài khoản HOẶC tên khách vãng lai, contains insensitive', async () => {
     await service.listBookings({ search: 'CH-2026', page: 1, pageSize: 20 });
     expect(prisma.booking.findMany.mock.calls[0][0].where).toEqual({
       OR: [
         { code: { contains: 'CH-2026', mode: 'insensitive' } },
         { customer: { fullName: { contains: 'CH-2026', mode: 'insensitive' } } },
+        { guestName: { contains: 'CH-2026', mode: 'insensitive' } },
       ],
     });
+  });
+
+  it('nhánh search guestName là cột thẳng trên Booking, không đi qua quan hệ customer', async () => {
+    // Regression: gom guestName vào nested `customer` sẽ khiến đơn customerId NULL
+    // (khách vãng lai) không bao giờ khớp được tên khách.
+    await service.listBookings({ search: 'Lê', page: 1, pageSize: 20 });
+    const branches = prisma.booking.findMany.mock.calls[0][0].where.OR as unknown[];
+    const guestBranch = branches.find((b) => 'guestName' in (b as object));
+    expect(guestBranch).toEqual({ guestName: { contains: 'Lê', mode: 'insensitive' } });
+    expect(prisma.booking.count).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ OR: branches }) }),
+    );
+  });
+
+  it('đơn khách vãng lai (customerId NULL): map guestName/guestPhone, customerEmail null, không throw', async () => {
+    // Regression: b.customer.fullName (không optional chain) ném TypeError 500
+    // cho MỌI đơn khách vãng lai.
+    prisma.booking.findMany.mockResolvedValue([
+      guestBookingRow({ guestName: 'Lê Vãng Lai', guestPhone: '0901234567' }),
+    ]);
+    const res = await service.listBookings({ page: 1, pageSize: 20 });
+    expect(res.items[0]).toEqual(
+      expect.objectContaining({
+        customerName: 'Lê Vãng Lai',
+        customerEmail: null,
+        guestPhone: '0901234567',
+      }),
+    );
+  });
+
+  it('đơn không có cả customer lẫn guest: fallback tên hiển thị, email/phone null', async () => {
+    prisma.booking.findMany.mockResolvedValue([guestBookingRow()]);
+    const res = await service.listBookings({ page: 1, pageSize: 20 });
+    expect(res.items[0]).toEqual(
+      expect.objectContaining({
+        customerName: 'Khách vãng lai',
+        customerEmail: null,
+        guestPhone: null,
+      }),
+    );
   });
 
   it('map item đúng contract: startTime/endTime ISO từ date+phút, totalPriceVnd = subtotal', async () => {
@@ -89,6 +137,7 @@ describe('AdminService.listBookings', () => {
       courtName: 'Sân 5 số 1',
       customerName: 'Nguyễn Văn A',
       customerEmail: 'a@sango.vn',
+      guestPhone: null,
       // 2026-09-01T17:00Z và 18:30Z theo biên bucket UTC thống nhất analytics
       startTime: '2026-09-01T17:00:00.000Z',
       endTime: '2026-09-01T18:30:00.000Z',

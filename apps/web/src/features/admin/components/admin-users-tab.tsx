@@ -14,6 +14,8 @@ import { cn } from '../../../lib/utils';
 import * as adminApi from '../api/admin-api';
 import { UserRole, UserStatus } from '@sango/shared';
 
+const PAGE_SIZE = 15;
+
 export function AdminUsersTab(): React.ReactElement {
   const { user: currentAdmin } = useAuthStore();
   const [users, setUsers] = React.useState<adminApi.AdminUserListItem[]>([]);
@@ -22,6 +24,10 @@ export function AdminUsersTab(): React.ReactElement {
   const [statusFilter, setStatusFilter] = React.useState<UserStatus | 'ALL'>('ALL');
   const [page, setPage] = React.useState(1);
   const [total, setTotal] = React.useState(0);
+  const lastPage = React.useMemo(
+    () => Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    [total],
+  );
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState(false);
 
@@ -33,10 +39,16 @@ export function AdminUsersTab(): React.ReactElement {
         role: roleFilter === 'ALL' ? undefined : roleFilter,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
         page,
-        pageSize: 15,
+        pageSize: PAGE_SIZE,
       });
       setUsers(res.items);
       setTotal(res.total);
+      // Mutating a row (lock/unlock) can shrink the filtered result set below the
+      // current page. Clamp instead of stranding the admin on an empty page.
+      const nextLastPage = Math.max(1, Math.ceil(res.total / PAGE_SIZE));
+      if (page > nextLastPage) {
+        setPage(nextLastPage);
+      }
     } catch (err) {
       console.error('Failed to fetch users:', err);
     } finally {
@@ -245,6 +257,11 @@ export function AdminUsersTab(): React.ReactElement {
           </div>
         </CardContent>
       </Card>
+      <nav aria-label="Phân trang người dùng" className="flex items-center justify-end gap-3 text-xs">
+        <Button variant="outline" size="sm" disabled={loading || page <= 1} onClick={() => setPage(page - 1)}>Trang trước</Button>
+        <span>Trang {Math.min(page, lastPage)} / {lastPage}</span>
+        <Button variant="outline" size="sm" disabled={loading || page >= lastPage} onClick={() => setPage(page + 1)}>Trang sau</Button>
+      </nav>
     </div>
   );
 }

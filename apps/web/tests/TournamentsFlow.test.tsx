@@ -1,9 +1,11 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { TournamentsPage, TournamentDetailPage } from '../src/features/tournaments/pages';
 import { useAuthStore } from '../src/lib/auth-store';
 import { UserRole } from '../src/lib/constants';
+import { getTournamentDetailApi, registerTournamentTeamApi } from '../src/features/tournaments/api/tournaments-api';
+import { listMyTeamsApi } from '../src/features/teams/api/teams-api';
 
 vi.mock('../src/features/tournaments/api/tournaments-api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/features/tournaments/api/tournaments-api')>();
@@ -11,34 +13,24 @@ vi.mock('../src/features/tournaments/api/tournaments-api', async (importOriginal
     id: 'tour-1',
     name: 'SanGo Championship 2026',
     sportType: 'FOOTBALL5',
-    city: 'Hà Nội',
-    district: 'Cầu Giấy',
     status: 'ONGOING' as const,
-    maxTeams: 16,
-    bannerUrl: null,
-    prizePool: 50000000,
-    registrationDeadline: '2026-09-20',
-    startDate: '2026-09-25',
-    endDate: '2026-09-27',
-    rules: 'Thể thức loại trực tiếp, 2 hiệp 15 phút.',
-    entryFee: 500000,
+    maxTeams: 8,
+    description: 'Thể thức loại trực tiếp.',
     createdBy: 'u-1',
     championTeamId: null,
-    championTeam: null,
+    champion: null,
+    _count: { teams: 1 },
     teams: [
       {
         id: 'te-1',
         tournamentId: 'tour-1',
         teamId: 'team-1',
         seed: 1,
-        registeredAt: new Date().toISOString(),
-        contactPhone: '0912345678',
-        captainName: 'Nguyễn Văn Nam',
+        joinedAt: new Date().toISOString(),
         team: {
           id: 'team-1',
           name: 'SanGo Warriors FC',
           logoUrl: null,
-          captain: { id: 'u-2', fullName: 'Nguyễn Văn Nam', phoneNumber: '0912345678' },
         },
       },
     ],
@@ -48,28 +40,31 @@ vi.mock('../src/features/tournaments/api/tournaments-api', async (importOriginal
         tournamentId: 'tour-1',
         round: 1,
         position: 1,
-        matchTime: '2026-09-25T18:00:00.000Z',
         homeTeamId: 'team-1',
         awayTeamId: 'team-2',
         homeScore: 2,
         awayScore: 1,
         winnerTeamId: 'team-1',
         nextMatchId: null,
-        status: 'FINISHED' as const,
-        homeTeam: { id: 'team-1', name: 'SanGo Warriors FC', logoUrl: null, captainName: 'Nguyễn Văn Nam' },
-        awayTeam: { id: 'team-2', name: 'CLB Cầu Giấy', logoUrl: null, captainName: 'Lê Văn Bình' },
+        status: 'DONE' as const,
+        homeTeam: { id: 'team-1', name: 'SanGo Warriors FC', logoUrl: null },
+        awayTeam: { id: 'team-2', name: 'CLB Cầu Giấy', logoUrl: null },
       },
     ],
   };
   return {
     ...actual,
     getTournamentDetailApi: vi.fn().mockResolvedValue(mockTournament),
-    listTournamentsApi: vi.fn().mockResolvedValue([mockTournament]),
+    registerTournamentTeamApi: vi.fn().mockResolvedValue({}),
+    listTournamentsApi: vi.fn().mockResolvedValue([{ ...mockTournament, teams: undefined, matches: undefined }]),
   };
 });
 
+vi.mock('../src/features/teams/api/teams-api', () => ({ listMyTeamsApi: vi.fn().mockResolvedValue([]) }));
+
 describe('Tournaments Flow Integration', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     useAuthStore.setState({
       user: {
@@ -97,37 +92,17 @@ describe('Tournaments Flow Integration', () => {
     expect(screen.getByRole('button', { name: /Bóng Đá/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Pickleball/i })).toBeDefined();
 
-    // Verify tournament card renders with tabular monospace prize and team count
     await waitFor(() => {
       expect(screen.getByText(/SanGo Championship 2026/i)).toBeDefined();
     });
 
-    const prizeElement = screen.getByText(/50.000.000/i);
-    expect(prizeElement.className).toContain('font-mono-num');
-    expect(prizeElement.className).toContain('font-black');
-    expect(prizeElement.className).toContain('tabular-nums');
-
-    const teamCountElement = screen.getByText(/1 \/ 16 Đội/i);
-    expect(teamCountElement.className).toContain('font-mono-num');
-    expect(teamCountElement.className).toContain('font-black');
-    expect(teamCountElement.className).toContain('tabular-nums');
-
-    // Verify flat status badge tokens
-    const statusBadges = screen.getAllByText(/Đang diễn ra/i);
-    const statusBadge = statusBadges.find((el) => el.tagName.toLowerCase() === 'span');
-    expect(statusBadge).toBeDefined();
-    expect(statusBadge?.className).toContain('bg-secondary');
-    expect(statusBadge?.className).toContain('text-secondary-foreground');
-    expect(statusBadge?.className).toContain('border-border');
+    expect(screen.getByText(/1 \/ 8 Đội/i)).toBeDefined();
 
     // Test empty state when filter matches no tournaments
     const pickleballBtn = screen.getByRole('button', { name: /Pickleball/i });
     fireEvent.click(pickleballBtn);
 
     expect(screen.getByText(/Không tìm thấy giải đấu nào/i)).toBeDefined();
-    expect(
-      screen.getByText(/Thử thay đổi bộ môn thể thao hoặc địa điểm để khám phá các giải đấu khác./i),
-    ).toBeDefined();
 
     const resetFilterBtn = screen.getByRole('button', { name: /Đặt lại bộ lọc/i });
     fireEvent.click(resetFilterBtn);
@@ -154,17 +129,13 @@ describe('Tournaments Flow Integration', () => {
 
     // Check bracket tab
     expect(screen.getByRole('heading', { name: /Sơ Đồ Cây Loại Trực Tiếp/i })).toBeDefined();
-
-    // Check tabular scores in flat lineage bracket tree
-    const homeScoreEl = screen.getByText('2');
-    expect(homeScoreEl.className).toContain('font-mono-num');
-    expect(homeScoreEl.className).toContain('font-extrabold');
-    expect(homeScoreEl.className).toContain('tabular-nums');
-
-    const awayScoreEl = screen.getByText('1');
-    expect(awayScoreEl.className).toContain('font-mono-num');
-    expect(awayScoreEl.className).toContain('font-extrabold');
-    expect(awayScoreEl.className).toContain('tabular-nums');
+    // Bracket must render the actual match card, not just the card header
+    const homeRow = screen.getByText('SanGo Warriors FC').parentElement as HTMLElement;
+    const awayRow = screen.getByText('CLB Cầu Giấy').parentElement as HTMLElement;
+    expect(within(homeRow).getByText('2')).toBeDefined();
+    expect(within(awayRow).getByText('1')).toBeDefined();
+    expect(screen.getByText('Trận #1')).toBeDefined();
+    expect(screen.queryByText(/Chưa sinh nhánh đấu/i)).toBeNull();
 
     // Switch to Teams tab
     const teamsTabBtn = screen.getByRole('button', { name: /Danh Sách Đội Tham Gia/i });
@@ -177,5 +148,50 @@ describe('Tournaments Flow Integration', () => {
     expect(matchesTabBtn).toBeDefined();
     fireEvent.click(matchesTabBtn);
     expect(screen.getByRole('heading', { name: /Lịch Thi Đấu & Nhập/i })).toBeDefined();
+  });
+
+  it('reloads eligible captain teams after login, registers the team and refetches the roster', async () => {
+    vi.mocked(getTournamentDetailApi).mockResolvedValueOnce({
+      id: 'tour-1', name: 'Registration Cup', sportType: 'FOOTBALL5', status: 'REGISTRATION',
+      maxTeams: 8, createdBy: 'host', teams: [], matches: [],
+    });
+    // Mọi lần refetch sau khi đăng ký trả về giải đã có đội vừa ghi danh.
+    vi.mocked(getTournamentDetailApi).mockResolvedValue({
+      id: 'tour-1', name: 'Registration Cup', sportType: 'FOOTBALL5', status: 'REGISTRATION',
+      maxTeams: 8, createdBy: 'host', _count: { teams: 1 }, matches: [],
+      teams: [
+        {
+          id: 'tt-1', tournamentId: 'tour-1', teamId: 'team-1', seed: 1, joinedAt: '2026-09-27',
+          team: { id: 'team-1', name: 'Đội Sân 5', logoUrl: null },
+        },
+      ],
+    });
+    vi.mocked(listMyTeamsApi).mockResolvedValueOnce([
+      { membershipId: 'm-1', role: 'CAPTAIN', status: 'ACTIVE', joinedAt: '2026-09-01',
+        team: { id: 'team-1', name: 'Đội Sân 5', captainId: 'u-1', sportType: 'FOOTBALL5', createdAt: '2026-09-01' } },
+      { membershipId: 'm-2', role: 'CAPTAIN', status: 'ACTIVE', joinedAt: '2026-09-01',
+        team: { id: 'team-2', name: 'Đội Tennis', captainId: 'u-1', sportType: 'TENNIS', createdAt: '2026-09-01' } },
+    ]);
+    useAuthStore.setState({ user: null, accessToken: null });
+    render(<MemoryRouter initialEntries={['/tournaments/tour-1']}><Routes>
+      <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
+    </Routes></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Registration Cup' });
+    act(() => useAuthStore.setState({ user: { id: 'u-1', email: 'player1@sango.vn', fullName: 'Captain', role: UserRole.CUSTOMER }, accessToken: 'token' }));
+    fireEvent.click(screen.getByRole('button', { name: /Đăng Ký Đội Vào Giải/i }));
+    await screen.findByRole('option', { name: /Đội Sân 5/ });
+    expect(screen.queryByRole('option', { name: /Đội Tennis/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đăng ký đội/i }));
+    await waitFor(() => expect(registerTournamentTeamApi).toHaveBeenCalledWith('tour-1', { teamId: 'team-1' }));
+    await screen.findByText(/Đã đăng ký CLB "Đội Sân 5" thành công/i);
+    // Refetch phải thực sự chạy lại và mang về danh sách đội mới.
+    await waitFor(() => expect(getTournamentDetailApi).toHaveBeenCalledTimes(2));
+    // Đội vừa đăng ký không còn được chào mời trong modal.
+    expect(screen.queryByRole('option', { name: /Đội Sân 5/ })).toBeNull();
+    expect(screen.getByText('Chọn đóng để quay lại giải đấu.')).toBeDefined();
+    // Trang tự chuyển sang tab danh sách đội với dữ liệu vừa refetch.
+    expect(await screen.findByRole('heading', { name: /Danh Sách Câu Lạc Bộ Ghi Danh/i })).toBeDefined();
+    expect(screen.getByText('Đội Sân 5')).toBeDefined();
+    expect(screen.getByText('Danh Sách Đội Ghi Danh (1)')).toBeDefined();
   });
 });

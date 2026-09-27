@@ -40,7 +40,7 @@ export class NotificationsService {
     const [items, total, unreadCount] = await this.prisma.$transaction([
       this.prisma.notification.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * NOTIFICATIONS_PAGE_SIZE,
         take: NOTIFICATIONS_PAGE_SIZE,
       }),
@@ -73,6 +73,22 @@ export class NotificationsService {
       data: { readAt: new Date() },
     });
     return { updated: result.count };
+  }
+
+  async deleteOne(userId: string, id: string): Promise<{ deleted: number }> {
+    const result = await this.prisma.notification.deleteMany({ where: { id, userId } });
+    if (!result.count) {
+      throw new NotFoundException({
+        message: 'Không tìm thấy thông báo',
+        code: 'NOTIFICATION_NOT_FOUND',
+      });
+    }
+    return { deleted: result.count };
+  }
+
+  async deleteAll(userId: string): Promise<{ deleted: number }> {
+    const result = await this.prisma.notification.deleteMany({ where: { userId } });
+    return { deleted: result.count };
   }
 
   /** F8 wave-1: đếm nhánh chưa đọc cho badge — nhẹ hơn GET /notifications (không nạp items). */

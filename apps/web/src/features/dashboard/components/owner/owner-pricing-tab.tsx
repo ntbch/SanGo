@@ -42,7 +42,7 @@ interface OwnerPricingTabProps {
   setRulePrice: (price: number) => void;
   savingPricing: boolean;
   onAddPricingRule: () => void;
-  onRemovePricingRule: (index: number) => void;
+  onRemovePricingRule: (id: string) => void;
   onSaveAllPricingRules: () => void;
 }
 
@@ -209,7 +209,7 @@ export function OwnerPricingTab({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onRemovePricingRule(idx)}
+                          onClick={() => onRemovePricingRule(r.id)}
                           className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

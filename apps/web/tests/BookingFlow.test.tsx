@@ -187,7 +187,7 @@ describe('Booking Core Flow', () => {
   });
 
   it('renders my bookings page and ticket card with QR code check-in', () => {
-    queryClient.setQueryData(['my-bookings', 'UPCOMING'], mockTickets);
+    queryClient.setQueryData(['my-bookings', 'upcoming'], mockTickets);
 
     window.history.pushState({}, '', '/bookings');
 

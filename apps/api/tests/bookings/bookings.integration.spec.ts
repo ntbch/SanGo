@@ -100,6 +100,15 @@ describe('Booking engine chống double-booking (integration)', () => {
       });
       const venueIds = owned.map((v) => v.id);
       await prisma.pricingRule.deleteMany({ where: { court: { venueId: { in: venueIds } } } });
+      // customerId IS NULL không bao giờ khớp `{ in: ids }`, nên đơn quầy rơi lọt khỏi
+      // sweep và sẽ chặn lần chạy sau (đúng ngày + SLOT_TAKEN). Quét theo sân của owner.
+      const walkInCourts = await prisma.court.findMany({
+        where: { venueId: { in: venueIds } },
+        select: { id: true },
+      });
+      await prisma.booking.deleteMany({
+        where: { customerId: null, courtId: { in: walkInCourts.map((c) => c.id) } },
+      });
       await prisma.court.deleteMany({ where: { venueId: { in: venueIds } } });
       await prisma.venue.deleteMany({ where: { id: { in: venueIds } } });
       // S2-F1/MAJOR-A: thành viên + đội tham chiếu user (RESTRICT) — dọn trước.
@@ -483,13 +492,50 @@ describe('Booking engine chống double-booking (integration)', () => {
 
   it('my-bookings filter: upcoming / history / cancelled', async () => {
     if (!dbUp) return;
+    if (!courtId) await setupCourt();
+    // Tự tạo đơn CONFIRMED: nếu kế thừa đơn của test trước thì chạy riêng (-t) sẽ
+    // rỗng, và `every(...)` trên mảng rỗng luôn true -> test xanh mà không kiểm gì.
+    const confirmed = await prisma.booking.create({
+      data: {
+        code: `CH-FILT-C-${SUFFIX}`,
+        customerId: custA.id,
+        courtId,
+        date: new Date(DATE + 'T00:00:00.000Z'),
+        startMinute: 420,
+        endMinute: 480,
+        status: 'CONFIRMED',
+        subtotal: 60000,
+        depositAmount: 0,
+      },
+    });
     const resAll = await bookings.listMine(uA(), { page: 1, limit: 10 });
-    expect(resAll.total).toBeGreaterThanOrEqual(1);
+    expect(resAll.items.some((b) => b.id === confirmed.id)).toBe(true);
 
-    const resUp = await bookings.listMine(uA(), { filter: 'upcoming', page: 1, limit: 10 });
-    expect(resUp.items.every((b) => b.status === 'CONFIRMED' || b.status === 'CHECKED_IN')).toBe(
-      true,
-    );
+    // filter 'upcoming' đã thu hẹp còn CONFIRMED (CHECKED_IN chuyển sang history),
+    // nên assert đúng membership thay vì OR thành tautology.
+    const resUp = await bookings.listMine(uA(), { filter: 'upcoming', page: 1, limit: 50 });
+    expect(resUp.items.length).toBeGreaterThan(0);
+    expect(resUp.items.every((b) => b.status === 'CONFIRMED')).toBe(true);
+
+    // Hành vi MỚI: CHECKED_IN phải nằm ở history và không nằm ở upcoming.
+    const checkedIn = await prisma.booking.create({
+      data: {
+        code: `CH-FILT-${SUFFIX}`,
+        customerId: uA().id,
+        courtId,
+        date: new Date('2035-04-12T00:00:00.000Z'),
+        startMinute: 600,
+        endMinute: 660,
+        status: 'CHECKED_IN',
+        checkedInAt: new Date(),
+        subtotal: 60000,
+        depositAmount: 0,
+      },
+    });
+    const resHistory = await bookings.listMine(uA(), { filter: 'history', page: 1, limit: 50 });
+    expect(resHistory.items.some((b) => b.id === checkedIn.id)).toBe(true);
+    const resUpAgain = await bookings.listMine(uA(), { filter: 'upcoming', page: 1, limit: 50 });
+    expect(resUpAgain.items.some((b) => b.id === checkedIn.id)).toBe(false);
 
     const resCancel = await bookings.listMine(uA(), { filter: 'cancelled', page: 1, limit: 10 });
     expect(resCancel.items.every((b) => b.status === 'CANCELLED' || b.status === 'NO_SHOW')).toBe(
@@ -499,12 +545,17 @@ describe('Booking engine chống double-booking (integration)', () => {
 
   it('check-in và no-show: owner của sân check-in đúng mã, owner khác bị 403', async () => {
     if (!dbUp) return;
+    // Không được phụ thuộc test trước (trước đây courtId do test RACE khởi tạo,
+    // chạy riêng -t là undefined). Và đơn phải nằm trong quá khứ vì checkIn chặn
+    // sớm hơn 2 giờ so với giờ chơi (guard bảo vệ uy tín).
+    if (!courtId) await setupCourt();
+    const pastDate = dstr(new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z').getTime() - 2 * 86_400_000);
     const bk = await prisma.booking.create({
       data: {
         code: `CH-CK-${SUFFIX}`,
         customerId: custA.id,
         courtId,
-        date: new Date(dstr(tomorrow())),
+        date: new Date(pastDate),
         startMinute: 480,
         endMinute: 540,
         subtotal: 200_000,
@@ -539,7 +590,7 @@ describe('Booking engine chống double-booking (integration)', () => {
         code: `CH-NS-${SUFFIX}`,
         customerId: custA.id,
         courtId,
-        date: new Date(dstr(tomorrow())),
+        date: new Date(pastDate),
         startMinute: 540,
         endMinute: 600,
         subtotal: 200_000,
@@ -866,6 +917,7 @@ describe('Booking engine chống double-booking (integration)', () => {
       expect(refunds.every((p) => p.status === 'PAID' && p.paidAt !== null)).toBe(true);
 
       // Ví nhận đủ: ledger CREDIT/REFUND refId=payment.id, balanceAfter khớp hàng ví
+      if (!fx.b1.customerId || !fx.b2.customerId) throw new Error('Refund fixtures must have registered customers');
       const ledgers = await prisma.walletLedger.findMany({
         where: {
           userId: {
@@ -1294,6 +1346,32 @@ describe('Booking engine chống double-booking (integration)', () => {
         where: { bookingId: { in: [nullBooking.id, falseBooking.id] }, userId: custB.id },
       }),
     ).toBe(2);
+  });
+
+  it('F01: owner walk-in persists, reloads and rejects too-early check-in without fabricated payment', async () => {
+    if (!dbUp) return console.warn('[integration] skip: F01 requires Postgres');
+    if (!courtId) await setupCourt();
+    const court = await prisma.court.findUniqueOrThrow({ where: { id: courtId }, include: { venue: true } });
+    const date = '2035-04-10';
+    const dto = { courtId, date, startMinute: 360, endMinute: 420, guestName: 'Khách tại quầy', guestPhone: '0901234567' };
+    const owner = { id: court.venue.ownerId, role: 'OWNER' };
+    let id: string | undefined;
+    try {
+      await expect(bookings.createWalkIn(uA(), dto)).rejects.toMatchObject({ response: { code: 'BOOKING_FORBIDDEN' } });
+      const created = await bookings.createWalkIn(owner, dto);
+      id = created.id;
+      expect(created).toMatchObject({ customerId: null, guestName: dto.guestName, depositAmount: 0, status: 'CONFIRMED', subtotal: court.defaultPricePerSlot });
+      expect(created.payments).toEqual([]);
+      const reloaded = await bookings.listOwnerBookings(owner, { venueId: court.venueId, date, page: 1, limit: 50 });
+      expect(reloaded.items.find((item) => item.id === id)).toMatchObject({ code: created.code, guestName: dto.guestName, guestPhone: dto.guestPhone });
+      await expect(bookings.createWalkIn(owner, dto)).rejects.toMatchObject({ response: { code: 'SLOT_TAKEN' } });
+      await expect(bookings.createHold(uA(), { courtId, date, slots: [360] })).rejects.toMatchObject({ response: { code: 'SLOT_TAKEN' } });
+      // Đơn nằm ở năm 2035 nên check-in sớm phải bị chặn — nếu không, chủ sân có thể
+      // cộng vĩnh viễn +10 uy tín cho một trận chưa diễn ra.
+      await expect(bookings.checkIn(created.code, owner)).rejects.toMatchObject({ response: { code: 'CHECKIN_TOO_EARLY' } });
+    } finally {
+      if (id) await prisma.booking.delete({ where: { id } });
+    }
   });
 
   it('P5b.2: CreateBookingSchema parse requiresApproval passthrough (unit)', async () => {

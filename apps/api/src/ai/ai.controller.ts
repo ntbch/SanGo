@@ -38,14 +38,24 @@ export class AiController {
         history: {
           type: 'array',
           maxItems: 16,
-          description: 'Hội thoại gần nhất (tuỳ chọn) để AI hiểu ngữ cảnh đa lượt',
+          description: 'Hội thoại gần nhất: user tối đa 500 ký tự, assistant tối đa 8000 ký tự (client cắt ngữ cảnh, giữ nguyên reply hiển thị).',
           items: {
-            type: 'object',
-            required: ['role', 'content'],
-            properties: {
-              role: { type: 'string', enum: ['user', 'assistant'] },
-              content: { type: 'string', maxLength: 500 },
-            },
+            oneOf: [
+              {
+                type: 'object', required: ['role', 'content'],
+                properties: {
+                  role: { type: 'string', enum: ['user'] },
+                  content: { type: 'string', minLength: 1, maxLength: 500 },
+                },
+              },
+              {
+                type: 'object', required: ['role', 'content'],
+                properties: {
+                  role: { type: 'string', enum: ['assistant'] },
+                  content: { type: 'string', minLength: 1, maxLength: 8000 },
+                },
+              },
+            ],
           },
         },
       },

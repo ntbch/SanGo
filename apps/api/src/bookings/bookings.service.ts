@@ -22,6 +22,7 @@ import {
   MyBookingsQueryDto,
   OwnerBookingsQueryDto,
   UpdateHoldAddOnsDto,
+  CreateWalkInDto,
 } from './dto/booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import {
@@ -49,6 +50,63 @@ export class BookingsService {
     private readonly notify: NotifyService,
     private readonly wallets: WalletsService,
   ) {}
+
+  /** Đơn tại quầy giữ lịch thật; chưa ghi nhận thu tiền hay tạo tài khoản khách. */
+  async createWalkIn(user: { id: string; role: string }, dto: CreateWalkInDto) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "courts" WHERE id = ${dto.courtId}::uuid FOR UPDATE`;
+      const court = await tx.court.findUnique({
+        where: { id: dto.courtId },
+        include: { venue: true, pricingRules: true },
+      });
+      if (!court) throw new NotFoundException({ code: 'COURT_NOT_FOUND', message: 'Không tìm thấy sân con' });
+      if (user.role !== 'ADMIN' && (user.role !== 'OWNER' || court.venue.ownerId !== user.id)) {
+        throw new ForbiddenException({ code: 'BOOKING_FORBIDDEN', message: 'Bạn không quản lý sân này' });
+      }
+      if (court.status !== 'ACTIVE' || court.venue.status !== 'APPROVED') {
+        throw new ConflictException({ code: 'VENUE_NOT_BOOKABLE', message: 'Sân hiện không khả dụng' });
+      }
+      const { startMinute, endMinute } = dto;
+      const step = court.slotMinutes;
+      if (startMinute < court.venue.openMinute || endMinute > court.venue.closeMinute ||
+          endMinute <= startMinute || (startMinute - court.venue.openMinute) % step !== 0 ||
+          (endMinute - startMinute) % step !== 0 || (endMinute - startMinute) / step > 8) {
+        throw new BadRequestException({ code: 'SLOTS_MISALIGNED', message: 'Chọn tối đa 8 ca đúng lưới giờ và giờ mở cửa của sân' });
+      }
+      const date = new Date(dto.date + 'T00:00:00.000Z');
+      if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== dto.date) {
+        throw new BadRequestException({ code: 'INVALID_DATE', message: 'Ngày đặt không hợp lệ' });
+      }
+      const overlap = { courtId: court.id, date, startMinute: { lt: endMinute }, endMinute: { gt: startMinute } };
+      const taken = await tx.booking.count({ where: { ...overlap, status: { in: ['CONFIRMED', 'CHECKED_IN'] } } });
+      const held = await tx.bookingHold.count({ where: { ...overlap, status: 'ACTIVE', expiresAt: { gt: new Date() } } });
+      if (taken || held) throw new ConflictException({ code: 'SLOT_TAKEN', message: 'Khung giờ đã có người đặt hoặc giữ chỗ' });
+      let subtotal = 0;
+      for (let minute = startMinute; minute < endMinute; minute += step) {
+        subtotal += priceForSlot(court, court.pricingRules, date, minute, minute + step);
+      }
+      const code = await this.nextBookingCode(tx, date);
+      return tx.booking.create({
+        data: { code, courtId: court.id, date, startMinute, endMinute, subtotal,
+          depositAmount: 0, status: 'CONFIRMED', guestName: dto.guestName,
+          guestPhone: dto.guestPhone || null, isPublicMatch: false },
+        include: { court: true, customer: { select: { id: true, fullName: true, phone: true, email: true } }, payments: true },
+      });
+    });
+  }
+
+  private async nextBookingCode(tx: Prisma.TransactionClient, d: Date): Promise<string> {
+    const prefix = `CH-${d.toISOString().slice(0, 10).replace(/-/g, '')}-`;
+    const seqRows = await tx.$queryRaw<Array<{ lastSeq: number }>>`
+      INSERT INTO "booking_code_seq" ("date", "lastSeq")
+      VALUES (${d}::date, GREATEST(1, COALESCE(
+        (SELECT MAX(RIGHT("code", 4)::INT) FROM "bookings" WHERE "code" LIKE ${prefix} || '%'), 0) + 1))
+      ON CONFLICT ("date") DO UPDATE SET "lastSeq" = GREATEST(
+        "booking_code_seq"."lastSeq" + 1, COALESCE(
+        (SELECT MAX(RIGHT("code", 4)::INT) FROM "bookings" WHERE "code" LIKE ${prefix} || '%'), 0) + 1)
+      RETURNING "lastSeq"`;
+    return prefix + String(Number(seqRows[0].lastSeq)).padStart(4, '0');
+  }
 
   /**
    * Giữ chỗ 10 phút — spec §6.1. Toàn bộ nằm trong MỘT transaction:
@@ -533,41 +591,7 @@ export class BookingsService {
         ? paidBase
         : roundVnd((paidBase * court.venue.depositPercent) / 100);
 
-      // Mã đơn CH-YYYYMMDD-NNNN — hotfix 25P02: cấp phát số thứ tự ATOMIC bằng bảng
-      // đếm booking_code_seq trong CÙNG tx. INSERT ... ON CONFLICT DO UPDATE ...
-      // RETURNING là một statement duy nhất nên Postgres không thể hủy tx vì
-      // unique violation trên code như cơ chế count(prefix)+1 + retry cũ
-      // (sau 25P02 cả transaction đã abort nên retry vô nghĩa).
-      const d = hold.date;
-      const ymd =
-        d.getUTCFullYear().toString() +
-        String(d.getUTCMonth() + 1).padStart(2, '0') +
-        String(d.getUTCDate()).padStart(2, '0');
-      const prefix = `CH-${ymd}-`;
-      // GREATEST(counter+1, max(mã hiện hữu)+1): chịu cả dữ liệu cũ/mù trước khi
-      // bảng đếm tồn tại (đúng điều kiện QA seed mã không liền kề).
-      const seqRows = await tx.$queryRaw<Array<{ lastSeq: number }>>`
-        INSERT INTO "booking_code_seq" ("date", "lastSeq")
-        VALUES (
-          ${d}::date,
-          GREATEST(
-            1,
-            COALESCE(
-              (SELECT MAX(RIGHT("code", 4)::INT) FROM "bookings" WHERE "code" LIKE ${prefix} || '%'),
-              0
-            ) + 1
-          )
-        )
-        ON CONFLICT ("date") DO UPDATE SET
-          "lastSeq" = GREATEST(
-            "booking_code_seq"."lastSeq" + 1,
-            COALESCE(
-              (SELECT MAX(RIGHT("code", 4)::INT) FROM "bookings" WHERE "code" LIKE ${prefix} || '%'),
-              0
-            ) + 1
-          )
-        RETURNING "lastSeq"`;
-      const code = prefix + String(Number(seqRows[0].lastSeq)).padStart(4, '0');
+      const code = await this.nextBookingCode(tx, hold.date);
 
       const booking: Prisma.BookingGetPayload<{ include: { court: true } }> =
         await tx.booking.create({
@@ -705,23 +729,26 @@ export class BookingsService {
         endMinute: d.endMinute,
       };
 
-      await this.notify.dispatch({
-        userId: d.customerId,
-        type: NotificationType.BOOKING_CONFIRMED,
-        title: 'Đặt sân thành công',
-        body: `Đơn ${d.code} · ${d.courtName} đã được xác nhận`,
-        link,
-        mail: bookingConfirmedEmail({ ...mailBase, amountVnd: amountPaid }),
-      });
+      // Đơn quầy không có tài khoản để nhận inbox/email -> bỏ qua phần khách.
+      if (d.customerId) {
+        await this.notify.dispatch({
+          userId: d.customerId,
+          type: NotificationType.BOOKING_CONFIRMED,
+          title: 'Đặt sân thành công',
+          body: `Đơn ${d.code} · ${d.courtName} đã được xác nhận`,
+          link,
+          mail: bookingConfirmedEmail({ ...mailBase, amountVnd: amountPaid }),
+        });
 
-      await this.notify.dispatch({
-        userId: d.customerId,
-        type: NotificationType.PAYMENT_RECEIVED,
-        title: 'Thanh toán đã được ghi nhận',
-        body: `SanGo đã nhận ${amountPaid.toLocaleString('vi-VN')}đ cho đơn ${d.code}`,
-        link,
-        mail: paymentReceiptEmail({ ...mailBase, amountVnd: amountPaid }),
-      });
+        await this.notify.dispatch({
+          userId: d.customerId,
+          type: NotificationType.PAYMENT_RECEIVED,
+          title: 'Thanh toán đã được ghi nhận',
+          body: `SanGo đã nhận ${amountPaid.toLocaleString('vi-VN')}đ cho đơn ${d.code}`,
+          link,
+          mail: paymentReceiptEmail({ ...mailBase, amountVnd: amountPaid }),
+        });
+      }
 
       // Chủ venue biết có đơn mới (chỉ in-app — không mail để tránh spam).
       await this.notify.dispatch({
@@ -897,7 +924,7 @@ export class BookingsService {
           });
         }
       }
-      if (!refundedToCard) {
+      if (!refundedToCard && result.booking.customerId) {
         try {
           await this.wallets.credit({
             userId: result.booking.customerId,
@@ -972,7 +999,7 @@ export class BookingsService {
       const out: Array<{
         bookingId: string;
         code: string;
-        customerId: string;
+        customerId: string | null;
         refundPaymentId?: string;
         refundAmount: number;
       }> = [];
@@ -1019,7 +1046,7 @@ export class BookingsService {
     // SAU COMMIT: hoàn 100% vào ví TỨC THÌ (best-effort per đơn, không fail request)
     let refundedTotal = 0;
     for (const it of items) {
-      if (!it.refundPaymentId || it.refundAmount <= 0) continue;
+      if (!it.refundPaymentId || it.refundAmount <= 0 || !it.customerId) continue;
       try {
         await this.wallets.credit({
           userId: it.customerId,
@@ -1074,25 +1101,29 @@ export class BookingsService {
         ? `Đơn ${d.code} · ${d.courtName} đã bị hủy. Lý do: ${reason}`
         : `Đơn ${d.code} · ${d.courtName} đã bị hủy`;
 
-      await this.notify.dispatch({
-        userId: d.customerId,
-        type: NotificationType.BOOKING_CANCELLED,
-        title: 'Đơn đặt sân đã bị hủy',
-        body,
-        link,
-        mail: bookingCancelledEmail({
-          code: d.code,
-          customerName: d.customerName,
-          courtName: d.courtName,
-          venueName: d.venueName,
-          venueAddress: d.venueAddress,
-          date: d.dateIso,
-          startMinute: d.startMinute,
-          endMinute: d.endMinute,
-          amountVnd: refundAmount,
-          cancelReason: reason,
-        }),
-      });
+      // Đơn quầy không có tài khoản để nhận inbox/email -> bỏ qua phần khách,
+      // nhưng thông báo cho CHỦ VENUE bên dưới luôn phải chạy (nó không phụ thuộc khách).
+      if (d.customerId) {
+        await this.notify.dispatch({
+          userId: d.customerId,
+          type: NotificationType.BOOKING_CANCELLED,
+          title: 'Đơn đặt sân đã bị hủy',
+          body,
+          link,
+          mail: bookingCancelledEmail({
+            code: d.code,
+            customerName: d.customerName,
+            courtName: d.courtName,
+            venueName: d.venueName,
+            venueAddress: d.venueAddress,
+            date: d.dateIso,
+            startMinute: d.startMinute,
+            endMinute: d.endMinute,
+            amountVnd: refundAmount,
+            cancelReason: reason,
+          }),
+        });
+      }
 
       await this.notify.dispatch({
         userId: d.venueOwnerId,
@@ -1172,15 +1203,17 @@ export class BookingsService {
     let whereStatus: Prisma.BookingWhereInput = {};
     if (query.filter === 'upcoming') {
       whereStatus = {
-        status: { in: [BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN] },
+        // Upcoming means paid/confirmed but not checked in yet.
+        // CHECKED_IN is already an attended booking and must not appear here.
+        status: BookingStatus.CONFIRMED,
         date: { gte: todayMidnight },
       };
     } else if (query.filter === 'history') {
       whereStatus = {
         OR: [
-          { status: BookingStatus.COMPLETED },
+          { status: { in: [BookingStatus.COMPLETED, BookingStatus.CHECKED_IN] } },
           {
-            status: { in: [BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN] },
+            status: BookingStatus.CONFIRMED,
             date: { lt: todayMidnight },
           },
         ],
@@ -1260,14 +1293,30 @@ export class BookingsService {
       });
     }
 
-    const updated = await this.prisma.booking.update({
+    // checkedInAt là nguồn tính điểm ON_TIME_CHECK_IN (+10, reputation.service.ts).
+    // Không có chặn dưới thì chủ sân check-in đơn tương lai sẽ vĩnh viễn cộng uy tín
+    // cho một trận chưa diễn ra -> cho phép mở cửa sớm tối đa 2 giờ.
+    const startsAt = slotDateTime(booking.date, booking.startMinute).getTime();
+    if (Date.now() < startsAt - 2 * 3_600_000) {
+      throw new ConflictException({
+        message: 'Chưa tới giờ chơi, không thể check-in sớm hơn 2 giờ',
+        code: 'CHECKIN_TOO_EARLY',
+      });
+    }
+    const transition = await this.prisma.booking.updateMany({
+      where: { id: booking.id, status: BookingStatus.CONFIRMED },
+      data: { status: BookingStatus.CHECKED_IN, checkedInAt: new Date() },
+    });
+    const updated = await this.prisma.booking.findUniqueOrThrow({
       where: { id: booking.id },
-      data: { status: BookingStatus.CHECKED_IN },
       include: {
         court: { include: { venue: { select: { id: true, name: true } } } },
         customer: { select: { id: true, fullName: true, phone: true, email: true } },
       },
     });
+    if (!transition.count && updated.status !== BookingStatus.CHECKED_IN) {
+      throw new ConflictException({ code: 'CHECKIN_NOT_ALLOWED', message: 'Đơn đã thay đổi trạng thái, vui lòng tải lại' });
+    }
 
     return { message: 'Check-in thành công', booking: updated };
   }
@@ -1377,7 +1426,7 @@ export class BookingsService {
         code: 'SELF_JOIN_NOT_ALLOWED',
       });
     }
-    if (booking.status !== BookingStatus.CONFIRMED || !booking.isPublicMatch) {
+    if (booking.status !== BookingStatus.CONFIRMED || !booking.isPublicMatch || !booking.customerId) {
       throw new ConflictException({
         message: 'Đơn này không mở ghép trận',
         code: 'JOIN_NOT_ALLOWED',
@@ -1396,6 +1445,7 @@ export class BookingsService {
       });
     }
 
+    const hostCustomerId = booking.customerId;
     const result = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "bookings" WHERE id = ${booking.id}::uuid FOR UPDATE`;
       const fresh = await tx.booking.findUniqueOrThrow({
@@ -1429,7 +1479,7 @@ export class BookingsService {
       await tx.booking.update({ where: { id: booking.id }, data: { matchFull } });
       return {
         bookingId: booking.id,
-        hostCustomerId: booking.customerId,
+        hostCustomerId,
         bookingCode: booking.code,
         joinedCount: joinedCount + 1,
         slotsNeeded: fresh.slotsNeeded,
@@ -1497,7 +1547,7 @@ export class BookingsService {
       where: { id: bookingId },
       select: { customerId: true, code: true },
     });
-    if (host) {
+    if (host?.customerId) {
       const leaverName =
         (
           await this.prisma.user.findUnique({

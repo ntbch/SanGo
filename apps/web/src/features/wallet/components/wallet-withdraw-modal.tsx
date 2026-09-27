@@ -18,7 +18,7 @@ const BANK_OPTIONS = [
 export interface WalletWithdrawModalProps {
   show: boolean;
   onClose: () => void;
-  balance: number;
+  balance: number | null;
   withdrawAmount: string;
   setWithdrawAmount: (a: string) => void;
   selectedBank: string;
@@ -73,7 +73,7 @@ export function WalletWithdrawModal({
           <div className="p-3.5 rounded-2xl bg-secondary/40 border border-border/60 space-y-1 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Số dư khả dụng hiện có:</span>
-              <span className="font-mono-num font-black text-primary text-sm">{formatVND(balance)}</span>
+              <span className="font-mono-num font-black text-primary text-sm">{balance === null ? 'Chưa xác nhận được số dư' : formatVND(balance)}</span>
             </div>
             <p className="text-[11px] text-muted-foreground">
               Phí giao dịch rút tiền: <strong className="text-emerald-500 font-bold">0 đ (Miễn phí 100%)</strong>
@@ -150,7 +150,7 @@ export function WalletWithdrawModal({
               <Input
                 type="number"
                 min={50000}
-                max={balance}
+                max={balance ?? undefined}
                 step={10000}
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -161,7 +161,8 @@ export function WalletWithdrawModal({
                 <span className="text-muted-foreground">Tối thiểu: 50.000 đ</span>
                 <button
                   type="button"
-                  onClick={() => setWithdrawAmount(String(balance))}
+                  disabled={balance === null}
+                  onClick={() => { if (balance !== null) setWithdrawAmount(String(balance)); }}
                   className="text-primary font-bold hover:underline cursor-pointer"
                 >
                   Rút tất cả số dư
@@ -181,7 +182,7 @@ export function WalletWithdrawModal({
               </Button>
               <Button
                 type="submit"
-                disabled={isWithdrawLoading || Number(withdrawAmount) > balance || Number(withdrawAmount) < 50000}
+                disabled={balance === null || isWithdrawLoading || Number(withdrawAmount) > balance || Number(withdrawAmount) < 50000}
                 size="sm"
                 className="font-bold text-xs shadow-xs bg-rose-600 hover:bg-rose-700 text-white"
               >

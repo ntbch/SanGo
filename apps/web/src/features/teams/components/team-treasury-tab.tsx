@@ -10,7 +10,8 @@ interface TeamTreasuryTabProps {
   treasury: TreasuryOverview | null;
   fundAmount: string;
   onFundAmountChange: (amount: string) => void;
-  fundMsg: string | null;
+  fundMsg: { type: 'success' | 'error'; text: string } | null;
+  isContributing: boolean;
   onSubmitContribute: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ export function TeamTreasuryTab({
   fundAmount,
   onFundAmountChange,
   fundMsg,
+  isContributing,
   onSubmitContribute,
 }: TeamTreasuryTabProps): React.ReactElement {
   // Compute running balance for General Ledger Table
@@ -55,11 +57,18 @@ export function TeamTreasuryTab({
           <p className="text-[11px] text-muted-foreground">Thu chi công khai trong đội</p>
         </div>
 
-        {fundMsg && (
+        {/* Lỗi không được hiện trong khung xanh "thành công" — sẽ khiến người dùng
+            tin tiền đã vào quỹ khi thực tế giao dịch chưa chắc đã thành công. */}
+        {fundMsg?.type === 'success' && (
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>{fundMsg}</span>
+            <span>{fundMsg.text}</span>
           </div>
+        )}
+        {fundMsg?.type === 'error' && (
+          <p role="alert" className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold">
+            {fundMsg.text}
+          </p>
         )}
 
         <form onSubmit={onSubmitContribute} className="space-y-4">
@@ -83,9 +92,10 @@ export function TeamTreasuryTab({
 
           <Button
             type="submit"
+            disabled={isContributing}
             className="w-full font-bold text-xs cursor-pointer active:scale-[0.98] transition-transform"
           >
-            Xác Nhận Đóng Quỹ
+            {isContributing ? 'Đang đóng quỹ...' : 'Xác Nhận Đóng Quỹ'}
           </Button>
         </form>
       </Card>

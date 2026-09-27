@@ -5,7 +5,6 @@ import {
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   ArcElement,
   Title,
   Tooltip,
@@ -14,7 +13,7 @@ import {
   type ChartOptions,
   type ChartData,
 } from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Line, Doughnut } from 'react-chartjs-2';
 import { formatVND } from '../../../lib/utils';
 import type { SportType } from '../api/owner-api';
 
@@ -24,7 +23,6 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   ArcElement,
   Title,
   Tooltip,
@@ -192,102 +190,13 @@ export function RevenueTrendAreaChart({ series, isDark = true }: RevenueTrendCha
   );
 }
 
-interface HourlyOccupancyChartProps {
-  isDark?: boolean;
-}
-
-export function HourlyOccupancyBarChart({ isDark = true }: HourlyOccupancyChartProps): React.ReactElement {
-  const hours = Array.from({ length: 18 }, (_, i) => `${(i + 6).toString().padStart(2, '0')}:00`);
-  // Standard occupancy distribution curve (peak between 17:00 and 21:00)
-  const occupancyPercentages = [
-    15, 25, 30, 20, 15, 10, 15, 25, 45, 60, 85, 95, 100, 90, 70, 45, 20, 10,
-  ];
-
-  const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-  const textColor = isDark ? '#94a3b8' : '#64748b';
-
-  const data: ChartData<'bar'> = {
-    labels: hours,
-    datasets: [
-      {
-        label: 'Tỷ Lệ Lấp Đầy (%)',
-        data: occupancyPercentages,
-        backgroundColor: (context) => {
-          const idx = context.dataIndex;
-          const hour = idx + 6;
-          // Peak hours 17-21 get amber/gold glow, others emerald
-          if (hour >= 17 && hour <= 21) {
-            return isDark ? 'rgba(245, 158, 11, 0.85)' : 'rgba(245, 158, 11, 0.9)';
-          }
-          return isDark ? 'rgba(16, 185, 129, 0.75)' : 'rgba(16, 185, 129, 0.85)';
-        },
-        borderRadius: 6,
-        borderSkipped: false,
-      },
-    ],
-  };
-
-  const options: ChartOptions<'bar'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-        titleColor: isDark ? '#f8fafc' : '#0f172a',
-        bodyColor: isDark ? '#cbd5e1' : '#334155',
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        borderWidth: 1,
-        padding: 8,
-        callbacks: {
-          label: (context) => ` Lấp đầy: ${context.parsed.y}%`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: textColor,
-          font: {
-            size: 9,
-            family: 'monospace',
-          },
-        },
-      },
-      y: {
-        max: 100,
-        grid: {
-          color: gridColor,
-        },
-        ticks: {
-          color: textColor,
-          font: {
-            size: 10,
-          },
-          callback: (val) => `${val}%`,
-        },
-      },
-    },
-  };
-
-  return (
-    <div className="w-full h-full min-h-[220px]">
-      <Bar data={data} options={options} />
-    </div>
-  );
-}
 
 interface CourtPerformanceDoughnutProps {
   topCourts: Array<{
     courtName: string;
     revenueVnd: number;
     bookings: number;
-    sportType: SportType;
+    sportType?: SportType;
   }>;
   isDark?: boolean;
 }

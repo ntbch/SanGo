@@ -154,7 +154,7 @@ export function VenueCard({ venue, isHovered, onHover }: VenueCardProps): React.
               Giá từ
             </span>
             <span className="font-mono-num font-extrabold text-base sm:text-lg text-foreground">
-              {venue.priceFrom ? formatVND(venue.priceFrom) : '250.000 đ'}
+              {venue.priceFrom ? formatVND(venue.priceFrom) : 'Chưa cập nhật'}
               <span className="text-xs font-normal text-muted-foreground font-sans"> / slot</span>
             </span>
           </div>

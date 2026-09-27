@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -51,6 +52,21 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Đánh dấu toàn bộ thông báo chưa đọc là đã đọc' })
   markAllRead(@CurrentUser() user: AuthUser) {
     return this.notificationsService.markAllRead(user.id);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: 'Xóa toàn bộ thông báo của tôi' })
+  deleteAll(@CurrentUser() user: AuthUser) {
+    return this.notificationsService.deleteAll(user.id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Xóa thông báo của tôi' })
+  deleteOne(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(NotificationIdParamSchema)) id: string,
+  ) {
+    return this.notificationsService.deleteOne(user.id, id);
   }
 
   @Post(':id/read')

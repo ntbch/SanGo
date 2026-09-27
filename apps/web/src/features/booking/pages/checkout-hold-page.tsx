@@ -41,7 +41,7 @@ export function CheckoutHoldPage(): React.ReactElement {
     mutationFn: ({ holdId, code }: { holdId: string; code: string }) =>
       applyHoldVoucherApi(holdId, code),
     onSuccess: (data) => {
-      setVoucherSuccess(`Đã áp dụng mã thành công! Giảm ${formatVND(data.discountAmount || 50000)}`);
+      setVoucherSuccess(`Đã áp dụng mã thành công! Giảm ${formatVND(data.discountAmount ?? 0)}`);
       setVoucherError(null);
       refetch();
     },
@@ -120,7 +120,7 @@ export function CheckoutHoldPage(): React.ReactElement {
     );
   }
 
-  const subtotal = hold.subtotal || 250000;
+  const subtotal = hold.subtotal ?? 0;
   const discount = hold.discountAmount || 0;
   const finalTotal = hold.finalAmount ?? Math.max(0, subtotal - discount);
   const depositPercent = hold.depositPercent ?? hold.court?.venue?.depositPercent ?? 30;

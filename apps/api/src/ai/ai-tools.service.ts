@@ -122,10 +122,9 @@ export class AiToolsService {
     courtId: string,
     opts: { date?: string; userId?: string } = {},
   ): Promise<{ courtId: string; date: string; suggestions: AiSlotSuggestion[] }> {
-    const court = await this.prisma.court.findUnique({
-      where: { id: courtId },
-      include: { venue: { select: { openMinute: true, closeMinute: true } } },
-    });
+    // Chỉ cần kiểm tra tồn tại; lưới giờ do SlotsService.week sinh ra và nó tự tra
+    // cứu court/venue. Select thêm ở đây là một query thừa trên mỗi lần gợi ý.
+    const court = await this.prisma.court.findUnique({ where: { id: courtId }, select: { id: true } });
     if (!court)
       throw new NotFoundException({ message: 'Không tìm thấy sân con', code: 'COURT_NOT_FOUND' });
 
@@ -146,20 +145,18 @@ export class AiToolsService {
       }
     }
 
-    const startHour = Math.max(5, Math.floor(court.venue.openMinute / 60));
-    const endHour = Math.min(21, Math.ceil(court.venue.closeMinute / 60));
+    const week = await this.slots.week(courtId, date, 1);
     const candidates: AiSlotSuggestion[] = [];
-    for (let h = startHour; h <= endHour; h++) {
-      const minute = h * 60;
-      if (minute < court.venue.openMinute || minute + court.slotMinutes > court.venue.closeMinute) {
-        continue;
-      }
+    for (const slot of week.byDate[0].slots) {
+      if (slot.state !== 'AVAILABLE') continue;
+      const minute = slot.startMinute;
+      const h = Math.floor(minute / 60);
       const historyHits = historyByHour.get(h) ?? 0;
       const isGolden = GOLDEN_HOURS.has(h);
       const score = historyHits * HISTORY_WEIGHT + (isGolden ? GOLDEN_BONUS : 0);
       candidates.push({
         startMinute: minute,
-        label: fmt(minute) + '–' + fmt(minute + court.slotMinutes),
+        label: fmt(minute) + '–' + fmt(slot.endMinute),
         score,
         reason:
           historyHits > 0

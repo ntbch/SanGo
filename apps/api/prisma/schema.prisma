@@ -381,7 +381,9 @@ model Booking {
   id            String        @id @default(uuid()) @db.Uuid
   /// Mã đơn CH-YYYYMMDD-NNNN, sinh ở tầng app.
   code          String        @unique
-  customerId    String        @db.Uuid
+  customerId    String?       @db.Uuid
+  guestName     String?
+  guestPhone    String?
   courtId       String        @db.Uuid
   date          DateTime      @db.Date
   startMinute   Int
@@ -410,7 +412,7 @@ model Booking {
   teamId      String?   @db.Uuid
   createdAt     DateTime      @default(now())
 
-  customer User      @relation("BookingCustomer", fields: [customerId], references: [id])
+  customer User?     @relation("BookingCustomer", fields: [customerId], references: [id])
   court    Court     @relation(fields: [courtId], references: [id])
   team         Team?          @relation(fields: [teamId], references: [id])
   payments     Payment[]

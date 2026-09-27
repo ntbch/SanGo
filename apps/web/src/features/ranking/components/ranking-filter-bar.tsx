@@ -1,5 +1,4 @@
 import React from 'react';
-import { CITIES } from '../../../lib/constants';
 import { cn } from '../../../lib/utils';
 
 export interface SportOption {
@@ -9,7 +8,8 @@ export interface SportOption {
 
 export const DEFAULT_SPORTS_LIST: SportOption[] = [
   { id: 'ALL', label: 'Tất Cả Môn' },
-  { id: 'FOOTBALL', label: 'Bóng Đá' },
+  { id: 'FOOTBALL5', label: 'Bóng Đá Sân 5' },
+  { id: 'FOOTBALL7', label: 'Bóng Đá Sân 7' },
   { id: 'PICKLEBALL', label: 'Pickleball' },
   { id: 'BADMINTON', label: 'Cầu Lông' },
   { id: 'TENNIS', label: 'Tennis' },
@@ -18,16 +18,12 @@ export const DEFAULT_SPORTS_LIST: SportOption[] = [
 interface RankingFilterBarProps {
   sportFilter: string;
   onSportFilterChange: (sport: string) => void;
-  cityFilter: string;
-  onCityFilterChange: (city: string) => void;
   sports?: SportOption[];
 }
 
 export function RankingFilterBar({
   sportFilter,
   onSportFilterChange,
-  cityFilter,
-  onCityFilterChange,
   sports = DEFAULT_SPORTS_LIST,
 }: RankingFilterBarProps): React.ReactElement {
   return (
@@ -54,21 +50,6 @@ export function RankingFilterBar({
         })}
       </div>
 
-      {/* City Filter */}
-      <div className="flex items-center gap-2">
-        <select
-          value={cityFilter}
-          onChange={(e) => onCityFilterChange(e.target.value)}
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium focus:ring-2 focus:ring-primary focus:outline-hidden cursor-pointer shadow-xs"
-        >
-          <option value="ALL">Tất cả Thành phố</option>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
     </div>
   );
 }
